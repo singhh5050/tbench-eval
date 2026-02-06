@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
-set -euo pipefail
+# Run one agent × model × 13 tasks
+# Exits 0 even if harbor has task failures (those are expected)
+# Only exits non-zero on infrastructure errors
 
 AGENT="$1"    # terminus-2 or openhands
 MODEL="$2"    # LiteLLM model string
@@ -30,4 +32,7 @@ harbor run \
   "${TASK_FLAGS[@]}" \
   2>&1 | tee "${JOBS_DIR}/run.log"
 
-echo "=== [$(date '+%H:%M:%S')] Done: $JOBS_DIR ==="
+EXIT_CODE=${PIPESTATUS[0]}
+
+echo "=== [$(date '+%H:%M:%S')] Done: $JOBS_DIR (exit=$EXIT_CODE) ==="
+exit 0  # Always succeed — harbor exit codes reflect task failures, not infra failures

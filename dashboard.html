@@ -1,0 +1,887 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TerminalBench 2.0 — Results Dashboard</title>
+<style>
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface2: #232733;
+    --border: #2d3141;
+    --text: #e1e4ed;
+    --text-dim: #8b90a0;
+    --green: #22c55e;
+    --green-bg: rgba(34,197,94,0.12);
+    --red: #ef4444;
+    --red-bg: rgba(239,68,68,0.12);
+    --blue: #3b82f6;
+    --blue-bg: rgba(59,130,246,0.12);
+    --yellow: #eab308;
+    --purple: #a855f7;
+    --radius: 8px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.5;
+    padding: 24px;
+  }
+
+  h1 {
+    font-size: 24px;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+
+  .subtitle {
+    color: var(--text-dim);
+    font-size: 14px;
+    margin-bottom: 24px;
+  }
+
+  /* Tabs */
+  .tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 24px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 0;
+  }
+
+  .tab {
+    padding: 8px 16px;
+    cursor: pointer;
+    color: var(--text-dim);
+    border-bottom: 2px solid transparent;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.15s;
+    background: none;
+    border-top: none;
+    border-left: none;
+    border-right: none;
+  }
+
+  .tab:hover { color: var(--text); }
+  .tab.active {
+    color: var(--blue);
+    border-bottom-color: var(--blue);
+  }
+
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  /* Summary cards */
+  .summary-row {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px 20px;
+    flex: 1;
+    min-width: 160px;
+  }
+
+  .card-label {
+    font-size: 12px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+  }
+
+  .card-value {
+    font-size: 28px;
+    font-weight: 700;
+  }
+
+  .card-value.green { color: var(--green); }
+  .card-value.blue { color: var(--blue); }
+
+  /* Heatmap */
+  .heatmap-container {
+    overflow-x: auto;
+    margin-bottom: 24px;
+  }
+
+  table.heatmap {
+    border-collapse: collapse;
+    width: 100%;
+    font-size: 13px;
+  }
+
+  table.heatmap th, table.heatmap td {
+    padding: 8px 12px;
+    border: 1px solid var(--border);
+    text-align: center;
+    white-space: nowrap;
+  }
+
+  table.heatmap th {
+    background: var(--surface);
+    color: var(--text-dim);
+    font-weight: 600;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    position: sticky;
+    top: 0;
+  }
+
+  table.heatmap th.task-header {
+    text-align: left;
+    min-width: 200px;
+  }
+
+  table.heatmap td.task-name {
+    text-align: left;
+    font-weight: 500;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 12px;
+    background: var(--surface);
+  }
+
+  table.heatmap td.pass {
+    background: var(--green-bg);
+    color: var(--green);
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  table.heatmap td.fail {
+    background: var(--red-bg);
+    color: var(--red);
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  table.heatmap td.error {
+    background: rgba(234,179,8,0.1);
+    color: var(--yellow);
+    cursor: pointer;
+  }
+
+  table.heatmap td.missing {
+    background: var(--surface2);
+    color: var(--text-dim);
+    font-size: 11px;
+  }
+
+  table.heatmap td:hover:not(.task-name):not(.missing) {
+    outline: 2px solid var(--blue);
+    outline-offset: -2px;
+  }
+
+  table.heatmap tr.summary-row-table td {
+    background: var(--surface);
+    font-weight: 700;
+    font-size: 14px;
+    border-top: 2px solid var(--border);
+  }
+
+  /* Bar chart */
+  .bar-chart {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    max-width: 700px;
+  }
+
+  .bar-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .bar-label {
+    width: 260px;
+    font-size: 13px;
+    font-weight: 500;
+    text-align: right;
+    flex-shrink: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .bar-track {
+    flex: 1;
+    height: 28px;
+    background: var(--surface2);
+    border-radius: 4px;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .bar-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.5s ease;
+    display: flex;
+    align-items: center;
+    padding-left: 8px;
+    font-size: 12px;
+    font-weight: 700;
+    color: white;
+    min-width: fit-content;
+  }
+
+  .bar-fill.green-bar { background: var(--green); }
+  .bar-fill.blue-bar { background: var(--blue); }
+  .bar-fill.purple-bar { background: var(--purple); }
+  .bar-fill.red-bar { background: var(--red); }
+
+  .bar-value {
+    width: 60px;
+    text-align: left;
+    font-size: 14px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+
+  /* Task difficulty */
+  .task-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-width: 800px;
+  }
+
+  .task-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 12px;
+    background: var(--surface);
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+  }
+
+  .task-row .name {
+    width: 240px;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 12px;
+    font-weight: 500;
+    flex-shrink: 0;
+  }
+
+  .task-row .solve-bar {
+    flex: 1;
+    height: 20px;
+    background: var(--surface2);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  .task-row .solve-fill {
+    height: 100%;
+    background: var(--green);
+    border-radius: 3px;
+    transition: width 0.5s ease;
+  }
+
+  .task-row .solve-rate {
+    width: 50px;
+    text-align: right;
+    font-weight: 700;
+    font-size: 13px;
+  }
+
+  .task-row .pips {
+    display: flex;
+    gap: 3px;
+  }
+
+  .pip {
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+
+  .pip.pass { background: var(--green); }
+  .pip.fail { background: var(--red); }
+  .pip.err { background: var(--yellow); }
+  .pip.na { background: var(--surface2); }
+
+  /* Trajectory modal */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 1000;
+    overflow-y: auto;
+    padding: 32px;
+  }
+
+  .modal-overlay.open { display: flex; justify-content: center; }
+
+  .modal {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    max-width: 900px;
+    width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+    padding: 24px;
+    position: relative;
+  }
+
+  .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .modal-title {
+    font-size: 18px;
+    font-weight: 700;
+  }
+
+  .modal-close {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .modal-close:hover { background: var(--border); }
+
+  .badge {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 700;
+  }
+
+  .badge.pass-badge { background: var(--green-bg); color: var(--green); }
+  .badge.fail-badge { background: var(--red-bg); color: var(--red); }
+
+  .modal-meta {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+
+  .meta-item {
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+
+  .meta-item span { color: var(--text); font-weight: 600; }
+
+  /* Chat-style steps */
+  .step {
+    margin-bottom: 16px;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    overflow: hidden;
+  }
+
+  .step-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    background: var(--surface);
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+
+  .step-header .source {
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+
+  .step-header .source.agent-src { color: var(--blue); }
+  .step-header .source.system-src { color: var(--purple); }
+  .step-header .source.env-src { color: var(--yellow); }
+
+  .step-body {
+    padding: 12px;
+    font-size: 13px;
+    line-height: 1.6;
+  }
+
+  .step-message {
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  .reasoning-toggle {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    padding: 4px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 11px;
+    margin-bottom: 8px;
+    display: inline-block;
+  }
+
+  .reasoning-toggle:hover { color: var(--text); }
+
+  .reasoning-content {
+    display: none;
+    background: var(--surface2);
+    border-radius: 6px;
+    padding: 10px;
+    margin-bottom: 10px;
+    font-size: 12px;
+    color: var(--text-dim);
+    white-space: pre-wrap;
+    word-break: break-word;
+    border-left: 3px solid var(--purple);
+  }
+
+  .reasoning-content.open { display: block; }
+
+  .tool-calls {
+    margin-top: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .tool-call {
+    background: var(--surface2);
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 12px;
+    border-left: 3px solid var(--blue);
+  }
+
+  .tool-call .fn-name { color: var(--blue); font-weight: 600; }
+
+  .observation-block {
+    background: #0d1117;
+    border-radius: 6px;
+    padding: 10px;
+    margin-top: 8px;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 11px;
+    white-space: pre-wrap;
+    word-break: break-word;
+    color: #c9d1d9;
+    max-height: 300px;
+    overflow-y: auto;
+    border: 1px solid #21262d;
+  }
+
+  .token-info {
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-top: 6px;
+  }
+
+  .loading {
+    text-align: center;
+    padding: 60px;
+    color: var(--text-dim);
+    font-size: 16px;
+  }
+
+  .section-title {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 16px;
+    color: var(--text);
+  }
+</style>
+</head>
+<body>
+
+<h1>TerminalBench 2.0 — Results Dashboard</h1>
+<p class="subtitle">AMD EVO-X2 • Lemonade Server + Cloud APIs • Harbor Framework</p>
+
+<div class="summary-row" id="summaryCards"></div>
+
+<div class="tabs">
+  <button class="tab active" data-tab="heatmap">Heatmap</button>
+  <button class="tab" data-tab="models">Models</button>
+  <button class="tab" data-tab="tasks">Tasks</button>
+</div>
+
+<div id="heatmap" class="tab-content active">
+  <div class="heatmap-container" id="heatmapContainer"></div>
+</div>
+
+<div id="models" class="tab-content">
+  <p class="section-title">Pass Rate by Model × Agent</p>
+  <div class="bar-chart" id="barChart"></div>
+</div>
+
+<div id="tasks" class="tab-content">
+  <p class="section-title">Task Difficulty (sorted by solve rate)</p>
+  <div class="task-list" id="taskList"></div>
+</div>
+
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal" id="modal">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="modalTitle"></div>
+      </div>
+      <button class="modal-close" id="modalClose">✕</button>
+    </div>
+    <div class="modal-meta" id="modalMeta"></div>
+    <div id="modalBody"><div class="loading">Loading trajectory…</div></div>
+  </div>
+</div>
+
+<script>
+let DATA = [];
+let RUNS = [];  // unique run names
+let TASKS = []; // unique task names
+
+// ── Data loading ──
+async function loadData() {
+  const resp = await fetch('/api/results');
+  DATA = await resp.json();
+
+  // Deduplicate runs and tasks
+  const runSet = new Set();
+  const taskSet = new Set();
+  DATA.forEach(d => { runSet.add(d.run); taskSet.add(d.task); });
+  RUNS = [...runSet].sort();
+  TASKS = [...taskSet].sort();
+
+  renderSummary();
+  renderHeatmap();
+  renderBarChart();
+  renderTaskList();
+}
+
+function lookup(run, task) {
+  return DATA.find(d => d.run === run && d.task === task);
+}
+
+// ── Summary cards ──
+function renderSummary() {
+  const totalTrials = DATA.length;
+  const passes = DATA.filter(d => d.reward === 1.0).length;
+  const errors = DATA.filter(d => d.error).length;
+  const rate = totalTrials > 0 ? (passes / totalTrials * 100).toFixed(1) : '0.0';
+  const totalTokens = DATA.reduce((s, d) => s + (d.tokens?.prompt || 0) + (d.tokens?.completion || 0), 0);
+
+  document.getElementById('summaryCards').innerHTML = `
+    <div class="card">
+      <div class="card-label">Total Trials</div>
+      <div class="card-value blue">${totalTrials}</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Pass Rate</div>
+      <div class="card-value green">${rate}%</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Passes / Fails / Errors</div>
+      <div class="card-value">${passes} / ${totalTrials - passes - errors} / ${errors}</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Total Tokens</div>
+      <div class="card-value">${(totalTokens / 1000).toFixed(0)}k</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Configs</div>
+      <div class="card-value">${RUNS.length}</div>
+    </div>
+  `;
+}
+
+// ── Heatmap ──
+function renderHeatmap() {
+  // Build column headers from runs
+  const colLabels = RUNS.map(r => {
+    const d = DATA.find(x => x.run === r);
+    return { run: r, agent: d?.agent || '', model_tag: d?.model_tag || '' };
+  });
+
+  let html = '<table class="heatmap"><thead><tr><th class="task-header">Task</th>';
+  colLabels.forEach(c => {
+    html += `<th>${c.agent}<br><span style="color:var(--text);font-size:10px;text-transform:none">${c.model_tag}</span></th>`;
+  });
+  html += '</tr></thead><tbody>';
+
+  TASKS.forEach(task => {
+    html += `<tr><td class="task-name">${task}</td>`;
+    RUNS.forEach(run => {
+      const d = lookup(run, task);
+      if (!d) {
+        html += '<td class="missing">—</td>';
+      } else if (d.error) {
+        html += `<td class="error" data-path="${d.trajectory_path}" title="${d.error}">ERR</td>`;
+      } else if (d.reward === 1.0) {
+        const dur = d.duration ? `${Math.round(d.duration)}s` : '';
+        html += `<td class="pass" data-path="${d.trajectory_path}" title="${dur}">✓</td>`;
+      } else {
+        const dur = d.duration ? `${Math.round(d.duration)}s` : '';
+        html += `<td class="fail" data-path="${d.trajectory_path}" title="${dur}">✗</td>`;
+      }
+    });
+    html += '</tr>';
+  });
+
+  // Summary row
+  html += '<tr class="summary-row-table"><td class="task-name" style="font-weight:700">Pass Rate</td>';
+  RUNS.forEach(run => {
+    const runData = DATA.filter(d => d.run === run);
+    const passes = runData.filter(d => d.reward === 1.0).length;
+    const total = runData.length;
+    const rate = total > 0 ? (passes / total * 100).toFixed(0) : '—';
+    const color = rate >= 50 ? 'var(--green)' : rate >= 25 ? 'var(--yellow)' : 'var(--red)';
+    html += `<td style="color:${color}">${rate}%<br><span style="font-size:11px;color:var(--text-dim)">${passes}/${total}</span></td>`;
+  });
+  html += '</tr>';
+
+  html += '</tbody></table>';
+  document.getElementById('heatmapContainer').innerHTML = html;
+
+  // Click handlers
+  document.querySelectorAll('td[data-path]').forEach(td => {
+    td.addEventListener('click', () => openTrajectory(td.dataset.path));
+  });
+}
+
+// ── Bar chart ──
+function renderBarChart() {
+  const colors = ['green-bar', 'blue-bar', 'purple-bar', 'red-bar'];
+  const rows = RUNS.map((run, i) => {
+    const runData = DATA.filter(d => d.run === run);
+    const passes = runData.filter(d => d.reward === 1.0).length;
+    const total = runData.length;
+    const rate = total > 0 ? passes / total * 100 : 0;
+    const d = DATA.find(x => x.run === run);
+    return { run, agent: d?.agent, model_tag: d?.model_tag, rate, passes, total };
+  });
+
+  rows.sort((a, b) => b.rate - a.rate);
+
+  let html = '';
+  rows.forEach((r, i) => {
+    const color = colors[i % colors.length];
+    html += `
+      <div class="bar-row">
+        <div class="bar-label">${r.agent} · ${r.model_tag}</div>
+        <div class="bar-track">
+          <div class="bar-fill ${color}" style="width:${Math.max(r.rate, 2)}%">${r.rate >= 15 ? r.passes + '/' + r.total : ''}</div>
+        </div>
+        <div class="bar-value" style="color:${r.rate >= 50 ? 'var(--green)' : r.rate >= 25 ? 'var(--yellow)' : 'var(--red)'}">${r.rate.toFixed(0)}%</div>
+      </div>
+    `;
+  });
+
+  document.getElementById('barChart').innerHTML = html;
+}
+
+// ── Task difficulty ──
+function renderTaskList() {
+  const taskStats = TASKS.map(task => {
+    const taskData = DATA.filter(d => d.task === task);
+    const passes = taskData.filter(d => d.reward === 1.0).length;
+    const total = taskData.length;
+    const rate = total > 0 ? passes / total * 100 : 0;
+    return { task, passes, total, rate, data: taskData };
+  });
+
+  taskStats.sort((a, b) => a.rate - b.rate);
+
+  let html = '';
+  taskStats.forEach(t => {
+    const pips = RUNS.map(run => {
+      const d = t.data.find(x => x.run === run);
+      if (!d) return '<div class="pip na" title="N/A"></div>';
+      if (d.error) return `<div class="pip err" title="${run}: error"></div>`;
+      if (d.reward === 1.0) return `<div class="pip pass" title="${run}: pass"></div>`;
+      return `<div class="pip fail" title="${run}: fail"></div>`;
+    }).join('');
+
+    html += `
+      <div class="task-row">
+        <div class="name">${t.task}</div>
+        <div class="solve-bar"><div class="solve-fill" style="width:${t.rate}%"></div></div>
+        <div class="solve-rate" style="color:${t.rate >= 50 ? 'var(--green)' : t.rate > 0 ? 'var(--yellow)' : 'var(--red)'}">${t.rate.toFixed(0)}%</div>
+        <div class="pips">${pips}</div>
+      </div>
+    `;
+  });
+
+  document.getElementById('taskList').innerHTML = html;
+}
+
+// ── Trajectory viewer ──
+async function openTrajectory(path) {
+  const overlay = document.getElementById('modalOverlay');
+  const body = document.getElementById('modalBody');
+  const title = document.getElementById('modalTitle');
+  const meta = document.getElementById('modalMeta');
+
+  overlay.classList.add('open');
+  body.innerHTML = '<div class="loading">Loading trajectory…</div>';
+
+  // Find trial data
+  const trial = DATA.find(d => d.trajectory_path === path);
+  const taskName = trial?.task || path.split('/').pop();
+  const reward = trial?.reward;
+  const badgeClass = reward === 1.0 ? 'pass-badge' : 'fail-badge';
+  const badgeText = reward === 1.0 ? 'PASS' : 'FAIL';
+
+  title.innerHTML = `${taskName} <span class="badge ${badgeClass}">${badgeText}</span>`;
+
+  meta.innerHTML = `
+    <div class="meta-item">Agent: <span>${trial?.agent || '?'}</span></div>
+    <div class="meta-item">Model: <span>${trial?.model_tag || '?'}</span></div>
+    <div class="meta-item">Duration: <span>${trial?.duration ? Math.round(trial.duration) + 's' : '?'}</span></div>
+    <div class="meta-item">Tokens: <span>${((trial?.tokens?.prompt || 0) + (trial?.tokens?.completion || 0)).toLocaleString()}</span></div>
+  `;
+
+  const resp = await fetch(`/api/trajectory?path=${encodeURIComponent(path)}`);
+  const traj = await resp.json();
+
+  if (traj.error) {
+    body.innerHTML = `<div class="loading">${traj.error}</div>`;
+    return;
+  }
+
+  let html = '';
+  (traj.steps || []).forEach((step, i) => {
+    const source = step.source || 'unknown';
+    const srcClass = source === 'agent' ? 'agent-src' : source === 'system' ? 'system-src' : 'env-src';
+    const model = step.model_name ? ` · ${step.model_name.split('/').pop()}` : '';
+    const tokens = step.metrics ?
+      `${(step.metrics.prompt_tokens || 0).toLocaleString()}p / ${(step.metrics.completion_tokens || 0).toLocaleString()}c` : '';
+
+    html += `<div class="step">`;
+    html += `<div class="step-header">
+      <span><span class="source ${srcClass}">${source}</span> Step ${step.step_id || i}${model}</span>
+      <span>${tokens}</span>
+    </div>`;
+    html += `<div class="step-body">`;
+
+    // Reasoning (collapsible)
+    if (step.reasoning_content) {
+      const rid = `reasoning-${i}`;
+      html += `<button class="reasoning-toggle" onclick="document.getElementById('${rid}').classList.toggle('open')">💭 Show reasoning</button>`;
+      html += `<div class="reasoning-content" id="${rid}">${escapeHtml(step.reasoning_content)}</div>`;
+    }
+
+    // Message
+    if (step.message) {
+      html += `<div class="step-message">${escapeHtml(truncate(step.message, 3000))}</div>`;
+    }
+
+    // Tool calls
+    if (step.tool_calls && step.tool_calls.length > 0) {
+      html += '<div class="tool-calls">';
+      step.tool_calls.forEach(tc => {
+        const fn = tc.function_name || tc.name || '?';
+        const args = tc.arguments || {};
+        let argStr = '';
+        if (typeof args === 'string') {
+          argStr = args;
+        } else if (args.keystrokes) {
+          argStr = args.keystrokes;
+        } else if (args.command) {
+          argStr = args.command;
+        } else {
+          argStr = JSON.stringify(args).slice(0, 200);
+        }
+        html += `<div class="tool-call"><span class="fn-name">${escapeHtml(fn)}</span> ${escapeHtml(truncate(argStr, 300))}</div>`;
+      });
+      html += '</div>';
+    }
+
+    // Observation
+    if (step.observation) {
+      const results = step.observation.results || [];
+      results.forEach(r => {
+        if (r.content) {
+          html += `<div class="observation-block">${escapeHtml(truncate(r.content, 3000))}</div>`;
+        }
+      });
+    }
+
+    // Token info
+    if (step.metrics) {
+      html += `<div class="token-info">Tokens: ${(step.metrics.prompt_tokens || 0).toLocaleString()} prompt, ${(step.metrics.completion_tokens || 0).toLocaleString()} completion${step.metrics.cached_tokens ? ', ' + step.metrics.cached_tokens.toLocaleString() + ' cached' : ''}</div>`;
+    }
+
+    html += '</div></div>';
+  });
+
+  // Verifier output
+  if (traj.verifier_stdout) {
+    html += `<div class="step">
+      <div class="step-header"><span class="source system-src">VERIFIER</span></div>
+      <div class="step-body"><div class="observation-block">${escapeHtml(truncate(traj.verifier_stdout, 3000))}</div></div>
+    </div>`;
+  }
+
+  body.innerHTML = html || '<div class="loading">No steps found in trajectory.</div>';
+}
+
+function escapeHtml(str) {
+  if (!str) return '';
+  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function truncate(str, max) {
+  if (!str || str.length <= max) return str;
+  return str.slice(0, max) + '\n… (truncated)';
+}
+
+// ── Tab switching ──
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById(tab.dataset.tab).classList.add('active');
+  });
+});
+
+// ── Modal close ──
+document.getElementById('modalClose').addEventListener('click', () => {
+  document.getElementById('modalOverlay').classList.remove('open');
+});
+document.getElementById('modalOverlay').addEventListener('click', (e) => {
+  if (e.target === e.currentTarget) {
+    e.currentTarget.classList.remove('open');
+  }
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') document.getElementById('modalOverlay').classList.remove('open');
+});
+
+// ── Init ──
+loadData();
+</script>
+</body>
+</html>
