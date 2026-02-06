@@ -571,8 +571,15 @@ async function loadData() {
   const runSet = new Set();
   const taskSet = new Set();
   DATA.forEach(d => { runSet.add(d.run); taskSet.add(d.task); });
-  RUNS = [...runSet].sort();
   TASKS = [...taskSet].sort();
+  // Sort runs by pass rate descending; missing tasks count as failures
+  const nTasks = TASKS.length;
+  RUNS = [...runSet].sort((a, b) => {
+    const aPass = DATA.filter(d => d.run === a && d.reward === 1.0).length;
+    const bPass = DATA.filter(d => d.run === b && d.reward === 1.0).length;
+    if (bPass !== aPass) return bPass - aPass;
+    return a.localeCompare(b);
+  });
 
   renderSummary();
   renderHeatmap();
