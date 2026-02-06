@@ -78,19 +78,9 @@ def scan_results():
                 if started and finished:
                     from datetime import datetime
                     try:
-                        fmt_options = ["%Y-%m-%dT%H:%M:%S.%f", "%Y-%m-%dT%H:%M:%S.%fZ",
-                                       "%Y-%m-%dT%H:%M:%S.%f%z", "%Y-%m-%dT%H:%M:%S"]
-                        s_dt = f_dt = None
-                        for fmt in fmt_options:
-                            try:
-                                s_dt = datetime.fromisoformat(started.replace("Z", "+00:00"))
-                                f_dt = datetime.fromisoformat(finished.replace("Z", "+00:00"))
-                                break
-                            except ValueError:
-                                continue
-                        if s_dt and f_dt:
-                            duration = (f_dt - f_dt.replace(tzinfo=None) if f_dt.tzinfo else f_dt)
-                            duration = (f_dt - s_dt).total_seconds()
+                        s_dt = datetime.fromisoformat(started.replace("Z", "+00:00"))
+                        f_dt = datetime.fromisoformat(finished.replace("Z", "+00:00"))
+                        duration = (f_dt - s_dt).total_seconds()
                     except Exception:
                         pass
 
