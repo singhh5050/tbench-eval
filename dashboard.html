@@ -572,14 +572,17 @@ async function loadData() {
   const taskSet = new Set();
   DATA.forEach(d => { runSet.add(d.run); taskSet.add(d.task); });
   TASKS = [...taskSet].sort();
-  // Sort runs by pass rate descending; missing tasks count as failures
-  const nTasks = TASKS.length;
-  RUNS = [...runSet].sort((a, b) => {
-    const aPass = DATA.filter(d => d.run === a && d.reward === 1.0).length;
-    const bPass = DATA.filter(d => d.run === b && d.reward === 1.0).length;
-    if (bPass !== aPass) return bPass - aPass;
-    return a.localeCompare(b);
-  });
+  // Filter out runs with fewer than half the tasks graded (still in progress)
+  const nTasks = taskSet.size;
+  const MIN_GRADED = Math.floor(nTasks / 2);
+  RUNS = [...runSet]
+    .filter(r => DATA.filter(d => d.run === r).length >= MIN_GRADED)
+    .sort((a, b) => {
+      const aPass = DATA.filter(d => d.run === a && d.reward === 1.0).length;
+      const bPass = DATA.filter(d => d.run === b && d.reward === 1.0).length;
+      if (bPass !== aPass) return bPass - aPass;
+      return a.localeCompare(b);
+    });
 
   renderSummary();
   renderHeatmap();
@@ -628,12 +631,15 @@ function renderHeatmap() {
   // Build column headers from runs
   const colLabels = RUNS.map(r => {
     const d = DATA.find(x => x.run === r);
-    return { run: r, agent: d?.agent || '', model_tag: d?.model_tag || '' };
+    return { run: r, agent: d?.agent || '', model_tag: d?.model_tag || '', runtime: d?.runtime || '' };
   });
 
   let html = '<table class="heatmap"><thead><tr><th class="task-header">Task</th>';
   colLabels.forEach(c => {
-    html += `<th>${c.agent}<br><span style="color:var(--text);font-size:10px;text-transform:none">${c.model_tag}</span></th>`;
+    const badge = c.runtime === 'local'
+      ? '<span style="background:#4a3800;color:#ffd700;padding:1px 5px;border-radius:3px;font-size:9px;margin-left:4px">LOCAL</span>'
+      : '<span style="background:#003344;color:#00bfff;padding:1px 5px;border-radius:3px;font-size:9px;margin-left:4px">CLOUD</span>';
+    html += `<th>${c.agent}${badge}<br><span style="color:var(--text);font-size:10px;text-transform:none">${c.model_tag}</span></th>`;
   });
   html += '</tr></thead><tbody>';
 
@@ -686,7 +692,7 @@ function renderBarChart() {
     const total = runData.length;
     const rate = total > 0 ? passes / total * 100 : 0;
     const d = DATA.find(x => x.run === run);
-    return { run, agent: d?.agent, model_tag: d?.model_tag, rate, passes, total };
+    return { run, agent: d?.agent, model_tag: d?.model_tag, runtime: d?.runtime, rate, passes, total };
   });
 
   rows.sort((a, b) => b.rate - a.rate);
@@ -696,7 +702,7 @@ function renderBarChart() {
     const color = colors[i % colors.length];
     html += `
       <div class="bar-row">
-        <div class="bar-label">${r.agent} · ${r.model_tag}</div>
+        <div class="bar-label">${r.agent} · ${r.model_tag} ${r.runtime === 'local' ? '🖥️' : '☁️'}</div>
         <div class="bar-track">
           <div class="bar-fill ${color}" style="width:${Math.max(r.rate, 2)}%">${r.rate >= 15 ? r.passes + '/' + r.total : ''}</div>
         </div>

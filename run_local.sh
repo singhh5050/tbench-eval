@@ -25,7 +25,7 @@ echo ""
 # Verify Lemonade is running
 if ! curl -sf http://localhost:8000/api/v1/models > /dev/null 2>&1; then
   echo "ERROR: Lemonade is not running on :8000"
-  echo "Start it with: lemonade-server serve --host 0.0.0.0 --ctx-size 32768"
+  echo "Start it with: lemonade-server serve --host 0.0.0.0 --ctx-size 32768 --llamacpp-args '--cache-ram 0'"
   exit 1
 fi
 echo "Lemonade is up on :8000"

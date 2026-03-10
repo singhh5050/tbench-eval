@@ -1,0 +1,59 @@
+# Harbor config for OpenHands with Docker host networking
+# This makes the container share the host's network stack
+# Fixes both localhost access (Lemonade) and SSL cert issues
+
+job_name: "openhands-qwen-30b-hostnet"
+jobs_dir: "./results/openhands-qwen-30b-hostnet"
+n_attempts: 1
+timeout_multiplier: 1.0
+debug: false
+
+orchestrator:
+  type: local
+  n_concurrent_trials: 1
+  quiet: false
+  retry:
+    max_retries: 0
+
+environment:
+  type: docker
+  override_memory_mb: 8192  # Give container 8GB RAM
+  override_storage_mb: 10240  # Give container 10GB storage
+  kwargs:
+    # Use host networking - container shares host's network namespace
+    network_mode: host
+
+agents:
+  - name: openhands
+    model_name: "openai/Qwen3-Coder-30B-A3B-Instruct-GGUF"
+    kwargs:
+      # Runtime configuration for OpenHands
+      runtime: docker
+      # Token limits for unmapped models (prevents 200k completion requests)
+      model_info:
+        max_input_tokens: 131072
+        max_output_tokens: 16384
+      # Additional runtime kwargs if needed
+      runtime_kwargs:
+        network_mode: host
+
+datasets:
+  - name: terminal-bench
+    version: "2.0"
+    registry:
+      name: null
+      url: "https://raw.githubusercontent.com/laude-institute/harbor/main/registry.json"
+    task_names:
+      - cobol-modernization
+      - fix-git
+      - prove-plus-comm
+      - build-pmars
+      - build-pov-ray
+      - code-from-image
+      - git-leak-recovery
+      - headless-terminal
+      - kv-store-grpc
+      - polyglot-c-py
+      - pypi-server
+      - schemelike-metacircular-eval
+      - winning-avg-corewars

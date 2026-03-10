@@ -36,6 +36,10 @@ def scan_results():
             agent = run_name.split("-")[0]
             model_tag = "-".join(run_name.split("-")[1:])
 
+        # Determine if local or cloud
+        is_local = "local" in model_tag
+        runtime = "local" if is_local else "cloud"
+
         # Find the job directory (timestamp-named)
         for job_dir in sorted(run_dir.iterdir()):
             if not job_dir.is_dir():
@@ -108,6 +112,7 @@ def scan_results():
                     "run": run_name,
                     "agent": agent,
                     "model_tag": model_tag,
+                    "runtime": runtime,
                     "task": task_name,
                     "trial_name": trial_name,
                     "reward": reward,
