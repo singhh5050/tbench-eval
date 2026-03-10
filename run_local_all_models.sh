@@ -2,11 +2,14 @@
 # Run TerminalBench 2.0 benchmarks across multiple local models
 # Automatically manages disk space by deleting completed models
 #
-# Target Models (March 2026):
-#   - unsloth/Qwen3.5-35B-A3B-GGUF (~18GB, MoE)
-#   - unsloth/Qwen3.5-27B-GGUF (~18GB, dense)
-#   - unsloth/Qwen3-Coder-Next-GGUF (~20GB, MoE)
-#   - unsloth/Qwen3.5-9B-GGUF (~6GB, fast baseline)
+# Target Models (March 2026 - from HuggingFace):
+#   - Qwen3.5-35B-A3B (~18GB, MoE, Feb 2026) - fits 24GB
+#   - Qwen3.5-27B (~18GB, dense, Feb 2026) - better reasoning
+#   - Qwen3.5-9B (~6GB, fast baseline, Mar 2026)
+#
+# Already completed (skip):
+#   - GLM-4.7-Flash-GGUF
+#   - Qwen3-Coder-30B-A3B-Instruct-GGUF
 #
 # Hardware: AMD Ryzen AI MAX+ 395, 30GB RAM, Vulkan
 #
@@ -31,13 +34,14 @@ export N_CONCURRENT=1
 
 # ─────────────────────────────────────────
 # Model Configuration
-# Format: "HF_MODEL|TAG|SIZE_GB|OPENAI_MODEL_NAME"
+# Format: "LOCAL_NAME|TAG|SIZE_GB|HF_CHECKPOINT|VARIANT"
+# HF_CHECKPOINT: HuggingFace repo (e.g., unsloth/Qwen3.5-35B-A3B-GGUF)
+# VARIANT: GGUF quantization (Q4_K_M, Q5_K_M, etc.)
 # ─────────────────────────────────────────
 MODELS=(
-  "unsloth/Qwen3.5-35B-A3B-GGUF|qwen35-35b-a3b-local|18|Qwen3.5-35B-A3B-GGUF"
-  "unsloth/Qwen3.5-27B-GGUF|qwen35-27b-local|18|Qwen3.5-27B-GGUF"
-  "unsloth/Qwen3-Coder-Next-GGUF|qwen3-coder-next-local|20|Qwen3-Coder-Next-GGUF"
-  "unsloth/Qwen3.5-9B-GGUF|qwen35-9b-local|6|Qwen3.5-9B-GGUF"
+  "Qwen35-35B-A3B|qwen35-35b-a3b-local|18|unsloth/Qwen3.5-35B-A3B-GGUF|Q4_K_M"
+  "Qwen35-27B|qwen35-27b-local|18|unsloth/Qwen3.5-27B-GGUF|Q4_K_M"
+  "Qwen35-9B|qwen35-9b-local|6|unsloth/Qwen3.5-9B-GGUF|Q4_K_M"
 )
 
 # Agents to benchmark
@@ -134,13 +138,22 @@ CURRENT_MODEL=0
 PREVIOUS_MODEL=""
 
 for MODEL_CONFIG in "${MODELS[@]}"; do
-  IFS='|' read -r HF_MODEL TAG SIZE_GB MODEL_NAME <<< "$MODEL_CONFIG"
+  IFS='|' read -r MODEL_NAME TAG SIZE_GB HF_CHECKPOINT VARIANT <<< "$MODEL_CONFIG"
   CURRENT_MODEL=$((CURRENT_MODEL + 1))
+
+  # For HuggingFace models, the lemonade name will be user.MODEL_NAME
+  if [ -n "$HF_CHECKPOINT" ]; then
+    LEMONADE_MODEL="user.${MODEL_NAME}"
+  else
+    LEMONADE_MODEL="$MODEL_NAME"
+  fi
 
   echo "=========================================="
   echo "  PHASE ${CURRENT_MODEL}/${TOTAL_MODELS}: $MODEL_NAME"
   echo "  Tag: $TAG"
   echo "  Size: ~${SIZE_GB}GB"
+  echo "  HF Checkpoint: ${HF_CHECKPOINT:-built-in}"
+  echo "  Lemonade Name: $LEMONADE_MODEL"
   echo "  Time: $(date)"
   echo "=========================================="
   echo ""
@@ -156,44 +169,51 @@ for MODEL_CONFIG in "${MODELS[@]}"; do
   # Step 2: Ensure enough space
   NEEDED_SPACE=$((SIZE_GB + 5))  # Add 5GB buffer
   if ! ensure_space "$NEEDED_SPACE"; then
-    echo ">>> ERROR: Not enough disk space for $HF_MODEL"
+    echo ">>> ERROR: Not enough disk space for $MODEL_NAME"
     echo ">>> Skipping this model..."
     continue
   fi
 
   # Step 3: Download model
   echo ">>> Downloading model..."
-  download_model "$HF_MODEL" || {
-    echo ">>> ERROR: Failed to download $HF_MODEL"
-    continue
-  }
+  if [ -n "$HF_CHECKPOINT" ]; then
+    download_model "$MODEL_NAME" "$HF_CHECKPOINT" "$VARIANT" || {
+      echo ">>> ERROR: Failed to download $MODEL_NAME from $HF_CHECKPOINT"
+      continue
+    }
+  else
+    download_model "$MODEL_NAME" || {
+      echo ">>> ERROR: Failed to download $MODEL_NAME"
+      continue
+    }
+  fi
   echo ""
 
   # Step 4: Start lemonade server
   echo ">>> Starting lemonade server..."
-  if ! start_model "$MODEL_NAME"; then
-    echo ">>> ERROR: Failed to start lemonade with $MODEL_NAME"
+  if ! start_model "$LEMONADE_MODEL"; then
+    echo ">>> ERROR: Failed to start lemonade with $LEMONADE_MODEL"
     continue
   fi
   echo ""
 
   # Step 5: Mark as started
-  mark_started "$HF_MODEL" "$TAG" "$SIZE_GB"
+  mark_started "$MODEL_NAME" "$TAG" "$SIZE_GB"
 
   # Step 6: Run benchmarks for all agents
   for AGENT in "${AGENTS[@]}"; do
     echo ">>> Running $AGENT benchmark..."
-    run_benchmark "$AGENT" "$MODEL_NAME" "$TAG" "$MODEL_NAME"
+    run_benchmark "$AGENT" "$LEMONADE_MODEL" "$TAG" "$LEMONADE_MODEL"
     echo ""
   done
 
   # Step 7: Verify and mark completed
   verify_results "$TAG"
-  mark_completed "$HF_MODEL" "$TAG" "$SIZE_GB"
+  mark_completed "$MODEL_NAME" "$TAG" "$SIZE_GB"
   echo ""
 
   # Track for cleanup in next iteration
-  PREVIOUS_MODEL="$HF_MODEL"
+  PREVIOUS_MODEL="$LEMONADE_MODEL"
 done
 
 # ═════════════════════════════════════════
@@ -209,7 +229,7 @@ echo ""
 
 echo ">>> Final Results Summary:"
 for MODEL_CONFIG in "${MODELS[@]}"; do
-  IFS='|' read -r HF_MODEL TAG SIZE_GB MODEL_NAME <<< "$MODEL_CONFIG"
+  IFS='|' read -r MODEL_NAME TAG SIZE_GB HF_CHECKPOINT VARIANT <<< "$MODEL_CONFIG"
   verify_results "$TAG"
 done
 
@@ -218,12 +238,12 @@ echo ">>> Run dashboard to see full results:"
 echo "    python3 dashboard.py"
 echo ""
 
-# Cleanup last model
-if [ -n "$PREVIOUS_MODEL" ]; then
-  echo ">>> Cleaning up final model: $PREVIOUS_MODEL"
-  stop_lemonade
-  delete_model "$PREVIOUS_MODEL" || true
-fi
+# Keep last model for potential re-runs (comment out to auto-cleanup)
+# if [ -n "$PREVIOUS_MODEL" ]; then
+#   echo ">>> Cleaning up final model: $PREVIOUS_MODEL"
+#   stop_lemonade
+#   delete_model "$PREVIOUS_MODEL" || true
+# fi
 
 echo ">>> Generating comparison report..."
 python3 collect_results.py || echo ">>> Note: collect_results.py not found or failed"

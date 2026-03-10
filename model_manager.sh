@@ -40,32 +40,43 @@ get_model_size() {
 }
 
 # ─────────────────────────────────────────
-# delete_model - Remove a model from HF cache
+# delete_model - Remove a model using lemonade-server delete
 # ─────────────────────────────────────────
 delete_model() {
   local MODEL="$1"
-  local MODEL_DIR="${HF_CACHE}/hub/models--${MODEL//\//--}"
-
-  if [ -d "$MODEL_DIR" ]; then
-    local SIZE=$(get_model_size "$MODEL")
-    echo "  Deleting $MODEL (~${SIZE}GB)..."
-    rm -rf "$MODEL_DIR"
+  echo "  Deleting $MODEL..."
+  if lemonade-server delete "$MODEL" 2>/dev/null; then
     echo "  Deleted: $MODEL"
     return 0
   else
-    echo "  Model not found in cache: $MODEL"
+    echo "  Model not found or already deleted: $MODEL"
     return 1
   fi
 }
 
 # ─────────────────────────────────────────
 # download_model - Pull a model using lemonade-server
+# Args: MODEL_NAME [HF_CHECKPOINT] [VARIANT]
+# If HF_CHECKPOINT is provided, pulls from HuggingFace and registers as MODEL_NAME
 # ─────────────────────────────────────────
 download_model() {
   local MODEL="$1"
+  local HF_CHECKPOINT="${2:-}"
+  local VARIANT="${3:-Q4_K_M}"
+
   echo "  Downloading $MODEL..."
-  lemonade-server pull "$MODEL"
-  echo "  Downloaded: $MODEL"
+
+  if [ -n "$HF_CHECKPOINT" ]; then
+    # Pull from HuggingFace with custom name (must use user. prefix)
+    local USER_MODEL="user.${MODEL}"
+    echo "  Pulling from HuggingFace: $HF_CHECKPOINT:$VARIANT"
+    lemonade-server pull "$USER_MODEL" --checkpoint "${HF_CHECKPOINT}:${VARIANT}" --recipe llamacpp
+    echo "  Registered as: $USER_MODEL"
+  else
+    # Pull from lemonade's built-in registry
+    lemonade-server pull "$MODEL"
+    echo "  Downloaded: $MODEL"
+  fi
 }
 
 # ─────────────────────────────────────────
