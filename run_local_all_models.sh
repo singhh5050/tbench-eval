@@ -2,14 +2,20 @@
 # Run TerminalBench 2.0 benchmarks across multiple local models
 # Automatically manages disk space by deleting completed models
 #
-# Target Models (March 2026 - from HuggingFace):
-#   - Qwen3.5-35B-A3B (~18GB, MoE, Feb 2026) - fits 24GB
-#   - Qwen3.5-27B (~18GB, dense, Feb 2026) - better reasoning
-#   - Qwen3.5-9B (~6GB, fast baseline, Mar 2026)
+# Multi-Brand Model Sweep - Recent & Compatible Models
+# Tests instruction-tuned models from different companies
+# Compatible with current llama.cpp build b6510/b7788
+# No gated access, all open models
+#
+# 4 brands, 4 models (8B-22B range):
+#   - Google Gemma: Gemma-3-12b-it (2026, 12B)
+#   - Microsoft Phi: Phi-4 (Dec 2024, 14B)
+#   - Meta Llama: Llama-3.1-8B-Instruct (Jul 2025, 8B)
+#   - Mistral AI: Mistral-Small-Instruct-2409 (Sep 2024, 22B)
 #
 # Already completed (skip):
-#   - GLM-4.7-Flash-GGUF
-#   - Qwen3-Coder-30B-A3B-Instruct-GGUF
+#   - GLM-4.7-Flash-GGUF (Alibaba GLM, 30B MoE)
+#   - Qwen3-Coder-30B-A3B-Instruct-GGUF (Alibaba Qwen, 30B MoE)
 #
 # Hardware: AMD Ryzen AI MAX+ 395, 30GB RAM, Vulkan
 #
@@ -39,9 +45,17 @@ export N_CONCURRENT=1
 # VARIANT: GGUF quantization (Q4_K_M, Q5_K_M, etc.)
 # ─────────────────────────────────────────
 MODELS=(
-  "Qwen35-35B-A3B|qwen35-35b-a3b-local|18|unsloth/Qwen3.5-35B-A3B-GGUF|Q4_K_M"
-  "Qwen35-27B|qwen35-27b-local|18|unsloth/Qwen3.5-27B-GGUF|Q4_K_M"
-  "Qwen35-9B|qwen35-9b-local|6|unsloth/Qwen3.5-9B-GGUF|Q4_K_M"
+  # Google Gemma (newest, 2026)
+  "gemma-3-12b-it-GGUF|gemma3-12b-it|8|unsloth/gemma-3-12b-it-GGUF|Q4_K_M"
+
+  # Microsoft Phi (Dec 2024, reasoning-focused)
+  "phi-4-GGUF|phi4-14b|9|unsloth/phi-4-GGUF|Q4_K_M"
+
+  # Meta Llama (Jul 2025, proven compatible)
+  "Llama-3.1-8B-Instruct-GGUF|llama31-8b-instruct|5|unsloth/Llama-3.1-8B-Instruct-GGUF|Q4_K_M"
+
+  # Mistral AI (Sep 2024, largest at 22B)
+  "Mistral-Small-Instruct-2409-GGUF|mistral-small-2409|14|bartowski/Mistral-Small-Instruct-2409-GGUF|Q4_K_M"
 )
 
 # Agents to benchmark
@@ -146,6 +160,21 @@ for MODEL_CONFIG in "${MODELS[@]}"; do
     LEMONADE_MODEL="user.${MODEL_NAME}"
   else
     LEMONADE_MODEL="$MODEL_NAME"
+  fi
+
+  # Skip if already completed (enables safe restart)
+  COMPLETED_FILE="${SCRIPT_DIR}/benchmarks_completed.txt"
+  if [ -f "$COMPLETED_FILE" ]; then
+    if grep -q "^${MODEL_NAME}|${TAG}|.*|completed|" "$COMPLETED_FILE" 2>/dev/null; then
+      echo "=========================================="
+      echo "  SKIPPED ${CURRENT_MODEL}/${TOTAL_MODELS}: $MODEL_NAME"
+      echo "  Tag: $TAG"
+      echo "  Reason: Already completed"
+      echo "  Time: $(date)"
+      echo "=========================================="
+      echo ""
+      continue
+    fi
   fi
 
   echo "=========================================="
