@@ -4,7 +4,7 @@
 #
 # Multi-Brand Model Sweep - Recent & Compatible Models
 # Tests instruction-tuned models from different companies
-# Compatible with current llama.cpp build b6510/b7788
+# Uses llama-server b8580+ (supports Qwen3.5 and newer models)
 # No gated access, all open models
 #
 # 4 brands, 4 models (8B-22B range):
@@ -39,6 +39,15 @@ source "${SCRIPT_DIR}/model_manager.sh"
 export N_CONCURRENT=1
 
 # ─────────────────────────────────────────
+# Debugging and timeout configuration
+# ─────────────────────────────────────────
+# Enable litellm debug logging for connection issues
+export LITELLM_LOG="DEBUG"
+
+# Timeout multiplier (2x default = ~30 min for most tasks)
+TIMEOUT_MULTIPLIER=2.0
+
+# ─────────────────────────────────────────
 # Model Configuration
 # Format: "LOCAL_NAME|TAG|SIZE_GB|HF_CHECKPOINT|VARIANT"
 # HF_CHECKPOINT: HuggingFace repo (e.g., unsloth/Qwen3.5-35B-A3B-GGUF)
@@ -70,18 +79,77 @@ while IFS= read -r TASK; do
 done < "$TASKS_FILE"
 
 # ─────────────────────────────────────────
+# test_server_connectivity - Test server before running benchmark
+# ─────────────────────────────────────────
+test_server_connectivity() {
+  local MODEL="$1"
+  local PORT="${2:-8000}"
+
+  echo "  Testing server connectivity..."
+
+  # Test 1: Basic health check (llama-server uses /v1 not /api/v1)
+  if ! curl -sf "http://localhost:${PORT}/v1/models" >/dev/null 2>&1; then
+    echo "  ERROR: Cannot reach server at localhost:${PORT}"
+    return 1
+  fi
+  echo "  ✓ Server reachable at localhost:${PORT}"
+
+  # Test 2: Verify server is responding (llama-server returns filename, not model name)
+  local MODELS_RESPONSE=$(curl -sf "http://localhost:${PORT}/v1/models" 2>/dev/null)
+  if [ -n "$MODELS_RESPONSE" ]; then
+    echo "  ✓ Server responding with models list"
+  else
+    echo "  WARNING: Empty models response"
+  fi
+
+  # Test 3: Simple completion test
+  echo "  Testing API with simple completion..."
+  local TEST_RESPONSE=$(curl -sf -X POST "http://localhost:${PORT}/v1/chat/completions" \
+    -H "Content-Type: application/json" \
+    -H "Authorization: Bearer lemonade" \
+    -d '{"model":"any","messages":[{"role":"user","content":"Say hello"}],"max_tokens":10}' 2>&1)
+
+  if echo "$TEST_RESPONSE" | grep -q "choices"; then
+    echo "  ✓ API responding correctly"
+    return 0
+  else
+    echo "  WARNING: API test response: $TEST_RESPONSE"
+    # Don't fail - just warn
+    return 0
+  fi
+}
+
+# ─────────────────────────────────────────
 # run_benchmark - Run benchmark for one agent + model
 # ─────────────────────────────────────────
 run_benchmark() {
   local AGENT="$1"
   local MODEL_STR="$2"
   local TAG="$3"
-  local LEMONADE_MODEL="$4"
+  local LLAMA_MODEL="$4"
 
   local JOBS_DIR="${SCRIPT_DIR}/results/${AGENT}-${TAG}"
   mkdir -p "$JOBS_DIR"
 
   echo ">>> Benchmark: $AGENT + $TAG — started $(date '+%H:%M:%S')"
+
+  # Pre-benchmark connectivity test
+  echo ">>> Pre-benchmark server check..."
+  test_server_connectivity "$LLAMA_MODEL" || {
+    echo ">>> ERROR: Server connectivity test failed!"
+    echo ">>> Attempting to restart server..."
+    start_model "$LLAMA_MODEL"
+    sleep 5
+    test_server_connectivity "$LLAMA_MODEL" || {
+      echo ">>> FATAL: Cannot establish server connectivity. Skipping benchmark."
+      return 1
+    }
+  }
+
+  # Log network state for debugging
+  echo ">>> Network state before benchmark:"
+  ss -tlnp 2>/dev/null | grep -E "8000|8001" || netstat -tlnp 2>/dev/null | grep -E "8000|8001" || true
+  echo ""
 
   if [ "$AGENT" = "terminus-2" ]; then
     harbor run \
@@ -89,6 +157,7 @@ run_benchmark() {
       -a "$AGENT" \
       -m "openai/${MODEL_STR}" \
       -n 1 \
+      --timeout-multiplier "$TIMEOUT_MULTIPLIER" \
       --jobs-dir "$JOBS_DIR" \
       "${TASK_FLAGS[@]}" \
       2>&1 | tee "${JOBS_DIR}/run.log" || true
@@ -100,6 +169,7 @@ run_benchmark() {
       -a openhands \
       -m "openai/${MODEL_STR}" \
       -n 1 \
+      --timeout-multiplier "$TIMEOUT_MULTIPLIER" \
       --jobs-dir "$JOBS_DIR" \
       "${TASK_FLAGS[@]}" \
       2>&1 | tee "${JOBS_DIR}/run.log" || true
@@ -107,10 +177,10 @@ run_benchmark() {
 
   echo ">>> Benchmark: $AGENT + $TAG — finished $(date '+%H:%M:%S')"
 
-  # Health check — restart Lemonade if it died
-  if ! check_lemonade "$LEMONADE_MODEL"; then
-    echo ">>> Warning: Lemonade died! Restarting..."
-    start_model "$LEMONADE_MODEL"
+  # Health check — restart llama-server if it died
+  if ! check_llama "$LLAMA_MODEL"; then
+    echo ">>> Warning: llama-server died! Restarting..."
+    start_model "$LLAMA_MODEL"
   fi
 }
 
@@ -155,12 +225,8 @@ for MODEL_CONFIG in "${MODELS[@]}"; do
   IFS='|' read -r MODEL_NAME TAG SIZE_GB HF_CHECKPOINT VARIANT <<< "$MODEL_CONFIG"
   CURRENT_MODEL=$((CURRENT_MODEL + 1))
 
-  # For HuggingFace models, the lemonade name will be user.MODEL_NAME
-  if [ -n "$HF_CHECKPOINT" ]; then
-    LEMONADE_MODEL="user.${MODEL_NAME}"
-  else
-    LEMONADE_MODEL="$MODEL_NAME"
-  fi
+  # For llama-server, we use the MODEL_NAME directly (no user. prefix needed)
+  LLAMA_MODEL="$MODEL_NAME"
 
   # Skip if already completed (enables safe restart)
   COMPLETED_FILE="${SCRIPT_DIR}/benchmarks_completed.txt"
@@ -182,7 +248,7 @@ for MODEL_CONFIG in "${MODELS[@]}"; do
   echo "  Tag: $TAG"
   echo "  Size: ~${SIZE_GB}GB"
   echo "  HF Checkpoint: ${HF_CHECKPOINT:-built-in}"
-  echo "  Lemonade Name: $LEMONADE_MODEL"
+  echo "  Model Name: $LLAMA_MODEL"
   echo "  Time: $(date)"
   echo "=========================================="
   echo ""
@@ -190,7 +256,7 @@ for MODEL_CONFIG in "${MODELS[@]}"; do
   # Step 1: Free space if needed by deleting previous model
   if [ -n "$PREVIOUS_MODEL" ]; then
     echo ">>> Cleaning up previous model: $PREVIOUS_MODEL"
-    stop_lemonade
+    stop_llama
     delete_model "$PREVIOUS_MODEL" || true
     echo ""
   fi
@@ -218,10 +284,10 @@ for MODEL_CONFIG in "${MODELS[@]}"; do
   fi
   echo ""
 
-  # Step 4: Start lemonade server
-  echo ">>> Starting lemonade server..."
-  if ! start_model "$LEMONADE_MODEL"; then
-    echo ">>> ERROR: Failed to start lemonade with $LEMONADE_MODEL"
+  # Step 4: Start llama-server
+  echo ">>> Starting llama-server..."
+  if ! start_model "$LLAMA_MODEL"; then
+    echo ">>> ERROR: Failed to start llama-server with $LLAMA_MODEL"
     continue
   fi
   echo ""
@@ -232,7 +298,7 @@ for MODEL_CONFIG in "${MODELS[@]}"; do
   # Step 6: Run benchmarks for all agents
   for AGENT in "${AGENTS[@]}"; do
     echo ">>> Running $AGENT benchmark..."
-    run_benchmark "$AGENT" "$LEMONADE_MODEL" "$TAG" "$LEMONADE_MODEL"
+    run_benchmark "$AGENT" "$LLAMA_MODEL" "$TAG" "$LLAMA_MODEL"
     echo ""
   done
 
@@ -242,7 +308,7 @@ for MODEL_CONFIG in "${MODELS[@]}"; do
   echo ""
 
   # Track for cleanup in next iteration
-  PREVIOUS_MODEL="$LEMONADE_MODEL"
+  PREVIOUS_MODEL="$LLAMA_MODEL"
 done
 
 # ═════════════════════════════════════════
@@ -270,7 +336,7 @@ echo ""
 # Keep last model for potential re-runs (comment out to auto-cleanup)
 # if [ -n "$PREVIOUS_MODEL" ]; then
 #   echo ">>> Cleaning up final model: $PREVIOUS_MODEL"
-#   stop_lemonade
+#   stop_llama
 #   delete_model "$PREVIOUS_MODEL" || true
 # fi
 
