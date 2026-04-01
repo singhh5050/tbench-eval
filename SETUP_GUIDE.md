@@ -274,9 +274,9 @@ MODELS=(
   "GLM-4.7-Flash-GGUF|unsloth/GLM-4.7-Flash-GGUF|Q4_K_M"
 
   # Larger models (require 64GB+)
-  "Qwen3-Coder-Next-GGUF|Qwen/Qwen3-Coder-Next-GGUF|Q4_K_M"  # 80B total, ~45GB
-  "gpt-oss-120b-GGUF|ggml-org/gpt-oss-120b-GGUF|Q4_K_M"  # 120B total, ~60GB
-  "Nemotron-3-Super-30B-GGUF|nvidia/Nemotron-3-Super-30B-GGUF|Q4_K_M"  # If available
+  "Qwen3-Coder-Next-GGUF|Qwen/Qwen3-Coder-Next-GGUF|Q4_K_M"  # 80B total, 3B active, ~45GB
+  "gpt-oss-120b-GGUF|ggml-org/gpt-oss-120b-GGUF|Q4_K_M"  # 120B total, 5.1B active, ~60GB
+  "Nemotron-3-Super-120B-A12B-GGUF|unsloth/NVIDIA-Nemotron-3-Super-120B-A12B-GGUF|Q4_K_M"  # 120B total, 12B active, ~60-64GB
 )
 ```
 
@@ -476,25 +476,48 @@ cat /var/tmp/harbor-results/gpt120-test/*/reward.txt
 |-------|------|-----------|-------|
 | Qwen 3.5-35B-A3B | 35B (3B active) | 8/13 (62%) | Best performer |
 | GLM-4.7-Flash | 30B (3B active) | Testing | Fast inference |
-| Nemotron-3-Nano-30B-A3B | 30B (3B active) | 1/13 (8%) | Unexpectedly poor |
+| Nemotron-3-Nano-30B-A3B | 30B (3.2B active) | 1/13 (8%) | Unexpectedly poor |
 | Qwen3-Coder-30B-A3B | 30B (3B active) | 0/1 (0%) | Failed fix-git |
 | GPT-OSS-20B | 20B (2B active) | 0/1 (0%) | Failed fix-git |
 | Trinity-Mini | 26B (3B active) | 0/1 (0%) | Timeout (reasoning loop) |
 
 **Too Large for 30GB RAM:**
-- Qwen3-Coder-Next (80B) - needs ~45GB
-- GPT-OSS-120B (120B) - needs ~60GB
-- Nemotron-3-Super (120B) - needs ~60GB
+- Qwen3-Coder-Next (80B total, 3B active) - needs ~45GB
+- GPT-OSS-120B (120B total, 5.1B active) - needs ~60GB
+- Nemotron-3-Super-120B-A12B (120B total, 12B active) - needs ~60-64GB
+
+---
+
+## Nemotron 3 Family Overview
+
+For reference, here's the complete Nemotron 3 family (as of March 2026):
+
+| Model | Total Params | Active Params | Q4_K_M Size | Repository |
+|-------|-------------|---------------|-------------|------------|
+| Nemotron 3 Nano 4B | 4B | 4B | ~2.8GB | `unsloth/NVIDIA-Nemotron-3-Nano-4B-GGUF` |
+| Nemotron 3 Nano 30B-A3B | 30B | 3.2B | ~17GB | `unsloth/Nemotron-3-Nano-30B-A3B-GGUF` |
+| **Nemotron 3 Super 120B-A12B** | **120B** | **12B** | **~60-64GB** | `unsloth/NVIDIA-Nemotron-3-Super-120B-A12B-GGUF` |
+| Nemotron 3 Ultra | TBA | TBA | TBA | Not yet released (H1 2026) |
+
+**Architecture:**
+- **Nano 4B**: 42 layers, 256K context
+- **Nano 30B**: 52 layers, 128 experts (top-6), 1M context
+- **Super 120B**: 512 experts (22 active), 1M context
+
+**Recommendation for 64GB+ server:** Test **Nemotron 3 Super 120B-A12B** - much more capable than the Nano 30B with 12B active vs 3.2B active parameters.
 
 ---
 
 ## Next Steps for Larger Server
 
-1. **Verify Hardware**: Check RAM and GPU availability
+1. **Verify Hardware**: Check RAM and GPU availability (need 64GB+ for Super models)
 2. **Install Dependencies**: Follow Initial Setup section
 3. **Build llama.cpp**: With appropriate backend (Vulkan/CUDA/ROCm)
 4. **Test Small Model**: Verify setup with GPT-OSS-20B
-5. **Run Large Models**: Test Qwen3-Coder-Next, GPT-OSS-120B
+5. **Run Large Models**:
+   - **Nemotron 3 Super 120B-A12B** (~60-64GB)
+   - Qwen3-Coder-Next (~45GB)
+   - GPT-OSS-120B (~60GB)
 6. **Compare Results**: Against 30GB server baseline
 
 ---
