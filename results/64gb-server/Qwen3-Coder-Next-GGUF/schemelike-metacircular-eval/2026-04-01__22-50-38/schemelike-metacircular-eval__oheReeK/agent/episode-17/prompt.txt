@@ -1,0 +1,41 @@
+Current Terminal Screen:
+>       0
+>       (let loop ((acc (car args)) (rest (cdr args)))
+>         (if (null? rest)
+>             acc
+>             (loop (op acc (car rest)) (cdr rest))))))
+>
+> (define (apply-comp op args)
+>   (if (null? args)
+>       #t
+>       (let loop ((prev (car args)) (rest (cdr args)))
+>         (if (null? rest)
+>             #t
+>             (if (op prev (car rest))
+>                 (loop (car rest) (cdr rest))
+>                 #f)))))
+>
+> (define (map f lst)
+>   (if (null? lst)
+>       '()
+>       (cons (f (car lst)) (map f (cdr lst)))))
+>
+> (define (for-each f lst)
+>   (if (null? lst)
+>       #f
+>       (progn (f (car lst)) (for-each f (cdr lst)))))
+>
+> ;; Main: read file path and interpret
+> (let ((filepath (read-line)))
+>   (if filepath
+>       (interpret-file filepath)))
+>
+> ;; Continue reading and interpreting from stdin
+> (let loop ()
+>   (let ((expr (read)))
+>     (if (not (equal? expr #f))
+>         (progn
+>           (eval expr)
+>           (loop)))))
+> EOF
+root@b6eba1c750a3:/app#

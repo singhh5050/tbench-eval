@@ -1,0 +1,15 @@
+{
+  "analysis": "32 wins against stone. The issue is that my warrior has code in the wrong order. The mov loop copies the code starting at 'copy' which is dat 0,0, not the loop code. Let me fix the loop to use a proper structure.",
+  "plan": "Create a proper paper-like warrior where the loop copies itself. The key is that copy label should be at the start of the code to be copied, and the loop should use *ptr and @ptr to copy it.",
+  "commands": [
+    {
+      "keystrokes": "cat > my_warrior.red << 'EOF'\n;redcode-94\n;name QuickPaper\n;strategy Fast replicator\n\nstep    equ 2667\n\n        org start\n\nstart   spl 0, 0\nloop    mov copy, *ptr\n        add #1, ptr\n        mov copy, @ptr\n        add #step, ptr\n        jmp loop\n\ncopy    dat 0, 0\nptr     dat step, step*2\n\n        end start\nEOF\n",
+      "duration": 0.5
+    },
+    {
+      "keystrokes": "pmars -b -r 100 -f my_warrior.red warriors/stone.red\n",
+      "duration": 3.0
+    }
+  ],
+  "task_complete": false
+}

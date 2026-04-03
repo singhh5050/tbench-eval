@@ -1,0 +1,11 @@
+{
+  "analysis": "The file has been updated with the correct pexpect methods. Now let me test it again to verify it works correctly.",
+  "plan": "Run the functional test again to verify the implementation works correctly.",
+  "commands": [
+    {
+      "keystrokes": "python3 << 'PYTEST'\nfrom headless_terminal import HeadlessTerminal\nimport time\n\n# Test 1: Basic command execution\nprint(\"Test 1: Basic command execution\")\nterm = HeadlessTerminal()\ntime.sleep(0.5)\n\n# Send 'echo hello' and press Enter\nterm.send_keystrokes('echo hello\\r')\ntime.sleep(0.5)\n\n# Read output\noutput = term.read_output(timeout=0.5)\nprint(f\"Output: {repr(output)}\")\n\n# Test 2: Ctrl+C\nprint(\"\\nTest 2: Sending Ctrl+C\")\nterm.send_keystrokes('sleep 10\\x03')\ntime.sleep(0.5)\noutput = term.read_output(timeout=0.5)\nprint(f\"Output after Ctrl+C: {repr(output)}\")\n\n# Test 3: Test that bashrc was sourced (check if prompt is set)\nprint(\"\\nTest 3: Checking bashrc was sourced\")\nterm.send_keystrokes('echo $PS1\\r')\ntime.sleep(0.5)\noutput = term.read_output(timeout=0.5)\nprint(f\"PS1 output: {repr(output)}\")\n\nterm.close()\nprint(\"\\nAll tests passed!\")\nPYTEST\n",
+      "duration": 5.0
+    }
+  ],
+  "task_complete": false
+}

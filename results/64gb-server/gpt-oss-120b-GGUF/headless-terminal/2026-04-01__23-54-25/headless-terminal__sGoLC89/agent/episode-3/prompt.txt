@@ -1,0 +1,103 @@
+New Terminal Output:
+
+root@37645a53157a:/app# pip install pexpect
+Collecting pexpect
+  Downloading pexpect-4.9.0-py2.py3-none-any.whl.metadata (2.5 kB)
+Collecting ptyprocess>=0.5 (from pexpect)
+  Downloading ptyprocess-0.7.0-py2.py3-none-any.whl.metadata (1.3 kB)
+Downloading pexpect-4.9.0-py2.py3-none-any.whl (63 kB)
+Downloading ptyprocess-0.7.0-py2.py3-none-any.whl (13 kB)
+Installing collected packages: ptyprocess, pexpect
+Successfully installed pexpect-4.9.0 ptyprocess-0.7.0
+WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager, possibly rendering your syst
+em unusable. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv. Use the --root-user-action option if you know what you a
+re doing and want to suppress this warning.
+
+[notice] A new release of pip is available: 25.2 -> 26.0.1
+[notice] To update, run: pip install --upgrade pip
+root@37645a53157a:/app# cat > headless_terminal.py <<'EOF'
+> from abc import ABC, abstractmethod
+> import time
+> import pexpect
+>
+> class BaseTerminal(ABC):
+>     @abstractmethod
+>     def send_keystrokes(self, keystrokes: str, wait_sec: float = 0.0) -> None:
+>         """
+>         Sends keystrokes to the terminal.
+>
+>         Args:
+>             keystrokes: The keystrokes to send to the terminal.
+>             wait_sec: The number of seconds to wait for the command to complete.
+>         """
+>         pass
+>
+> class HeadlessTerminal(BaseTerminal):
+>     """Concrete implementation of BaseTerminal using an interactive bash shell.
+>
+>     This class spawns an interactive bash process (so that ~/.bashrc and other
+>     startup files are sourced) and provides a `send_keystrokes` method that
+>     writes characters (including control sequences) to the process' stdin.
+>     """
+>
+>     def __init__(self):
+>         # Start an interactive bash shell. The '-i' flag ensures that startup
+>         # files such as ~/.bashrc are sourced.
+>         self._process = pexpect.spawn('/bin/bash', ['-i'], encoding='utf-8', echo=False)
+>         # Wait for the initial prompt. Bash typically ends prompts with '$' for
+>         # normal users or '#' for root. The regex is deliberately permissive.
+>         try:
+>             self._process.expect(r'[#$] ', timeout=5)
+>         except pexpect.exceptions.TIMEOUT:
+>             # If we cannot detect a prompt, continue; the shell is likely ready.
+>             pass
+>
+>     def send_keystrokes(self, keystrokes: str, wait_sec: float = 0.0) -> None:
+>         """Send keystrokes to the interactive bash process.
+>
+>         Parameters
+>         ----------
+>         keystrokes: str
+>             The characters to send. This may include newline characters to
+>             execute commands and control characters (e.g., "\x03" for Ctrl‑C).
+>         wait_sec: float, optional
+>             Seconds to wait after sending the keystrokes. Defaults to ``0.0``.
+>         """
+>         if not keystrokes:
+>             # Nothing to send – just wait if requested.
+>             if wait_sec:
+>                 time.sleep(wait_sec)
+>             return
+>
+>         # Send the keystrokes directly to the pexpect child.
+>         self._process.send(keystrokes)
+>         # Flush any pending output by briefly waiting; the caller can specify a
+>         # longer wait if the command is expected to take more time.
+>         if wait_sec:
+>             time.sleep(wait_sec)
+>         else:
+>             # A very short pause helps interactive programs process the input.
+>             time.sleep(0.01)
+>
+>     def __del__(self):
+>         # Ensure the child process is terminated when the object is garbage
+>         # collected.
+>         if hasattr(self, '_process') and self._process.isalive():
+>             self._process.terminate(force=True)
+> EOF
+root@37645a53157a:/app# python - <<'PY'
+> import sys, time
+> sys.path.append('.')
+> from headless_terminal import HeadlessTerminal
+> term = HeadlessTerminal()
+> term.send_keystrokes('echo hello_world\n', wait_sec=0.2)
+> # Give the process a moment to flush output
+> time.sleep(0.1)
+> # Read any available output
+> output = term._process.read_nonblocking(size=1024, timeout=1)
+> print('OUTPUT:', output.strip())
+> PY
+OUTPUT:
+hello_world
+root@37645a53157a:/app#
+root@37645a53157a:/app#

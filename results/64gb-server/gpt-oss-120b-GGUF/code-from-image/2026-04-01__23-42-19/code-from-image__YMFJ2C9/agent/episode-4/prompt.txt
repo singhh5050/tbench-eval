@@ -1,0 +1,24 @@
+Previous response had warnings:
+WARNINGS: - Extra text detected before JSON object
+
+New Terminal Output:
+
+root@6c9fdc47807a:/app# cat > /app/solution.py << 'EOF'
+> import hashlib, pathlib
+>
+> def main():
+>     data = pathlib.Path('/app/code.png').read_bytes()
+>     # First hash of the file bytes
+>     h1 = hashlib.sha256(data).hexdigest()
+>     # Salt as inferred from OCR (adjust if needed)
+>     salt = '60000BENCH-SALT'
+>     # Second hash of the concatenation of first hash and salt
+>     h2 = hashlib.sha256((h1 + salt).encode()).hexdigest()
+>     print(h2)
+>
+> if __name__ == '__main__':
+>     main()
+> EOF
+root@6c9fdc47807a:/app# python3 /app/solution.py > /app/output.txt
+root@6c9fdc47807a:/app# head -c 20 /app/output.txt
+606e5345b5c5495da1earoot@6c9fdc47807a:/app#

@@ -1,0 +1,232 @@
+New Terminal Output:
+
+root@b5f1d82123dd:/app# cat > /app/program.py << 'EOF'
+> #!/usr/bin/env python3
+> """
+> Python re-implementation of the COBOL BOOKFORUM program.
+ode('utf-8')
+            book_title = record[4:24].decode('utf-8')
+            book_owner = record[24:28].decode('utf-8')
+            books.append({
+                'id': book_id,
+                'title': book_title,
+                'owner': book_owner
+            })
+    return books
+
+def write_books(books):
+    """Write all book records to BOOKS.DAT."""
+    with open('data/BOOKS.DAT', 'wb') as f:
+        for book in books:
+            record = (
+                book['id'].encode('utf-8') +
+                book['title'].encode('utf-8') +
+                book['owner'].encode('utf-8')
+            )
+            f.write(record)
+
+def append_transaction(book_id, amount, seller_id, buyer_id):
+    """Append a transaction record to TRANSACTIONS.DAT."""
+    with open('data/TRANSACTIONS.DAT', 'ab') as f:
+        record = (
+            book_id.encode('utf-8') +
+            str(amount).zfill(10).encode('utf-8') +
+            seller_id.encode('utf-8') +
+            buyer_id.encode('utf-8')
+        )
+        f.write(record)
+
+def validate_transaction(buyer_id, seller_id, book_id, accounts, books):
+    """Validate that the transaction can proceed."""
+    buyer_found = False
+    seller_found = False
+    book_found = False
+    valid_owner = False
+
+    # Check buyer and seller exist
+    for acc in accounts:
+        if acc['id'] == buyer_id:
+            buyer_found = True
+        if acc['id'] == seller_id:
+            seller_found = True
+
+    # Check book exists and seller owns it
+    for book in books:
+        if book['id'] == book_id:
+            book_found = True
+            if book['owner'] == seller_id:
+                valid_owner = True
+
+    # COBOL displays a space before the error message
+    print(" ")
+
+    return buyer_found and seller_found and book_found and valid_owner
+
+def process_transaction(buyer_id, seller_id, book_id, amount, accounts, books):
+    """Process the transaction: update accounts and book ownership."""
+    # Update account balances
+    for acc in accounts:
+        if acc['id'] == buyer_id:
+            acc['balance'] -= amount
+        if acc['id'] == seller_id:
+            acc['balance'] += amount
+    > Processes book transaction between accounts.
+> """
+>
+> import os
+>
+> # Record sizes
+> ACCOUNT_RECORD_SIZE = 34  # 4 + 20 + 10
+> BOOK_RECORD_SIZE = 28     # 4 + 20 + 4
+> TRANSACTION_RECORD_SIZE = 22  # 4 + 10 + 4 + 4
+> INPUT_RECORD_SIZE = 22    # 4 + 4 + 4 + 10
+>
+> def read_input_file():
+>     """Read and parse the input file."""
+>     with open('src/INPUT.DAT', 'rb') as f:
+>         data = f.read(INPUT_RECORD_SIZE)
+>
+>     buyer_id = data[0:4].decode('utf-8')
+>     seller_id = data[4:8].decode('utf-8')
+>     book_id = data[8:12].decode('utf-8')
+>     amount = int(data[12:22].decode('utf-8'))
+>
+>     return buyer_id, seller_id, book_id, amount
+>
+> def read_accounts():
+>     """Read all account records from ACCOUNTS.DAT."""
+>     accounts = []
+>     with open('data/ACCOUNTS.DAT', 'rb') as f:
+>         while True:
+>             record = f.read(ACCOUNT_RECORD_SIZE)
+>             if len(record) < ACCOUNT_RECORD_SIZE:
+>                 break
+>             account_id = record[0:4].decode('utf-8')
+>             account_name = record[4:24].decode('utf-8')
+>             account_balance = int(record[24:34].decode('utf-8'))
+>             accounts.append({
+>                 'id': account_id,
+>                 'name': account_name,
+>                 'balance': account_balance
+>             })
+>     return accounts
+>
+> def write_accounts(accounts):
+>     """Write all account records to ACCOUNTS.DAT."""
+>     with open('data/ACCOUNTS.DAT', 'wb') as f:
+>         for acc in accounts:
+>             record = (
+>                 acc['id'].encode('utf-8') +
+>                 acc['name'].encode('utf-8') +
+>                 str(acc['balance']).zfill(10).encode('utf-8')
+>             )
+>             f.write(record)
+>
+> def read_books():
+>     """Read all book records from BOOKS.DAT."""
+>     books = []
+>     with open('data/BOOKS.DAT', 'rb') as f:
+>         while True:
+>             record = f.read(BOOK_RECORD_SIZE)
+>             if len(record) < BOOK_RECORD_SIZE:
+>                 break
+>             book_id = record[0:4].decode('utf-8')
+>             book_title = record[4:24].decode('utf-8')
+>             book_owner = record[24:28].decode('utf-8')
+>             books.append({
+>                 'id': book_id,
+>                 'title': book_title,
+>                 'owner': book_owner
+>             })
+>     return books
+>
+> def write_books(books):
+>     """Write all book records to BOOKS.DAT."""
+>     with open('data/BOOKS.DAT', 'wb') as f:
+>         for book in books:
+>             record = (
+>                 book['id'].encode('utf-8') +
+>                 book['title'].encode('utf-8') +
+>                 book['owner'].encode('utf-8')
+>             )
+>             f.write(record)
+>
+> def append_transaction(book_id, amount, seller_id, buyer_id):
+>     """Append a transaction record to TRANSACTIONS.DAT."""
+>     with open('data/TRANSACTIONS.DAT', 'ab') as f:
+>         record = (
+>             book_id.encode('utf-8') +
+>             str(amount).zfill(10).encode('utf-8') +
+>             seller_id.encode('utf-8') +
+>             buyer_id.encode('utf-8')
+>         )
+>         f.write(record)
+>
+> def validate_transaction(buyer_id, seller_id, book_id, accounts, books):
+>     """Validate that the transaction can proceed."""
+>     buyer_found = False
+>     seller_found = False
+>     book_found = False
+>     valid_owner = False
+>
+>     # Check buyer and seller exist
+>     for acc in accounts:
+>         if acc['id'] == buyer_id:
+>             buyer_found = True
+>         if acc['id'] == seller_id:
+>             seller_found = True
+>
+>     # Check book exists and seller owns it
+>     for book in books:
+>         if book['id'] == book_id:
+>             book_found = True
+>             if book['owner'] == seller_id:
+>                 valid_owner = True
+>
+>     # COBOL displays a space before the error message
+>     print(" ")
+>
+>     return buyer_found and seller_found and book_found and valid_owner
+>
+> def process_transaction(buyer_id, seller_id, book_id, amount, accounts, books):
+>     """Process the transaction: update accounts and book ownership."""
+>     # Update account balances
+>     for acc in accounts:
+>         if acc['id'] == buyer_id:
+>             acc['balance'] -= amount
+>         if acc['id'] == seller_id:
+>             acc['balance'] += amount
+>
+>     write_accounts(accounts)
+>
+>     # Update book ownership
+>     for book in books:
+>         if book['id'] == book_id:
+>             book['owner'] = buyer_id
+>
+>     write_books(books)
+>
+>     # Append transaction record
+>     append_transaction(book_id, amount, seller_id, buyer_id)
+>
+>     print("Transaction completed successfully")
+>
+> def main():
+>     # Read input
+>     buyer_id, seller_id, book_id, amount = read_input_file()
+>
+>     # Read current data
+>     accounts = read_accounts()
+>     books = read_books()
+>
+>     # Validate and process
+>     if validate_transaction(buyer_id, seller_id, book_id, accounts, books):
+>         process_transaction(buyer_id, seller_id, book_id, amount, accounts, books)
+>     else:
+>         print("Transaction failed due to validation errors")
+>
+> if __name__ == '__main__':
+>     main()
+> EOF
+root@b5f1d82123dd:/app# chmod +x /app/program.py
+root@b5f1d82123dd:/app#

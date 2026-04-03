@@ -1,0 +1,15 @@
+{
+  "analysis": "Same result. The issue is that stone bombs every 4 cycles (add #4, mov 2, @2, jmp -2) which is very fast. My bomb loop is slower. Let me try a different approach - maybe I need to start with spl 0 to create more processes, but use a very short bomb.",
+  "plan": "Try using spl 0 at the start to create many processes quickly, then bomb and replicate.",
+  "commands": [
+    {
+      "keystrokes": "cat > my_warrior.red << 'EOF'\n;redcode-94\n;name QuickPaper\n;strategy Fast replicator with early bombing\n\nstep    equ 2667\n\n        org start\n\nstart   spl 0\nbomb    mov <1000, <3000\n        jmp -1\n\nloop    mov copy, *ptr\n        add #1, ptr\n        mov copy, @ptr\n        add #step, ptr\n        jmp loop\n\ncopy    dat 0, 0\nptr     dat step, step*2\n\n        end start\nEOF\n",
+      "duration": 0.5
+    },
+    {
+      "keystrokes": "pmars -b -r 100 -f my_warrior.red warriors/stone.red\n",
+      "duration": 3.0
+    }
+  ],
+  "task_complete": false
+}

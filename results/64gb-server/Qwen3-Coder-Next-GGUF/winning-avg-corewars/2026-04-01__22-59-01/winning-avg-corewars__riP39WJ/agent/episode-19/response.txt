@@ -1,0 +1,15 @@
+{
+  "analysis": "With spl 0, g2-clear does even better (92 wins). The issue is that spl 0 creates too many processes and the code gets overwritten before it can spread. I need a balance - enough processes to beat stone and vampire, but not so many that g2-clear can destroy everything before replication.",
+  "plan": "Let me try a hybrid approach: start with spl 1 for a controlled number of processes, but add a quick bombing sequence first to damage g2-clear before replication starts.",
+  "commands": [
+    {
+      "keystrokes": "cat > my_warrior.red << 'EOF'\n;redcode-94\n;name QuickPaper\n;strategy Fast replicator - balanced\n\nstep    equ 2667\n\n        org start\n\nstart   spl 1       ; controlled start\n        mov <2000, <4000\n        jmp -2\n\nloop    mov copy, *ptr\n        add #1, ptr\n        mov copy, @ptr\n        add #step, ptr\n        jmp loop\n\ncopy    dat 0, 0\nptr     dat step, step*2\n\n        end start\nEOF\n",
+      "duration": 0.5
+    },
+    {
+      "keystrokes": "pmars -b -r 100 -f my_warrior.red warriors/g2-clear.red\n",
+      "duration": 3.0
+    }
+  ],
+  "task_complete": false
+}

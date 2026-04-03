@@ -1,0 +1,15 @@
+{
+  "analysis": "Got 25 wins against g2-clear, still not enough (need 33+). The g2-clear is very fast - it bombs with spl and mov. I need to either bomb faster or start replication sooner.",
+  "plan": "Let me try starting with spl 0 but with a very short loop that bombs first, then switches to replication. Or I could try using spl 0 directly at the start of the loop.",
+  "commands": [
+    {
+      "keystrokes": "cat > my_warrior.red << 'EOF'\n;redcode-94\n;name QuickPaper\n;strategy Fast replicator - improved\n\nstep    equ 2667\n\n        org start\n\nstart   spl 0       ; fast start\n        mov <2000, <4000\n        jmp -2\n\nloop    mov copy, *ptr\n        add #1, ptr\n        mov copy, @ptr\n        add #step, ptr\n        jmp loop\n\ncopy    dat 0, 0\nptr     dat step, step*2\n\n        end start\nEOF\n",
+      "duration": 0.5
+    },
+    {
+      "keystrokes": "pmars -b -r 100 -f my_warrior.red warriors/g2-clear.red\n",
+      "duration": 3.0
+    }
+  ],
+  "task_complete": false
+}

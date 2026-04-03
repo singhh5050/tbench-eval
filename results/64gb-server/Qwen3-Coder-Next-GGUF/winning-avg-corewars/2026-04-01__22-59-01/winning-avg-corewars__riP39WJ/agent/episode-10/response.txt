@@ -1,0 +1,15 @@
+{
+  "analysis": "Getting 44 wins against stone. Still not enough (need 75%). The issue is the initial loop is too slow. I need to match paper.red more exactly - it uses spl 0 at the very start to create processes immediately.",
+  "plan": "Let me try a version that starts immediately with spl 0 and a clean mov loop, similar to paper.red but with the spl #1, <1 prepended.",
+  "commands": [
+    {
+      "keystrokes": "cat > my_warrior.red << 'EOF'\n;redcode-94\n;name QuickPaper\n;strategy Fast replicator\n\nstep    equ 2667\n\n        org start\n\nstart   spl #1, <1\n        mov }-1, >-1\n        jmp -2\n\n        spl 0, 0\n        mov <2667, <5334\n\n        end start\nEOF\n",
+      "duration": 0.5
+    },
+    {
+      "keystrokes": "pmars -b -r 100 -f my_warrior.red warriors/stone.red\n",
+      "duration": 3.0
+    }
+  ],
+  "task_complete": false
+}

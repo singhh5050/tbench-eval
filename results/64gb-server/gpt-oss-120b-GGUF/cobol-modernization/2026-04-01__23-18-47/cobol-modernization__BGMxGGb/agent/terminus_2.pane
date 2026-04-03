@@ -1,0 +1,327 @@
+[?2004hroot@34cde06ed11c:/app# asciinema rec --stdin /logs/agent/recording.cast
+[?2004l[0;32masciinema: recording asciicast to /logs/agent/recording.cast[0m
+[0;32masciinema: press <ctrl-d> or type "exit" when you're done[0m
+[?2004hroot@34cde06ed11c:/app# clear
+[?2004l[H[J[3J[?2004hroot@34cde06ed11c:/app# ls -l /app
+[?2004ltotal 8
+drwxr-xr-x 2 root root 4096 Jun 25  2025 data
+drwxr-xr-x 2 root root 4096 Jun 25  2025 src
+[?2004hroot@34cde06ed11c:/app# ls -l /app/src
+[?2004ltotal 12
+-rw-r--r-- 1 root root   15 Jun 25  2025 INPUT.DAT
+-rw-r--r-- 1 root root 5762 Jun 25  2025 program.cbl
+[?2004hroot@34cde06ed11c:/app# ls -l /app/data
+[?2004ltotal 12
+-rw-r--r-- 1 root root 102 Jun 25  2025 ACCOUNTS.DAT
+-rw-r--r-- 1 root root  84 Jun 25  2025 BOOKS.DAT
+-rw-r--r-- 1 root root  66 Jun 25  2025 TRANSACTIONS.DAT
+[?2004hroot@34cde06ed11c:/app# cat /app/src/program.cbl
+[?2004l       IDENTIFICATION DIVISION.
+       PROGRAM-ID. BOOKFORUM.
+       
+       ENVIRONMENT DIVISION.
+       INPUT-OUTPUT SECTION.
+       FILE-CONTROL.
+           SELECT ACCOUNTS-FILE ASSIGN TO "data/ACCOUNTS.DAT"
+               ORGANIZATION IS SEQUENTIAL
+               ACCESS MODE IS SEQUENTIAL.
+           SELECT BOOKS-FILE ASSIGN TO "data/BOOKS.DAT"
+               ORGANIZATION IS SEQUENTIAL
+               ACCESS MODE IS SEQUENTIAL.
+           SELECT TRANSACTIONS-FILE ASSIGN TO "data/TRANSACTIONS.DAT"
+               ORGANIZATION IS SEQUENTIAL
+               ACCESS MODE IS SEQUENTIAL.
+           SELECT INPUT-FILE ASSIGN TO "src/INPUT.DAT"
+               ORGANIZATION IS SEQUENTIAL
+               ACCESS MODE IS SEQUENTIAL.
+       
+       DATA DIVISION.
+       FILE SECTION.
+       FD ACCOUNTS-FILE.
+       01 ACCOUNT-RECORD.
+           05 ACCOUNT-ID        PIC X(4).
+           05 ACCOUNT-NAME      PIC X(20).
+           05 ACCOUNT-BALANCE   PIC 9(10).
+       
+       FD BOOKS-FILE.
+       01 BOOK-RECORD.
+           05 BOOK-ID          PIC X(4).
+           05 BOOK-TITLE       PIC X(20).
+           05 BOOK-OWNER       PIC X(4).
+       
+       FD TRANSACTIONS-FILE.
+       01 TRANSACTION-RECORD.
+           05 TRANS-BOOK       PIC X(4).
+           05 TRANS-AMOUNT     PIC 9(10).
+           05 TRANS-SELLER     PIC X(4).
+           05 TRANS-BUYER      PIC X(4).
+           
+       FD INPUT-FILE.
+       01 INPUT-RECORD.
+           05 INPUT-BUYER-ID   PIC X(4).
+           05 INPUT-SELLER-ID  PIC X(4).
+           05 INPUT-BOOK-ID    PIC X(4).
+           05 INPUT-AMOUNT     PIC 9(10).
+       
+       WORKING-STORAGE SECTION.
+       01 WS-BUYER-ID         PIC X(4).
+       01 WS-SELLER-ID        PIC X(4).
+       01 WS-BOOK-ID          PIC X(4).
+       01 WS-AMOUNT           PIC 9(10)V99.
+       01 WS-BUYER-FOUND      PIC X VALUE 'N'.
+       01 WS-SELLER-FOUND     PIC X VALUE 'N'.
+       01 WS-BOOK-FOUND       PIC X VALUE 'N'.
+       01 WS-VALID-OWNER      PIC X VALUE 'N'.
+       01 WS-EOF              PIC X VALUE 'N'.
+       
+       PROCEDURE DIVISION.
+       MAIN-PARA.           
+           OPEN INPUT INPUT-FILE
+           READ INPUT-FILE
+               AT END
+                   DISPLAY "Error: Input file is empty"
+                   STOP RUN
+               NOT AT END
+                   MOVE INPUT-BUYER-ID TO WS-BUYER-ID
+                   MOVE INPUT-SELLER-ID TO WS-SELLER-ID
+                   MOVE INPUT-BOOK-ID TO WS-BOOK-ID
+                   MOVE INPUT-AMOUNT TO WS-AMOUNT
+           END-READ
+           CLOSE INPUT-FILE
+           
+           PERFORM VALIDATE-USERS-AND-BOOK
+           
+           IF WS-BUYER-FOUND = 'Y' AND WS-SELLER-FOUND = 'Y' 
+              AND WS-BOOK-FOUND = 'Y' AND WS-VALID-OWNER = 'Y'
+              PERFORM PROCESS-TRANSACTION
+           ELSE
+              DISPLAY "Transaction failed due to validation errors"
+           END-IF
+           
+           STOP RUN.
+       
+       VALIDATE-USERS-AND-BOOK.
+           MOVE 'N' TO WS-EOF
+           OPEN INPUT ACCOUNTS-FILE
+           PERFORM UNTIL WS-EOF = 'Y'
+               READ ACCOUNTS-FILE
+                   AT END 
+                       MOVE 'Y' TO WS-EOF
+                   NOT AT END
+                       IF ACCOUNT-ID = WS-BUYER-ID
+                           MOVE 'Y' TO WS-BUYER-FOUND
+                       END-IF
+                       IF ACCOUNT-ID = WS-SELLER-ID
+                           MOVE 'Y' TO WS-SELLER-FOUND
+                       END-IF
+               END-READ
+           END-PERFORM
+           CLOSE ACCOUNTS-FILE
+           
+           MOVE 'N' TO WS-EOF
+           OPEN INPUT BOOKS-FILE
+           PERFORM UNTIL WS-EOF = 'Y'
+               READ BOOKS-FILE
+                   AT END 
+                       MOVE 'Y' TO WS-EOF
+                   NOT AT END
+                       IF BOOK-ID = WS-BOOK-ID
+                           MOVE 'Y' TO WS-BOOK-FOUND
+                           IF BOOK-OWNER = WS-SELLER-ID
+                               MOVE 'Y' TO WS-VALID-OWNER
+                           END-IF
+                       END-IF
+               END-READ
+           END-PERFORM
+           CLOSE BOOKS-FILE
+           DISPLAY " ".
+       
+       PROCESS-TRANSACTION.
+           MOVE 'N' TO WS-EOF
+           OPEN I-O ACCOUNTS-FILE
+           PERFORM UNTIL WS-EOF = 'Y'
+               READ ACCOUNTS-FILE
+                   AT END 
+                       MOVE 'Y' TO WS-EOF
+                   NOT AT END
+                       IF ACCOUNT-ID = WS-BUYER-ID
+                           SUBTRACT WS-AMOUNT FROM ACCOUNT-BALANCE
+                           REWRITE ACCOUNT-RECORD
+                       END-IF
+                       IF ACCOUNT-ID = WS-SELLER-ID
+                           ADD WS-AMOUNT TO ACCOUNT-BALANCE
+                           REWRITE ACCOUNT-RECORD
+                       END-IF
+               END-READ
+           END-PERFORM
+           CLOSE ACCOUNTS-FILE
+           
+           MOVE 'N' TO WS-EOF
+           OPEN I-O BOOKS-FILE
+           PERFORM UNTIL WS-EOF = 'Y'
+               READ BOOKS-FILE
+                   AT END 
+                       MOVE 'Y' TO WS-EOF
+                   NOT AT END
+                       IF BOOK-ID = WS-BOOK-ID
+                           MOVE WS-BUYER-ID TO BOOK-OWNER
+                           REWRITE BOOK-RECORD
+                       END-IF
+               END-READ
+           END-PERFORM
+           CLOSE BOOKS-FILE
+           
+           OPEN EXTEND TRANSACTIONS-FILE
+           MOVE WS-BUYER-ID TO TRANS-BUYER
+           MOVE WS-SELLER-ID TO TRANS-SELLER
+           MOVE WS-BOOK-ID TO TRANS-BOOK
+           MOVE WS-AMOUNT TO TRANS-AMOUNT
+           WRITE TRANSACTION-RECORD
+           CLOSE TRANSACTIONS-FILE
+           
+           DISPLAY "Transaction completed successfully".
+[?2004hroot@34cde06ed11c:/app# cat /app/src/INPUT.DAT
+[?2004lU001U002B007200[?2004hroot@34cde06ed11c:/app# cat /app/data/ACCOUNTS.DAT
+[?2004lU001John Doe            0000001180U002Jane Smith          0000001800U003Bob Wilson          0000001520[?2004hroot@34cde06ed11c:/app# cat /app/data/BOOKS.DAT
+[?2004lB001Python Basics       U002B002COBOL Guide         U002B003Java Tutorial       U002[?2004hroot@34cde06ed11c:/app# cat /app/data/TRANSACTIONS.DAT
+[?2004lB0030000000020U003U001B0030000000050U001U002B0010000000150U001U002[?2004hroot@34cde06ed11c:/app# cat > /app/program.py <<'PY'
+[?2004l[?2004h> #!/usr/bin/env python3
+[?2004l[?2004h> import sys
+[?2004l[?2004h> 
+[?2004l[?2004h> # Fixed widths
+[?2004l[?2004h> ACC_ID_W = 4
+[?2004l[?2004h> ACC_NAME_W = 20
+[?2004l[?2004h> ACC_BAL_W = 10
+[?2004l[?2004h> BOOK_ID_W = 4
+[?2004l[?2004h> BOOK_TITLE_W = 20
+[?2004l[?2004h> BOOK_OWNER_W = 4
+[?2004l[?2004h> TRANS_BOOK_W = 4
+[?2004l[?2004h> TRANS_AMT_W = 10
+[?2004l[?2004h> TRANS_SELLER_W = 4
+[?2004l[?2004h> TRANS_BUYER_W = 4
+[?2004l[?2004h> 
+[?2004l[?2004h> def read_fixed_records(path, rec_len):
+[?2004l[?2004h>     data = open(path, 'r').read()
+[?2004l[?2004h>     return [data[i:i+rec_len] for i in range(0, len(data), rec_len) if len(data[i:i+rec_len]) == rec_len]
+[?2004l[?2004h> 
+[?2004l[?2004h> def parse_accounts(records):
+[?2004l[?2004h>     accounts = []
+[?2004l[?2004h>     for rec in records:
+[?2004l[?2004h>         acct_id = rec[0:ACC_ID_W]
+[?2004l[?2004h>         name = rec[ACC_ID_W:ACC_ID_W+ACC_NAME_W]
+[?2004l[?2004h>         balance = int(rec[ACC_ID_W+ACC_NAME_W:ACC_ID_W+ACC_NAME_W+ACC_BAL_W])
+[?2004l[?2004h>         accounts.append([acct_id, name, balance])
+[?2004l[?2004h>     return accounts
+[?2004l[?2004h> 
+[?2004l[?2004h> def serialize_accounts(accounts):
+[?2004l[?2004h>     out = []
+[?2004l[?2004h>     for acct_id, name, balance in accounts:
+[?2004l[?2004h>         out.append(
+[?2004l[?2004h>             f"{acct_id}" +
+[?2004l[?2004h>             f"{name}" +
+[?2004l[?2004h>             f"{balance:0{ACC_BAL_W}d}"
+[?2004l[?2004h>         )
+[?2004l[?2004h>     return ''.join(out)
+[?2004l[?2004h> 
+[?2004l[?2004h> def parse_books(records):
+[?2004l[?2004h>     books = []
+[?2004l[?2004h>     for rec in records:
+[?2004l[?2004h>         book_id = rec[0:BOOK_ID_W]
+[?2004l[?2004h>         title = rec[BOOK_ID_W:BOOK_ID_W+BOOK_TITLE_W]
+[?2004l[?2004h>         owner = rec[BOOK_ID_W+BOOK_TITLE_W:BOOK_ID_W+BOOK_TITLE_W+BOOK_OWNER_W]
+[?2004l[?2004h>         books.append([book_id, title, owner])
+[?2004l[?2004h>     return books
+[?2004l[?2004h> 
+[?2004l[?2004h> def serialize_books(books):
+[?2004l[?2004h>     out = []
+[?2004l[?2004h>     for book_id, title, owner in books:
+[?2004l[?2004h>         out.append(f"{book_id}{title}{owner}")
+[?2004l[?2004h>     return ''.join(out)
+[?2004l[?2004h> 
+[?2004l[?2004h> def parse_transactions(records):
+[?2004l[?2004h>     trans = []
+[?2004l[?2004h>     for rec in records:
+[?2004l[?2004h>         book = rec[0:TRANS_BOOK_W]
+[?2004l[?2004h>         amt = int(rec[TRANS_BOOK_W:TRANS_BOOK_W+TRANS_AMT_W])
+[?2004l[?2004h>         seller = rec[TRANS_BOOK_W+TRANS_AMT_W:TRANS_BOOK_W+TRANS_AMT_W+TRANS_SELLER_W]
+[?2004l[?2004h>         buyer = rec[TRANS_BOOK_W+TRANS_AMT_W+TRANS_SELLER_W:]
+[?2004l[?2004h>         trans.append([book, amt, seller, buyer])
+[?2004l[?2004h>     return trans
+[?2004l[?2004h> 
+[?2004l[?2004h> def serialize_transaction(book, amt, seller, buyer):
+[?2004l[?2004h>     return f"{book}{amt:0{TRANS_AMT_W}d}{seller}{buyer}"
+[?2004l[?2004h> 
+[?2004l[?2004h> # --- Main processing ---
+[?2004l[?2004h> # Read INPUT.DAT (single record)
+[?2004l[?2004h> input_data = open('src/INPUT.DAT', 'r').read().strip()
+[?2004l[?2004h> if len(input_data) < 12:
+[?2004l[?2004h>     print('Error: Input file is empty')
+[?2004l[?2004h>     sys.exit(1)
+[?2004l[?2004h> buyer_id = input_data[0:4]
+[?2004l[?2004h> seller_id = input_data[4:8]
+[?2004l[?2004h> book_id = input_data[8:12]
+[?2004l[?2004h> amount_str = input_data[12:]
+[?2004l[?2004h> # amount may be shorter than 10 digits; treat missing leading zeros as zeros
+[?2004l[?2004h> amount = int(amount_str) if amount_str else 0
+[?2004l[?2004h> 
+[?2004l[?2004h> # Load data files
+[?2004l[?2004h> account_records = read_fixed_records('data/ACCOUNTS.DAT', ACC_ID_W+ACC_NAME_W+ACC_BAL_W)
+[?2004l[?2004h> accounts = parse_accounts(account_records)
+[?2004l[?2004h> book_records = read_fixed_records('data/BOOKS.DAT', BOOK_ID_W+BOOK_TITLE_W+BOOK_OWNER_W)
+[?2004l[?2004h> books = parse_books(book_records)
+[?2004l[?2004h> trans_records = read_fixed_records('data/TRANSACTIONS.DAT', TRANS_BOOK_W+TRANS_AMT_W+TRANS_SELLER_W+TRANS_BUYER_W)
+[?2004l[?2004h> transactions = parse_transactions(trans_records)
+[?2004l[?2004h> 
+[?2004l[?2004h> # Validation flags
+[?2004l[?2004h> buyer_found = any(acct_id == buyer_id for acct_id, _, _ in accounts)
+[?2004l[?2004h> seller_found = any(acct_id == seller_id for acct_id, _, _ in accounts)
+[?2004l[?2004h> book_entry = next((b for b in books if b[0] == book_id), None)
+[?2004l[?2004h> book_found = book_entry is not None
+[?2004l[?2004h> valid_owner = book_found and (book_entry[2] == seller_id)
+[?2004l[?2004h> 
+[?2004l[?2004h> if buyer_found and seller_found and book_found and valid_owner:
+[?2004l[?2004h>     # Process transaction: update balances
+[?2004l[?2004h>     for acct in accounts:
+[?2004l[?2004h>         if acct[0] == buyer_id:
+[?2004l[?2004h>             acct[2] -= amount
+[?2004l[?2004h>         if acct[0] == seller_id:
+[?2004l[?2004h>             acct[2] += amount
+[?2004l[?2004h>     # Update book owner
+[?2004l[?2004h>     for b in books:
+[?2004l[?2004h>         if b[0] == book_id:
+[?2004l[?2004h>             b[2] = buyer_id
+[?2004l[?2004h>     # Append transaction record
+[?2004l[?2004h>     new_trans = serialize_transaction(book_id, amount, seller_id, buyer_id)
+[?2004l[?2004h>     transactions.append([book_id, amount, seller_id, buyer_id])
+[?2004l[?2004h>     # Write back files
+[?2004l[?2004h>     open('data/ACCOUNTS.DAT', 'w').write(serialize_accounts(accounts))
+[?2004l[?2004h>     open('data/BOOKS.DAT', 'w').write(serialize_books(books))
+[?2004l[?2004h>     # Append to transactions file preserving existing content
+[?2004l[?2004h>     with open('data/TRANSACTIONS.DAT', 'a') as f:
+[?2004l[?2004h>         f.write(new_trans)
+[?2004l[?2004h>     print('Transaction completed successfully')
+[?2004l[?2004h> else:
+[?2004l[?2004h>     print('Transaction failed due to validation errors')
+[?2004l[?2004h> PY
+[?2004l[?2004hroot@34cde06ed11c:/app# chmod +x /app/program.py
+[?2004l[?2004hroot@34cde06ed11c:/app# mkdir -p /app/backup
+[?2004l[?2004hroot@34cde06ed11c:/app# cp /app/data/ACCOUNTS.DAT /app/backup/
+[?2004l[?2004hroot@34cde06ed11c:/app# cp /app/data/BOOKS.DAT /app/backup/
+[?2004l[?2004hroot@34cde06ed11c:/app# cp /app/data/TRANSACTIONS.DAT /app/backup/
+[?2004l[?2004hroot@34cde06ed11c:/app# cobc -x -o /app/program_cobol /app/src/program.cbl
+[?2004l[?2004hroot@34cde06ed11c:/app# cd /app && ./program_cobol
+[?2004l 
+Transaction failed due to validation errors
+[?2004hroot@34cde06ed11c:/app# mkdir -p /app/ref
+[?2004l[?2004hroot@34cde06ed11c:/app# cp /app/data/ACCOUNTS.DAT /app/ref/ACCOUNTS_REF.DAT
+[?2004l[?2004hroot@34cde06ed11c:/app# cp /app/data/BOOKS.DAT /app/ref/BOOKS_REF.DAT
+[?2004l[?2004hroot@34cde06ed11c:/app# cp /app/data/TRANSACTIONS.DAT /app/ref/TRANSACTIONS_REF.DAT
+[?2004l[?2004hroot@34cde06ed11c:/app# cp /app/backup/ACCOUNTS.DAT /app/data/
+[?2004l[?2004hroot@34cde06ed11c:/app# cp /app/backup/BOOKS.DAT /app/data/
+[?2004l[?2004hroot@34cde06ed11c:/app# cp /app/backup/TRANSACTIONS.DAT /app/data/
+[?2004l[?2004hroot@34cde06ed11c:/app# python3 /app/program.py
+[?2004lTransaction failed due to validation errors
+[?2004hroot@34cde06ed11c:/app# diff /app/data/ACCOUNTS.DAT /app/ref/ACCOUNTS_REF.DAT
+[?2004l[?2004hroot@34cde06ed11c:/app# diff /app/data/BOOKS.DAT /app/ref/BOOKS_REF.DAT
+[?2004l[?2004hroot@34cde06ed11c:/app# diff /app/data/TRANSACTIONS.DAT /app/ref/TRANSACTIONS_REF.DAT
+[?2004l[?2004hroot@34cde06ed11c:/app# 

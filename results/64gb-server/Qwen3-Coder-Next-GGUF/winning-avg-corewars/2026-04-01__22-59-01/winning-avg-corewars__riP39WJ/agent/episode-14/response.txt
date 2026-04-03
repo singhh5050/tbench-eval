@@ -1,0 +1,15 @@
+{
+  "analysis": "The problem is clear now. When I use 'mov copy, *ptr', it copies the instruction at 'copy' (which is spl 0,0) to *ptr, and then 'mov copy, @ptr' copies it again to @ptr. But the loop code (add #1, ptr, add #step, ptr, jmp loop) is never copied. I need to copy the loop instructions themselves.",
+  "plan": "Create a warrior that copies the entire loop. The key is that 'mov copy, *ptr' copies from 'copy' to *ptr, and 'mov copy, @ptr' copies from 'copy' to @ptr. But we need the loop to be copied too. Let me try a different approach.",
+  "commands": [
+    {
+      "keystrokes": "cat > my_warrior.red << 'EOF'\n;redcode-94\n;name QuickPaper\n;strategy Fast replicator\n\nstep    equ 2667\n\n        org start\n\nstart   spl 0, 0\nloop    mov copy, *ptr\n        add #1, ptr\n        mov copy, @ptr\n        add #step, ptr\n        jmp loop\n\nptr     dat step, step*2\n\ncopy    spl 0, 0\n\n        end start\nEOF\n",
+      "duration": 0.5
+    },
+    {
+      "keystrokes": "pmars -b -r 100 -f my_warrior.red warriors/stone.red\n",
+      "duration": 3.0
+    }
+  ],
+  "task_complete": false
+}

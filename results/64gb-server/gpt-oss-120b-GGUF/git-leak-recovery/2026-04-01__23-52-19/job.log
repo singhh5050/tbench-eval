@@ -1,0 +1,27 @@
+Installing: tmux, asciinema
+Detected system: {'os': 'debian-based', 'package_manager': 'apt-get', 'update_command': None}
+Installing tools using apt-get: DEBIAN_FRONTEND=noninteractive apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y tmux asciinema
+Starting recording.
+Sending keys: ['asciinema rec --stdin /logs/agent/recording.cast', 'Enter'] min_timeout_sec: 1.0 max_timeout_sec: 180.0
+Sending keys: ['clear', 'Enter'] min_timeout_sec: 0.0 max_timeout_sec: 180.0
+Failed to retrieve model info for 'openai/gpt-oss-120b-GGUF': This model isn't mapped yet. model=openai/gpt-oss-120b-GGUF, custom_llm_provider=openai. Add it here - https://github.com/BerriAI/litellm/blob/main/model_prices_and_context_window.json.. Using fallback context limit: 1000000
+Sending keys: ['cd /app/repo\n'] min_timeout_sec: 0.1 max_timeout_sec: 180.0
+Sending keys: ['git fsck --no-reflog --lost-found\n'] min_timeout_sec: 2.0 max_timeout_sec: 180.0
+Sending keys: ['grep -Rho "secret\\[[^]]*\\]" .git/lost-found/other/ | head -n1 > /tmp/secret_found.txt\n'] min_timeout_sec: 0.5 max_timeout_sec: 180.0
+Sending keys: ['secret=$(cat /tmp/secret_found.txt)\n'] min_timeout_sec: 0.1 max_timeout_sec: 180.0
+Sending keys: ['echo "$secret" > /app/secret.txt\n'] min_timeout_sec: 0.1 max_timeout_sec: 180.0
+Sending keys: ['printf "secret\\\\[[^]]*\\\\]" > /tmp/replace.txt\n'] min_timeout_sec: 0.1 max_timeout_sec: 180.0
+Sending keys: ['git filter-repo --replace-text /tmp/replace.txt\n'] min_timeout_sec: 3.0 max_timeout_sec: 180.0
+Sending keys: ['git reflog expire --expire=now --all\n'] min_timeout_sec: 0.5 max_timeout_sec: 180.0
+Sending keys: ['git gc --prune=now --aggressive\n'] min_timeout_sec: 3.0 max_timeout_sec: 180.0
+Trajectory dumped to /var/tmp/harbor-results/easy-tasks-full-20260401-2150/gpt-oss-120b-GGUF/git-leak-recovery/2026-04-01__23-52-19/git-leak-recovery__XaaeC6N/agent/trajectory.json
+Failed to retrieve model info for 'openai/gpt-oss-120b-GGUF': This model isn't mapped yet. model=openai/gpt-oss-120b-GGUF, custom_llm_provider=openai. Add it here - https://github.com/BerriAI/litellm/blob/main/model_prices_and_context_window.json.. Using fallback context limit: 1000000
+Sending keys: ['cd /app/repo\n'] min_timeout_sec: 0.1 max_timeout_sec: 180.0
+Sending keys: ['git grep -e "secret\\[" 6b4c75caa9a2aa9a630e16764007b0109b1f5c07 > /tmp/secret_found.txt\n'] min_timeout_sec: 0.5 max_timeout_sec: 180.0
+Sending keys: ['secret=$(cat /tmp/secret_found.txt | grep -o "secret\\[[^]]*\\]")\n'] min_timeout_sec: 0.1 max_timeout_sec: 180.0
+Sending keys: ['echo "$secret" > /app/secret.txt\n'] min_timeout_sec: 0.1 max_timeout_sec: 180.0
+Sending keys: ['git filter-branch --force --tree-filter \'sed -i "s/secret\\[[^]]*\\]//g" $(git ls-files)\' -- --all\n'] min_timeout_sec: 5.0 max_timeout_sec: 180.0
+Sending keys: ['git reflog expire --expire=now --all\n'] min_timeout_sec: 0.5 max_timeout_sec: 180.0
+Sending keys: ['git gc --prune=now --aggressive\n'] min_timeout_sec: 3.0 max_timeout_sec: 180.0
+Trajectory dumped to /var/tmp/harbor-results/easy-tasks-full-20260401-2150/gpt-oss-120b-GGUF/git-leak-recovery/2026-04-01__23-52-19/git-leak-recovery__XaaeC6N/agent/trajectory.json
+Trajectory dumped to /var/tmp/harbor-results/easy-tasks-full-20260401-2150/gpt-oss-120b-GGUF/git-leak-recovery/2026-04-01__23-52-19/git-leak-recovery__XaaeC6N/agent/trajectory.json

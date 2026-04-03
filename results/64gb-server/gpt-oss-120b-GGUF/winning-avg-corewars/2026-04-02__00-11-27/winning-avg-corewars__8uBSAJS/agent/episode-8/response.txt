@@ -1,0 +1,31 @@
+{
+  "analysis": "Current win rates are insufficient for Stone (67 < 75) and Snake (25 < 33). Adding many early SPLs reduced performance. A better approach is to run two parallel threads: one core‑clear loop (the proven G2‑Clear) and a simple fast bomber that drops DAT every step (effective against Stone and helps against Snake). We'll SPL to both threads at start, then let each run independently.",
+  "plan": "1. Overwrite my_warrior.red with a new program that SPLs to a core‑clear thread and a fast bomber thread.\n2. Run batch battles against Stone and Snake to verify win counts meet the required thresholds.\n3. Re‑run against the other opponents to ensure they remain above their thresholds.\n4. If all thresholds are satisfied, mark the task complete.",
+  "commands": [
+    {
+      "keystrokes": "cat > my_warrior.red <<'EOF'\n;redcode-94\n;name MyWarrior\n;author AI\n;strategy Core‑clear + fast bomber (spl to both threads)\n;assert CORESIZE == 8000 && MAXCYCLES == 80000\n\nstart   spl   clear, bomber   ; launch core‑clear and bomber threads\n        ; no further code needed here\n\nbomber  mov   #0, >0          ; fast moving DAT bomb (drops DAT each step)\n        jmp   bomber\n\n;--- core‑clear (G2‑Clear) ---\n\ndec     equ     2700                ; decrement value for bomb counter\ngate    equ     clear-4             ; gate location relative to clear\n\n        org     clear-1             ; start just before clear loop\n\nbptr    dat     bombc,       9      ; pointer to bomb for clear loop\nbombc   spl     #dec,       11      ; split creates many processes\nclear   mov     *bptr,      >gate   ; move bomb contents through gate pointer\n        mov     *bptr,      >gate   ; second move for double clearing\n        djn.f   clear,      }bombc  ; decrement and jump if not zero (loop control)\n\n        end     start\nEOF\n",
+      "duration": 1.0
+    },
+    {
+      "keystrokes": "pmars -b -r 100 -f my_warrior.red warriors/stone.red | tail -n 5\n",
+      "duration": 2.5
+    },
+    {
+      "keystrokes": "pmars -b -r 100 -f my_warrior.red warriors/snake.red | tail -n 5\n",
+      "duration": 2.5
+    },
+    {
+      "keystrokes": "pmars -b -r 100 -f my_warrior.red warriors/paper.red | tail -n 5\n",
+      "duration": 2.5
+    },
+    {
+      "keystrokes": "pmars -b -r 100 -f my_warrior.red warriors/vampire.red | tail -n 5\n",
+      "duration": 2.5
+    },
+    {
+      "keystrokes": "pmars -b -r 100 -f my_warrior.red warriors/g2-clear.red | tail -n 5\n",
+      "duration": 2.5
+    }
+  ],
+  "task_complete": false
+}

@@ -1,0 +1,35 @@
+{
+  "analysis": "We have the pMARS source extracted in pmars-0.9.4. The build is driven by src/Makefile, which currently links against X11 (LIB = -L/usr/X11R6/lib -lX11) and includes the -DXWINGRAPHX flag that enables X graphics. To build without any X dependencies we must remove the -DXWINGRAPHX definition and change the LIB line to use a non‑X library, such as curses (LIB = -lcurses). We'll need the curses development headers, so we must install libncurses5-dev (or libncurses-dev). After editing the Makefile, we will compile with \"make\" inside the src directory, producing a binary named pmars. Then we will copy that binary to /usr/local/bin/pmars and finally run the test command to verify the output.",
+  "plan": "1. Install the curses development package.\n2. Edit src/Makefile to:\n   - Remove the -DXWINGRAPHX flag from the CFLAGS line.\n   - Replace the LIB line with \"LIB = -lcurses\".\n3. Build the program with make in the src directory.\n4. Verify the binary exists (pmars).\n5. Install the binary to /usr/local/bin/pmars.\n6. Run the test command `pmars -b -r 50 -f flashpaper.red rave.red | tail -n 1` and capture the output.\n7. (If the .red files are missing, list the repository to see if they are provided; otherwise, we will download sample .red files from the internet.)",
+  "commands": [
+    {
+      "keystrokes": "apt-get install -y libncurses5-dev\n",
+      "duration": 30.0
+    },
+    {
+      "keystrokes": "sed -i 's/-DXWINGRAPHX //g' pmars-0.9.4/src/Makefile\n",
+      "duration": 0.1
+    },
+    {
+      "keystrokes": "sed -i 's|LIB = -L/usr/X11R6/lib -lX11|LIB = -lcurses|' pmars-0.9.4/src/Makefile\n",
+      "duration": 0.1
+    },
+    {
+      "keystrokes": "cd pmars-0.9.4/src && make\n",
+      "duration": 60.0
+    },
+    {
+      "keystrokes": "ls -l pmars\n",
+      "duration": 0.1
+    },
+    {
+      "keystrokes": "cp pmars /usr/local/bin/pmars\n",
+      "duration": 0.1
+    },
+    {
+      "keystrokes": "pmars -b -r 50 -f flashpaper.red rave.red | tail -n 1\n",
+      "duration": 30.0
+    }
+  ],
+  "task_complete": false
+}

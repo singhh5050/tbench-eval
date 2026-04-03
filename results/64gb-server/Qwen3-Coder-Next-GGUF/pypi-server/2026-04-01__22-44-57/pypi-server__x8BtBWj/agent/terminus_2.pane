@@ -1,0 +1,798 @@
+[?2004hroot@57941df35775:/app# asciinema rec --stdin /logs/agent/recording.cast
+[?2004l[0;32masciinema: recording asciicast to /logs/agent/recording.cast[0m
+[0;32masciinema: press <ctrl-d> or type "exit" when you're done[0m
+[?2004hroot@57941df35775:/app# clear
+[?2004l[H[J[3J[?2004hroot@57941df35775:/app# mkdir vectorops && cd vectorops
+[?2004l[?2004hroot@57941df35775:/app/vectorops# cat > __init__.py << 'EOF'
+[?2004l[?2004h> def dotproduct(a, b):
+[?2004l[?2004h>     """Calculate the dot product of two lists."""
+[?2004l[?2004h>     return sum(x * y for x, y in zip(a, b))
+[?2004l[?2004h> EOF
+[?2004l[?2004hroot@57941df35775:/app/vectorops# cat > setup.py << 'EOF'
+[?2004l[?2004h> from setuptools import setup, find_packages
+[?2004l[?2004h> 
+[?2004l[?2004h> setup(
+[?2004l[?2004h>     name="vectorops",
+[?2004l[?2004h>     version="0.1.0",
+[?2004l[?2004h>     packages=find_packages(),
+[?2004l[?2004h>     py_modules=['vectorops'],
+[?2004l[?2004h> )
+[?2004l[?2004h> EOF
+[?2004l[?2004hroot@57941df35775:/app/vectorops# cat > setup.cfg << 'EOF'
+[?2004l[?2004h> [metadata]
+[?2004l[?2004h> name = vectorops
+[?2004l[?2004h> version = 0.1.0
+[?2004l[?2004h> EOF
+[?2004l[?2004hroot@57941df35775:/app/vectorops# python3 setup.py sdist bdist_wheel
+[?2004lrunning sdist
+running egg_info
+creating vectorops.egg-info
+writing vectorops.egg-info/PKG-INFO
+writing dependency_links to vectorops.egg-info/dependency_links.txt
+writing top-level names to vectorops.egg-info/top_level.txt
+writing manifest file 'vectorops.egg-info/SOURCES.txt'
+file vectorops.py (for module vectorops) not found
+reading manifest file 'vectorops.egg-info/SOURCES.txt'
+writing manifest file 'vectorops.egg-info/SOURCES.txt'
+warning: sdist: standard file not found: should have one of README, README.rst, README.txt, README.md
+
+running check
+creating vectorops-0.1.0
+creating vectorops-0.1.0/vectorops.egg-info
+copying files to vectorops-0.1.0...
+copying setup.cfg -> vectorops-0.1.0
+copying setup.py -> vectorops-0.1.0
+copying vectorops.egg-info/PKG-INFO -> vectorops-0.1.0/vectorops.egg-info
+copying vectorops.egg-info/SOURCES.txt -> vectorops-0.1.0/vectorops.egg-info
+copying vectorops.egg-info/dependency_links.txt -> vectorops-0.1.0/vectorops.egg-info
+copying vectorops.egg-info/top_level.txt -> vectorops-0.1.0/vectorops.egg-info
+copying vectorops.egg-info/SOURCES.txt -> vectorops-0.1.0/vectorops.egg-info
+Writing vectorops-0.1.0/setup.cfg
+creating dist
+Creating tar archive
+removing 'vectorops-0.1.0' (and everything under it)
+running bdist_wheel
+running build
+running build_py
+file vectorops.py (for module vectorops) not found
+file vectorops.py (for module vectorops) not found
+/usr/local/lib/python3.13/site-packages/setuptools/_distutils/cmd.py:66: SetuptoolsDeprecationWarning: setup.py install is deprecated.
+!!
+
+        ********************************************************************************
+        Please avoid running ``setup.py`` directly.
+        Instead, use pypa/build, pypa/installer or other
+        standards-based tools.
+
+        See https://blog.ganssle.io/articles/2021/10/setup-py-deprecated.html for details.
+        ********************************************************************************
+
+!!
+  self.initialize_options()
+installing to build/bdist.linux-x86_64/wheel
+running install
+running install_lib
+warning: install_lib: 'build/lib' does not exist -- no Python modules to install
+
+running install_egg_info
+Copying vectorops.egg-info to build/bdist.linux-x86_64/wheel/./vectorops-0.1.0-py3.13.egg-info
+running install_scripts
+creating build/bdist.linux-x86_64/wheel/vectorops-0.1.0.dist-info/WHEEL
+creating 'dist/vectorops-0.1.0-py3-none-any.whl' and adding 'build/bdist.linux-x86_64/wheel' to it
+adding 'vectorops-0.1.0.dist-info/METADATA'
+adding 'vectorops-0.1.0.dist-info/WHEEL'
+adding 'vectorops-0.1.0.dist-info/top_level.txt'
+adding 'vectorops-0.1.0.dist-info/RECORD'
+removing build/bdist.linux-x86_64/wheel
+[?2004hroot@57941df35775:/app/vectorops# ls -la dist/
+[?2004ltotal 16
+drwxr-xr-x 2 root root 4096 Apr  2 04:45 .
+drwxr-xr-x 5 root root 4096 Apr  2 04:45 ..
+-rw-r--r-- 1 root root  956 Apr  2 04:45 vectorops-0.1.0-py3-none-any.whl
+-rw-r--r-- 1 root root  710 Apr  2 04:45 vectorops-0.1.0.tar.gz
+[?2004hroot@57941df35775:/app/vectorops# cat setup.py
+[?2004lfrom setuptools import setup, find_packages
+
+setup(
+    name="vectorops",
+    version="0.1.0",
+    packages=find_packages(),
+    py_modules=['vectorops'],
+)
+[?2004hroot@57941df35775:/app/vectorops# cat > setup.py << 'EOF'
+[?2004l[?2004h> from setuptools import setup, find_packages
+[?2004l[?2004h> 
+[?2004l[?2004h> setup(
+[?2004l[?2004h>     name="vectorops",
+[?2004l[?2004h>     version="0.1.0",
+[?2004l[?2004h>     packages=find_packages(),
+[?2004l[?2004h> )
+[?2004l[?2004h> EOF
+[?2004l[?2004hroot@57941df35775:/app/vectorops# rm -rf dist build vectorops.egg-info
+[?2004l[?2004hroot@57941df35775:/app/vectorops# python3 setup.py sdist bdist_wheel
+[?2004lrunning sdist
+running egg_info
+creating vectorops.egg-info
+writing vectorops.egg-info/PKG-INFO
+writing dependency_links to vectorops.egg-info/dependency_links.txt
+writing top-level names to vectorops.egg-info/top_level.txt
+writing manifest file 'vectorops.egg-info/SOURCES.txt'
+reading manifest file 'vectorops.egg-info/SOURCES.txt'
+writing manifest file 'vectorops.egg-info/SOURCES.txt'
+warning: sdist: standard file not found: should have one of README, README.rst, README.txt, README.md
+
+running check
+creating vectorops-0.1.0
+creating vectorops-0.1.0/vectorops.egg-info
+copying files to vectorops-0.1.0...
+copying setup.cfg -> vectorops-0.1.0
+copying setup.py -> vectorops-0.1.0
+copying vectorops.egg-info/PKG-INFO -> vectorops-0.1.0/vectorops.egg-info
+copying vectorops.egg-info/SOURCES.txt -> vectorops-0.1.0/vectorops.egg-info
+copying vectorops.egg-info/dependency_links.txt -> vectorops-0.1.0/vectorops.egg-info
+copying vectorops.egg-info/top_level.txt -> vectorops-0.1.0/vectorops.egg-info
+copying vectorops.egg-info/SOURCES.txt -> vectorops-0.1.0/vectorops.egg-info
+Writing vectorops-0.1.0/setup.cfg
+creating dist
+Creating tar archive
+removing 'vectorops-0.1.0' (and everything under it)
+running bdist_wheel
+running build
+/usr/local/lib/python3.13/site-packages/setuptools/_distutils/cmd.py:66: SetuptoolsDeprecationWarning: setup.py install is deprecated.
+!!
+
+        ********************************************************************************
+        Please avoid running ``setup.py`` directly.
+        Instead, use pypa/build, pypa/installer or other
+        standards-based tools.
+
+        See https://blog.ganssle.io/articles/2021/10/setup-py-deprecated.html for details.
+        ********************************************************************************
+
+!!
+  self.initialize_options()
+installing to build/bdist.linux-x86_64/wheel
+running install
+running install_egg_info
+Copying vectorops.egg-info to build/bdist.linux-x86_64/wheel/./vectorops-0.1.0-py3.13.egg-info
+running install_scripts
+creating build/bdist.linux-x86_64/wheel/vectorops-0.1.0.dist-info/WHEEL
+creating 'dist/vectorops-0.1.0-py3-none-any.whl' and adding 'build/bdist.linux-x86_64/wheel' to it
+adding 'vectorops-0.1.0.dist-info/METADATA'
+adding 'vectorops-0.1.0.dist-info/WHEEL'
+adding 'vectorops-0.1.0.dist-info/top_level.txt'
+adding 'vectorops-0.1.0.dist-info/RECORD'
+removing build/bdist.linux-x86_64/wheel
+[?2004hroot@57941df35775:/app/vectorops# ls -la dist/
+[?2004ltotal 16
+drwxr-xr-x 2 root root 4096 Apr  2 04:45 .
+drwxr-xr-x 5 root root 4096 Apr  2 04:45 ..
+-rw-r--r-- 1 root root  946 Apr  2 04:45 vectorops-0.1.0-py3-none-any.whl
+-rw-r--r-- 1 root root  679 Apr  2 04:45 vectorops-0.1.0.tar.gz
+[?2004hroot@57941df35775:/app/vectorops# cd /app/vectorops/dist && python3 -m http.server 8080 &
+[?2004l[1] 653
+[?2004hroot@57941df35775:/app/vectorops# Serving HTTP on 0.0.0.0 port 8080 (http://0.0.0.0:8080/) ...
+kill %1
+[?2004l[?2004hroot@57941df35775:/app/vectorops# which twine || pip install twine
+[?2004l[1]+  Terminated              cd /app/vectorops/dist && python3 -m http.server 8080
+Collecting twine
+  Downloading twine-6.2.0-py3-none-any.whl.metadata (3.6 kB)
+Collecting readme-renderer>=35.0 (from twine)
+  Downloading readme_renderer-44.0-py3-none-any.whl.metadata (2.8 kB)
+Collecting requests>=2.20 (from twine)
+  Downloading requests-2.33.1-py3-none-any.whl.metadata (4.8 kB)
+Collecting requests-toolbelt!=0.9.0,>=0.8.0 (from twine)
+  Downloading requests_toolbelt-1.0.0-py2.py3-none-any.whl.metadata (14 kB)
+Collecting urllib3>=1.26.0 (from twine)
+  Downloading urllib3-2.6.3-py3-none-any.whl.metadata (6.9 kB)
+Collecting keyring>=21.2.0 (from twine)
+  Downloading keyring-25.7.0-py3-none-any.whl.metadata (21 kB)
+Collecting rfc3986>=1.4.0 (from twine)
+  Downloading rfc3986-2.0.0-py2.py3-none-any.whl.metadata (6.6 kB)
+Collecting rich>=12.0.0 (from twine)
+  Downloading rich-14.3.3-py3-none-any.whl.metadata (18 kB)
+Collecting packaging>=24.0 (from twine)
+  Downloading packaging-26.0-py3-none-any.whl.metadata (3.3 kB)
+Collecting id (from twine)
+  Downloading id-1.6.1-py3-none-any.whl.metadata (5.1 kB)
+Collecting SecretStorage>=3.2 (from keyring>=21.2.0->twine)
+  Downloading secretstorage-3.5.0-py3-none-any.whl.metadata (4.0 kB)
+Collecting jeepney>=0.4.2 (from keyring>=21.2.0->twine)
+  Downloading jeepney-0.9.0-py3-none-any.whl.metadata (1.2 kB)
+Collecting jaraco.classes (from keyring>=21.2.0->twine)
+  Downloading jaraco.classes-3.4.0-py3-none-any.whl.metadata (2.6 kB)
+Collecting jaraco.functools (from keyring>=21.2.0->twine)
+  Downloading jaraco_functools-4.4.0-py3-none-any.whl.metadata (3.0 kB)
+Collecting jaraco.context (from keyring>=21.2.0->twine)
+  Downloading jaraco_context-6.1.2-py3-none-any.whl.metadata (4.2 kB)
+Collecting nh3>=0.2.14 (from readme-renderer>=35.0->twine)
+  Downloading nh3-0.3.4-cp38-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (2.0 kB)
+Collecting docutils>=0.21.2 (from readme-renderer>=35.0->twine)
+  Downloading docutils-0.22.4-py3-none-any.whl.metadata (15 kB)
+Collecting Pygments>=2.5.1 (from readme-renderer>=35.0->twine)
+  Downloading pygments-2.20.0-py3-none-any.whl.metadata (2.5 kB)
+Collecting charset_normalizer<4,>=2 (from requests>=2.20->twine)
+  Downloading charset_normalizer-3.4.6-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (40 kB)
+Collecting idna<4,>=2.5 (from requests>=2.20->twine)
+  Downloading idna-3.11-py3-none-any.whl.metadata (8.4 kB)
+Collecting certifi>=2023.5.7 (from requests>=2.20->twine)
+  Downloading certifi-2026.2.25-py3-none-any.whl.metadata (2.5 kB)
+Collecting markdown-it-py>=2.2.0 (from rich>=12.0.0->twine)
+  Downloading markdown_it_py-4.0.0-py3-none-any.whl.metadata (7.3 kB)
+Collecting mdurl~=0.1 (from markdown-it-py>=2.2.0->rich>=12.0.0->twine)
+  Downloading mdurl-0.1.2-py3-none-any.whl.metadata (1.6 kB)
+Collecting cryptography>=2.0 (from SecretStorage>=3.2->keyring>=21.2.0->twine)
+  Downloading cryptography-46.0.6-cp311-abi3-manylinux_2_34_x86_64.whl.metadata (5.7 kB)
+Collecting cffi>=2.0.0 (from cryptography>=2.0->SecretStorage>=3.2->keyring>=21.2.0->twine)
+  Downloading cffi-2.0.0-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.whl.metadata (2.6 kB)
+Collecting pycparser (from cffi>=2.0.0->cryptography>=2.0->SecretStorage>=3.2->keyring>=21.2.0->twine)
+  Downloading pycparser-3.0-py3-none-any.whl.metadata (8.2 kB)
+Collecting more-itertools (from jaraco.classes->keyring>=21.2.0->twine)
+  Downloading more_itertools-10.8.0-py3-none-any.whl.metadata (39 kB)
+Downloading twine-6.2.0-py3-none-any.whl (42 kB)
+Downloading keyring-25.7.0-py3-none-any.whl (39 kB)
+Downloading jeepney-0.9.0-py3-none-any.whl (49 kB)
+Downloading packaging-26.0-py3-none-any.whl (74 kB)
+Downloading readme_renderer-44.0-py3-none-any.whl (13 kB)
+Downloading docutils-0.22.4-py3-none-any.whl (633 kB)
+[?25l   [38;5;237m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m [32m0.0/633.2 kB[0m [31m?[0m eta [36m-:--:--[0m[2K   [38;5;70m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m [32m633.2/633.2 kB[0m [31m55.6 MB/s[0m  [33m0:00:00[0m
+[?25hDownloading nh3-0.3.4-cp38-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (804 kB)
+[?25l   [38;5;237m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m [32m0.0/805.0 kB[0m [31m?[0m eta [36m-:--:--[0m[2K   [38;5;70m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m [32m805.0/805.0 kB[0m [31m53.7 MB/s[0m  [33m0:00:00[0m
+[?25hDownloading pygments-2.20.0-py3-none-any.whl (1.2 MB)
+[?25l   [38;5;237m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m [32m0.0/1.2 MB[0m [31m?[0m eta [36m-:--:--[0m[2K   [38;5;70m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m [32m1.2/1.2 MB[0m [31m41.7 MB/s[0m  [33m0:00:00[0m
+[?25hDownloading requests-2.33.1-py3-none-any.whl (64 kB)
+Downloading charset_normalizer-3.4.6-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (206 kB)
+Downloading idna-3.11-py3-none-any.whl (71 kB)
+Downloading urllib3-2.6.3-py3-none-any.whl (131 kB)
+Downloading certifi-2026.2.25-py3-none-any.whl (153 kB)
+Downloading requests_toolbelt-1.0.0-py2.py3-none-any.whl (54 kB)
+Downloading rfc3986-2.0.0-py2.py3-none-any.whl (31 kB)
+Downloading rich-14.3.3-py3-none-any.whl (310 kB)
+Downloading markdown_it_py-4.0.0-py3-none-any.whl (87 kB)
+Downloading mdurl-0.1.2-py3-none-any.whl (10.0 kB)
+Downloading secretstorage-3.5.0-py3-none-any.whl (15 kB)
+Downloading cryptography-46.0.6-cp311-abi3-manylinux_2_34_x86_64.whl (4.5 MB)
+[?25l   [38;5;237m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m [32m0.0/4.5 MB[0m [31m?[0m eta [36m-:--:--[0m[2K   [38;5;70m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m [32m4.5/4.5 MB[0m [31m51.2 MB/s[0m  [33m0:00:00[0m
+[?25hDownloading cffi-2.0.0-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.whl (219 kB)
+Downloading id-1.6.1-py3-none-any.whl (14 kB)
+Downloading jaraco.classes-3.4.0-py3-none-any.whl (6.8 kB)
+Downloading jaraco_context-6.1.2-py3-none-any.whl (7.9 kB)
+Downloading jaraco_functools-4.4.0-py3-none-any.whl (10 kB)
+Downloading more_itertools-10.8.0-py3-none-any.whl (69 kB)
+Downloading pycparser-3.0-py3-none-any.whl (48 kB)
+Installing collected packages: urllib3, rfc3986, Pygments, pycparser, packaging, nh3, more-itertools, mdurl, jeepney, jaraco.context, idna, docutils, charset_normalizer, certifi, requests, readme-renderer, markdown-it-py, jaraco.functools, jaraco.classes, id, cffi, rich, requests-toolbelt, cryptography, SecretStorage, keyring, twine
+[?25l[2K   [38;5;197m━━[0m[38;5;197m╸[0m[38;5;237m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m [32m 2/27[0m [Pygments][2K   [38;5;197m━━[0m[38;5;197m╸[0m[38;5;237m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m [32m 2/27[0m [Pygments][2K   [38;5;197m━━━━━━━━━━━[0m[38;5;197m╸[0m[38;5;237m━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m [32m 8/27[0m [jeepney][2K   [38;5;197m━━━━━━━━━━━━━━━━[0m[38;5;237m╺[0m[38;5;237m━━━━━━━━━━━━━━━━━━━━━━━[0m [32m11/27[0m [docutils][2K   [38;5;197m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m[38;5;197m╸[0m[38;5;237m━━━━━━━━━━[0m [32m20/27[0m [cffi][2K   [38;5;197m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m[38;5;197m╸[0m[38;5;237m━━━━━━━[0m [32m22/27[0m [requests-toolbelt][2K   [38;5;70m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m [32m27/27[0m [twine]
+[?25h[1A[2KSuccessfully installed Pygments-2.20.0 SecretStorage-3.5.0 certifi-2026.2.25 cffi-2.0.0 charset_normalizer-3.4.6 cryptography-46.0.6 docutils-0.22.4 id-1.6.1 idna-3.11 jaraco.classes-3.4.0 jaraco.context-6.1.2 jaraco.functools-4.4.0 jeepney-0.9.0 keyring-25.7.0 markdown-it-py-4.0.0 mdurl-0.1.2 more-itertools-10.8.0 nh3-0.3.4 packaging-26.0 pycparser-3.0 readme-renderer-44.0 requests-2.33.1 requests-toolbelt-1.0.0 rfc3986-2.0.0 rich-14.3.3 twine-6.2.0 urllib3-2.6.3
+[33mWARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager, possibly rendering your system unusable. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv. Use the --root-user-action option if you know what you are doing and want to suppress this warning.[0m[33m
+[0m
+[1m[[0m[34;49mnotice[0m[1;39;49m][0m[39;49m A new release of pip is available: [0m[31;49m25.2[0m[39;49m -> [0m[32;49m26.0.1[0m
+[1m[[0m[34;49mnotice[0m[1;39;49m][0m[39;49m To update, run: [0m[32;49mpip install --upgrade pip[0m
+[?2004hroot@57941df35775:/app/vectorops# cd /app/vectorops/dist && twine serve --port 8080 &
+[?2004l[1] 720
+[?2004hroot@57941df35775:/app/vectorops# usage: twine [-h] [--version] [--no-color] {check,upload,register}
+twine: error: argument command: invalid choice: 'serve' (choose from check, upload, register)
+kill %1 2>/dev/null; sleep 0.5
+[?2004l[1]+  Exit 2                  cd /app/vectorops/dist && twine serve --port 8080
+[?2004hroot@57941df35775:/app/vectorops# pip install pypiserver
+[?2004lCollecting pypiserver
+  Downloading pypiserver-2.4.1-py2.py3-none-any.whl.metadata (51 kB)
+Requirement already satisfied: pip>=7 in /usr/local/lib/python3.13/site-packages (from pypiserver) (25.2)
+Requirement already satisfied: packaging>=23.2 in /usr/local/lib/python3.13/site-packages (from pypiserver) (26.0)
+Collecting legacy-cgi (from pypiserver)
+  Downloading legacy_cgi-2.6.4-py3-none-any.whl.metadata (2.3 kB)
+Downloading pypiserver-2.4.1-py2.py3-none-any.whl (94 kB)
+Downloading legacy_cgi-2.6.4-py3-none-any.whl (20 kB)
+Installing collected packages: legacy-cgi, pypiserver
+[?25l[2K   [38;5;70m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m [32m2/2[0m [pypiserver]
+[?25h[1A[2KSuccessfully installed legacy-cgi-2.6.4 pypiserver-2.4.1
+[33mWARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager, possibly rendering your system unusable. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv. Use the --root-user-action option if you know what you are doing and want to suppress this warning.[0m[33m
+[0m
+[1m[[0m[34;49mnotice[0m[1;39;49m][0m[39;49m A new release of pip is available: [0m[31;49m25.2[0m[39;49m -> [0m[32;49m26.0.1[0m
+[1m[[0m[34;49mnotice[0m[1;39;49m][0m[39;49m To update, run: [0m[32;49mpip install --upgrade pip[0m
+[?2004hroot@57941df35775:/app/vectorops# cd /app/vectorops/dist && pypi-server -p 8080 . &
+[?2004l[1] 783
+[?2004hroot@57941df35775:/app/vectorops# WARNING: You are using deprecated arguments to pypiserver.
+
+Please run `pypi-server --help` and update your command to align with the current interface.
+
+In most cases, this will be as simple as just using
+
+  pypi-server run [args]
+
+instead of
+
+  pypi-server [args]
+
+Bottle v0.12.25 server starting up (using AutoServer(handler_class=<class 'pypiserver.__main__.WsgiHandler'>))...
+Listening on http://0.0.0.0:8080/
+Hit Ctrl-C to quit.
+
+pip install --index-url http://localhost:8080/simple vectorops==0.1.0
+[?2004lLooking in indexes: http://localhost:8080/simple
+Collecting vectorops==0.1.0
+  Downloading http://localhost:8080/packages/vectorops-0.1.0-py3-none-any.whl (946 bytes)
+Installing collected packages: vectorops
+Successfully installed vectorops-0.1.0
+[33mWARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager, possibly rendering your system unusable. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv. Use the --root-user-action option if you know what you are doing and want to suppress this warning.[0m[33m
+[0m
+[1m[[0m[34;49mnotice[0m[1;39;49m][0m[39;49m A new release of pip is available: [0m[31;49m25.2[0m[39;49m -> [0m[32;49m26.0.1[0m
+[1m[[0m[34;49mnotice[0m[1;39;49m][0m[39;49m To update, run: [0m[32;49mpip install --upgrade pip[0m
+[?2004hroot@57941df35775:/app/vectorops# python3 -c "from vectorops import dotproduct; assert 1 == dotproduct([1,1], [0,1]); print('Test passed!')"
+[?2004lbash: !': event not found
+[?2004hroot@57941df35775:/app/vectorops# python3 -c 'from vectorops import dotproduct; assert 1 == dotproduct([1,1], [0,1]); print("Test passed")'
+[?2004lTraceback (most recent call last):
+  File [35m"<string>"[0m, line [35m1[0m, in [35m<module>[0m
+    [1;31mfrom vectorops import dotproduct[0m; assert 1 == dotproduct([1,1], [0,1]); print("Test passed")
+    [1;31m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+[1;35mModuleNotFoundError[0m: [35mNo module named 'vectorops'[0m
+[?2004hroot@57941df35775:/app/vectorops# pip show vectorops
+[?2004lName: vectorops
+Version: 0.1.0
+Summary: 
+Home-page: 
+Author: 
+Author-email: 
+License: 
+Location: /usr/local/lib/python3.13/site-packages
+Requires: 
+Required-by: 
+[?2004hroot@57941df35775:/app/vectorops# pip install --index-url http://localhost:8080/simple vectorops==0.1.0 --force-reinstall --no-deps
+[?2004lLooking in indexes: http://localhost:8080/simple
+Collecting vectorops==0.1.0
+  Downloading http://localhost:8080/packages/vectorops-0.1.0-py3-none-any.whl (946 bytes)
+Installing collected packages: vectorops
+  Attempting uninstall: vectorops
+    Found existing installation: vectorops 0.1.0
+    Uninstalling vectorops-0.1.0:
+      Successfully uninstalled vectorops-0.1.0
+Successfully installed vectorops-0.1.0
+[33mWARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager, possibly rendering your system unusable. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv. Use the --root-user-action option if you know what you are doing and want to suppress this warning.[0m[33m
+[0m
+[1m[[0m[34;49mnotice[0m[1;39;49m][0m[39;49m A new release of pip is available: [0m[31;49m25.2[0m[39;49m -> [0m[32;49m26.0.1[0m
+[1m[[0m[34;49mnotice[0m[1;39;49m][0m[39;49m To update, run: [0m[32;49mpip install --upgrade pip[0m
+[?2004hroot@57941df35775:/app/vectorops# ls -la /usr/local/lib/python3.13/site-packages/vectorops*
+[?2004ltotal 32
+drwxr-xr-x 2 root root 4096 Apr  2 04:46 .
+drwxr-xr-x 1 root root 4096 Apr  2 04:46 ..
+-rw-r--r-- 1 root root    4 Apr  2 04:46 INSTALLER
+-rw-r--r-- 1 root root   53 Apr  2 04:46 METADATA
+-rw-r--r-- 1 root root  487 Apr  2 04:46 RECORD
+-rw-r--r-- 1 root root    0 Apr  2 04:46 REQUESTED
+-rw-r--r-- 1 root root   91 Apr  2 04:46 WHEEL
+-rw-r--r-- 1 root root    1 Apr  2 04:46 top_level.txt
+[?2004hroot@57941df35775:/app/vectorops# cat /usr/local/lib/python3.13/site-packages/vectorops/__init__.py
+[?2004lcat: /usr/local/lib/python3.13/site-packages/vectorops/__init__.py: No such file or directory
+[?2004hroot@57941df35775:/app/vectorops# cd /tmp && python3 -c 'from vectorops import dotproduct; assert 1 == dotproduct([1,1], [0,1]); print("Test passed")'
+[?2004lTraceback (most recent call last):
+  File [35m"<string>"[0m, line [35m1[0m, in [35m<module>[0m
+    [1;31mfrom vectorops import dotproduct[0m; assert 1 == dotproduct([1,1], [0,1]); print("Test passed")
+    [1;31m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+[1;35mModuleNotFoundError[0m: [35mNo module named 'vectorops'[0m
+[?2004hroot@57941df35775:/tmp# cd /app/vectorops
+[?2004l[?2004hroot@57941df35775:/app/vectorops# cat setup.py
+[?2004lfrom setuptools import setup, find_packages
+
+setup(
+    name="vectorops",
+    version="0.1.0",
+    packages=find_packages(),
+)
+[?2004hroot@57941df35775:/app/vectorops# cat MANIFEST.in 2>/dev/null || echo 'No MANIFEST.in'
+[?2004lNo MANIFEST.in
+[?2004hroot@57941df35775:/app/vectorops# ls -la /app/vectorops/
+[?2004ltotal 32
+drwxr-xr-x 5 root root 4096 Apr  2 04:45 .
+drwxr-xr-x 1 root root 4096 Apr  2 04:45 ..
+-rw-r--r-- 1 root root  116 Apr  2 04:45 __init__.py
+drwxr-xr-x 3 root root 4096 Apr  2 04:45 build
+drwxr-xr-x 2 root root 4096 Apr  2 04:45 dist
+-rw-r--r-- 1 root root   44 Apr  2 04:45 setup.cfg
+-rw-r--r-- 1 root root  127 Apr  2 04:45 setup.py
+drwxr-xr-x 2 root root 4096 Apr  2 04:45 vectorops.egg-info
+[?2004hroot@57941df35775:/app/vectorops# ls -la /app/vectorops/vectorops/
+[?2004lls: cannot access '/app/vectorops/vectorops/': No such file or directory
+[?2004hroot@57941df35775:/app/vectorops# cat /app/vectorops/vectorops/__init__.py
+[?2004lcat: /app/vectorops/vectorops/__init__.py: No such file or directory
+[?2004hroot@57941df35775:/app/vectorops# mkdir -p /app/vectorops/vectorops
+[?2004l[?2004hroot@57941df35775:/app/vectorops# cp /app/vectorops/__init__.py /app/vectorops/vectorops/__init__.py
+[?2004l[?2004hroot@57941df35775:/app/vectorops# rm /app/vectorops/__init__.py
+[?2004l[?2004hroot@57941df35775:/app/vectorops# cat /app/vectorops/vectorops/__init__.py
+[?2004ldef dotproduct(a, b):
+    """Calculate the dot product of two lists."""
+    return sum(x * y for x, y in zip(a, b))
+[?2004hroot@57941df35775:/app/vectorops# rm -rf /app/vectorops/dist /app/vectorops/build /app/vectorops/vectorops.egg-info
+[?2004l[?2004hroot@57941df35775:/app/vectorops# cd /app/vectorops && python3 setup.py sdist bdist_wheel
+[?2004lrunning sdist
+running egg_info
+creating vectorops.egg-info
+writing vectorops.egg-info/PKG-INFO
+writing dependency_links to vectorops.egg-info/dependency_links.txt
+writing top-level names to vectorops.egg-info/top_level.txt
+writing manifest file 'vectorops.egg-info/SOURCES.txt'
+reading manifest file 'vectorops.egg-info/SOURCES.txt'
+writing manifest file 'vectorops.egg-info/SOURCES.txt'
+warning: sdist: standard file not found: should have one of README, README.rst, README.txt, README.md
+
+running check
+creating vectorops-0.1.0
+creating vectorops-0.1.0/vectorops
+creating vectorops-0.1.0/vectorops.egg-info
+copying files to vectorops-0.1.0...
+copying setup.cfg -> vectorops-0.1.0
+copying setup.py -> vectorops-0.1.0
+copying vectorops/__init__.py -> vectorops-0.1.0/vectorops
+copying vectorops.egg-info/PKG-INFO -> vectorops-0.1.0/vectorops.egg-info
+copying vectorops.egg-info/SOURCES.txt -> vectorops-0.1.0/vectorops.egg-info
+copying vectorops.egg-info/dependency_links.txt -> vectorops-0.1.0/vectorops.egg-info
+copying vectorops.egg-info/top_level.txt -> vectorops-0.1.0/vectorops.egg-info
+copying vectorops.egg-info/SOURCES.txt -> vectorops-0.1.0/vectorops.egg-info
+Writing vectorops-0.1.0/setup.cfg
+creating dist
+Creating tar archive
+removing 'vectorops-0.1.0' (and everything under it)
+running bdist_wheel
+running build
+running build_py
+creating build/lib/vectorops
+copying vectorops/__init__.py -> build/lib/vectorops
+/usr/local/lib/python3.13/site-packages/setuptools/_distutils/cmd.py:66: SetuptoolsDeprecationWarning: setup.py install is deprecated.
+!!
+
+        ********************************************************************************
+        Please avoid running ``setup.py`` directly.
+        Instead, use pypa/build, pypa/installer or other
+        standards-based tools.
+
+        See https://blog.ganssle.io/articles/2021/10/setup-py-deprecated.html for details.
+        ********************************************************************************
+
+!!
+  self.initialize_options()
+installing to build/bdist.linux-x86_64/wheel
+running install
+running install_lib
+creating build/bdist.linux-x86_64/wheel
+creating build/bdist.linux-x86_64/wheel/vectorops
+copying build/lib/vectorops/__init__.py -> build/bdist.linux-x86_64/wheel/./vectorops
+running install_egg_info
+Copying vectorops.egg-info to build/bdist.linux-x86_64/wheel/./vectorops-0.1.0-py3.13.egg-info
+running install_scripts
+creating build/bdist.linux-x86_64/wheel/vectorops-0.1.0.dist-info/WHEEL
+creating 'dist/vectorops-0.1.0-py3-none-any.whl' and adding 'build/bdist.linux-x86_64/wheel' to it
+adding 'vectorops/__init__.py'
+adding 'vectorops-0.1.0.dist-info/METADATA'
+adding 'vectorops-0.1.0.dist-info/WHEEL'
+adding 'vectorops-0.1.0.dist-info/top_level.txt'
+adding 'vectorops-0.1.0.dist-info/RECORD'
+removing build/bdist.linux-x86_64/wheel
+[?2004hroot@57941df35775:/app/vectorops# pkill -f 'pypi-server'
+[?2004lbash: pkill: command not found
+[?2004hroot@57941df35775:/app/vectorops# cd /app/vectorops/dist && pypi-server -p 8080 . &
+[?2004l[2] 1144
+[?2004hroot@57941df35775:/app/vectorops# WARNING: You are using deprecated arguments to pypiserver.
+
+Please run `pypi-server --help` and update your command to align with the current interface.
+
+In most cases, this will be as simple as just using
+
+  pypi-server run [args]
+
+instead of
+
+  pypi-server [args]
+
+Bottle v0.12.25 server starting up (using AutoServer(handler_class=<class 'pypiserver.__main__.WsgiHandler'>))...
+Listening on http://0.0.0.0:8080/
+Hit Ctrl-C to quit.
+
+Traceback (most recent call last):
+  File [35m"/usr/local/bin/pypi-server"[0m, line [35m7[0m, in [35m<module>[0m
+    sys.exit([31mmain[0m[1;31m()[0m)
+             [31m~~~~[0m[1;31m^^[0m
+  File [35m"/usr/local/lib/python3.13/site-packages/pypiserver/__main__.py"[0m, line [35m210[0m, in [35mmain[0m
+    [31mbottle.run[0m[1;31m([0m
+    [31m~~~~~~~~~~[0m[1;31m^[0m
+        [1;31mapp=main_app,[0m
+        [1;31m^^^^^^^^^^^^^[0m
+    ...<3 lines>...
+        [1;31m**extra_kwargs,[0m
+        [1;31m^^^^^^^^^^^^^^^[0m
+    [1;31m)[0m
+    [1;31m^[0m
+  File [35m"/usr/local/lib/python3.13/site-packages/pypiserver/bottle_wrapper/bottle.py"[0m, line [35m3178[0m, in [35mrun[0m
+    [31mserver.run[0m[1;31m(app)[0m
+    [31m~~~~~~~~~~[0m[1;31m^^^^^[0m
+  File [35m"/usr/local/lib/python3.13/site-packages/pypiserver/bottle_wrapper/bottle.py"[0m, line [35m3029[0m, in [35mrun[0m
+    return [31msa(self.host, self.port, **self.options).run[0m[1;31m(handler)[0m
+           [31m~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m[1;31m^^^^^^^^^[0m
+  File [35m"/usr/local/lib/python3.13/site-packages/pypiserver/bottle_wrapper/bottle.py"[0m, line [35m2804[0m, in [35mrun[0m
+    srv = make_server(self.host, self.port, app, server_cls, handler_cls)
+  File [35m"/usr/local/lib/python3.13/wsgiref/simple_server.py"[0m, line [35m150[0m, in [35mmake_server[0m
+    server = server_class((host, port), handler_class)
+  File [35m"/usr/local/lib/python3.13/socketserver.py"[0m, line [35m457[0m, in [35m__init__[0m
+    [31mself.server_bind[0m[1;31m()[0m
+    [31m~~~~~~~~~~~~~~~~[0m[1;31m^^[0m
+  File [35m"/usr/local/lib/python3.13/wsgiref/simple_server.py"[0m, line [35m50[0m, in [35mserver_bind[0m
+    [31mHTTPServer.server_bind[0m[1;31m(self)[0m
+    [31m~~~~~~~~~~~~~~~~~~~~~~[0m[1;31m^^^^^^[0m
+  File [35m"/usr/local/lib/python3.13/http/server.py"[0m, line [35m136[0m, in [35mserver_bind[0m
+    [31msocketserver.TCPServer.server_bind[0m[1;31m(self)[0m
+    [31m~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m[1;31m^^^^^^[0m
+  File [35m"/usr/local/lib/python3.13/socketserver.py"[0m, line [35m478[0m, in [35mserver_bind[0m
+    [31mself.socket.bind[0m[1;31m(self.server_address)[0m
+    [31m~~~~~~~~~~~~~~~~[0m[1;31m^^^^^^^^^^^^^^^^^^^^^[0m
+[1;35mOSError[0m: [35m[Errno 98] Address already in use[0m
+kill -9 783 2>/dev/null; sleep 0.5
+[?2004l[1]-  Killed                  cd /app/vectorops/dist && pypi-server -p 8080 .
+[2]+  Exit 1                  cd /app/vectorops/dist && pypi-server -p 8080 .
+[?2004hroot@57941df35775:/app/vectorops# ps aux | grep pypi
+[?2004lbash: ps: command not found
+[?2004hroot@57941df35775:/app/vectorops# cd /app/vectorops/dist && pypi-server -p 8080 . &
+[?2004l[1] 1205
+[?2004hroot@57941df35775:/app/vectorops# WARNING: You are using deprecated arguments to pypiserver.
+
+Please run `pypi-server --help` and update your command to align with the current interface.
+
+In most cases, this will be as simple as just using
+
+  pypi-server run [args]
+
+instead of
+
+  pypi-server [args]
+
+Bottle v0.12.25 server starting up (using AutoServer(handler_class=<class 'pypiserver.__main__.WsgiHandler'>))...
+Listening on http://0.0.0.0:8080/
+Hit Ctrl-C to quit.
+
+Traceback (most recent call last):
+  File [35m"/usr/local/bin/pypi-server"[0m, line [35m7[0m, in [35m<module>[0m
+    sys.exit([31mmain[0m[1;31m()[0m)
+             [31m~~~~[0m[1;31m^^[0m
+  File [35m"/usr/local/lib/python3.13/site-packages/pypiserver/__main__.py"[0m, line [35m210[0m, in [35mmain[0m
+    [31mbottle.run[0m[1;31m([0m
+    [31m~~~~~~~~~~[0m[1;31m^[0m
+        [1;31mapp=main_app,[0m
+        [1;31m^^^^^^^^^^^^^[0m
+    ...<3 lines>...
+        [1;31m**extra_kwargs,[0m
+        [1;31m^^^^^^^^^^^^^^^[0m
+    [1;31m)[0m
+    [1;31m^[0m
+  File [35m"/usr/local/lib/python3.13/site-packages/pypiserver/bottle_wrapper/bottle.py"[0m, line [35m3178[0m, in [35mrun[0m
+    [31mserver.run[0m[1;31m(app)[0m
+    [31m~~~~~~~~~~[0m[1;31m^^^^^[0m
+  File [35m"/usr/local/lib/python3.13/site-packages/pypiserver/bottle_wrapper/bottle.py"[0m, line [35m3029[0m, in [35mrun[0m
+    return [31msa(self.host, self.port, **self.options).run[0m[1;31m(handler)[0m
+           [31m~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m[1;31m^^^^^^^^^[0m
+  File [35m"/usr/local/lib/python3.13/site-packages/pypiserver/bottle_wrapper/bottle.py"[0m, line [35m2804[0m, in [35mrun[0m
+    srv = make_server(self.host, self.port, app, server_cls, handler_cls)
+  File [35m"/usr/local/lib/python3.13/wsgiref/simple_server.py"[0m, line [35m150[0m, in [35mmake_server[0m
+    server = server_class((host, port), handler_class)
+  File [35m"/usr/local/lib/python3.13/socketserver.py"[0m, line [35m457[0m, in [35m__init__[0m
+    [31mself.server_bind[0m[1;31m()[0m
+    [31m~~~~~~~~~~~~~~~~[0m[1;31m^^[0m
+  File [35m"/usr/local/lib/python3.13/wsgiref/simple_server.py"[0m, line [35m50[0m, in [35mserver_bind[0m
+    [31mHTTPServer.server_bind[0m[1;31m(self)[0m
+    [31m~~~~~~~~~~~~~~~~~~~~~~[0m[1;31m^^^^^^[0m
+  File [35m"/usr/local/lib/python3.13/http/server.py"[0m, line [35m136[0m, in [35mserver_bind[0m
+    [31msocketserver.TCPServer.server_bind[0m[1;31m(self)[0m
+    [31m~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m[1;31m^^^^^^[0m
+  File [35m"/usr/local/lib/python3.13/socketserver.py"[0m, line [35m478[0m, in [35mserver_bind[0m
+    [31mself.socket.bind[0m[1;31m(self.server_address)[0m
+    [31m~~~~~~~~~~~~~~~~[0m[1;31m^^^^^^^^^^^^^^^^^^^^^[0m
+[1;35mOSError[0m: [35m[Errno 98] Address already in use[0m
+ss -tlnp | grep 8080
+[?2004lbash: ss: command not found
+[1]+  Exit 1                  cd /app/vectorops/dist && pypi-server -p 8080 .
+[?2004hroot@57941df35775:/app/vectorops# netstat -tlnp | grep 8080
+[?2004lbash: netstat: command not found
+[?2004hroot@57941df35775:/app/vectorops# sleep 2
+[?2004l[?2004hroot@57941df35775:/app/vectorops# cd /app/vectorops/dist && pypi-server -p 8080 . &
+[?2004l[1] 1276
+[?2004hroot@57941df35775:/app/vectorops# WARNING: You are using deprecated arguments to pypiserver.
+
+Please run `pypi-server --help` and update your command to align with the current interface.
+
+In most cases, this will be as simple as just using
+
+  pypi-server run [args]
+
+instead of
+
+  pypi-server [args]
+
+Bottle v0.12.25 server starting up (using AutoServer(handler_class=<class 'pypiserver.__main__.WsgiHandler'>))...
+Listening on http://0.0.0.0:8080/
+Hit Ctrl-C to quit.
+
+Traceback (most recent call last):
+  File [35m"/usr/local/bin/pypi-server"[0m, line [35m7[0m, in [35m<module>[0m
+    sys.exit([31mmain[0m[1;31m()[0m)
+             [31m~~~~[0m[1;31m^^[0m
+  File [35m"/usr/local/lib/python3.13/site-packages/pypiserver/__main__.py"[0m, line [35m210[0m, in [35mmain[0m
+    [31mbottle.run[0m[1;31m([0m
+    [31m~~~~~~~~~~[0m[1;31m^[0m
+        [1;31mapp=main_app,[0m
+        [1;31m^^^^^^^^^^^^^[0m
+    ...<3 lines>...
+        [1;31m**extra_kwargs,[0m
+        [1;31m^^^^^^^^^^^^^^^[0m
+    [1;31m)[0m
+    [1;31m^[0m
+  File [35m"/usr/local/lib/python3.13/site-packages/pypiserver/bottle_wrapper/bottle.py"[0m, line [35m3178[0m, in [35mrun[0m
+    [31mserver.run[0m[1;31m(app)[0m
+    [31m~~~~~~~~~~[0m[1;31m^^^^^[0m
+  File [35m"/usr/local/lib/python3.13/site-packages/pypiserver/bottle_wrapper/bottle.py"[0m, line [35m3029[0m, in [35mrun[0m
+    return [31msa(self.host, self.port, **self.options).run[0m[1;31m(handler)[0m
+           [31m~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m[1;31m^^^^^^^^^[0m
+  File [35m"/usr/local/lib/python3.13/site-packages/pypiserver/bottle_wrapper/bottle.py"[0m, line [35m2804[0m, in [35mrun[0m
+    srv = make_server(self.host, self.port, app, server_cls, handler_cls)
+  File [35m"/usr/local/lib/python3.13/wsgiref/simple_server.py"[0m, line [35m150[0m, in [35mmake_server[0m
+    server = server_class((host, port), handler_class)
+  File [35m"/usr/local/lib/python3.13/socketserver.py"[0m, line [35m457[0m, in [35m__init__[0m
+    [31mself.server_bind[0m[1;31m()[0m
+    [31m~~~~~~~~~~~~~~~~[0m[1;31m^^[0m
+  File [35m"/usr/local/lib/python3.13/wsgiref/simple_server.py"[0m, line [35m50[0m, in [35mserver_bind[0m
+    [31mHTTPServer.server_bind[0m[1;31m(self)[0m
+    [31m~~~~~~~~~~~~~~~~~~~~~~[0m[1;31m^^^^^^[0m
+  File [35m"/usr/local/lib/python3.13/http/server.py"[0m, line [35m136[0m, in [35mserver_bind[0m
+    [31msocketserver.TCPServer.server_bind[0m[1;31m(self)[0m
+    [31m~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m[1;31m^^^^^^[0m
+  File [35m"/usr/local/lib/python3.13/socketserver.py"[0m, line [35m478[0m, in [35mserver_bind[0m
+    [31mself.socket.bind[0m[1;31m(self.server_address)[0m
+    [31m~~~~~~~~~~~~~~~~[0m[1;31m^^^^^^^^^^^^^^^^^^^^^[0m
+[1;35mOSError[0m: [35m[Errno 98] Address already in use[0m
+python3 -c "
+[?2004l[1]+  Exit 1                  cd /app/vectorops/dist && pypi-server -p 8080 .
+[?2004h> import socket
+[?2004l[?2004h> import subprocess
+[?2004l[?2004h> import os
+[?2004l[?2004h> 
+[?2004l[?2004h> # Check if port is in use
+[?2004l[?2004h> sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+[?2004l[?2004h> result = sock.connect_ex(('localhost', 8080))
+[?2004l[?2004h> if result == 0:
+[?2004l[?2004h>     print('Port 8080 is open')
+[?2004l[?2004h> else:
+[?2004l[?2004h>     print('Port 8080 is closed')
+[?2004l[?2004h> sock.close()
+[?2004l[?2004h> "
+[?2004lPort 8080 is open
+[?2004hroot@57941df35775:/app/vectorops# cat /proc/*/fd/* 2>/dev/null | head -5
+[?2004lpython3 << 'EOF'
+import os
+import signal
+
+# Find all pids and check which one is using port 8080
+for pid in os.listdir('/proc'):
+    if pid.isdigit():
+        try:
+            with open(f'/proc/{pid}/cmdline', 'r') as f:
+                cmdline = f.read()
+                if 'pypi' in cmdline:
+                    print(f'Found pypi process with PID {pid}: {cmdline}')
+                    os.kill(int(pid), signal.SIGKILL)
+        except:
+            pass
+EOF
+cd /app/vectorops/dist && pypi-server -p 8080 . &
+
+^C
+[?2004hroot@57941df35775:/app/vectorops# kill -9 $(grep -l pypi /proc/*/cmdline 2>/dev/null | cut -d/ -f3) 2>/dev/null
+[?2004l[?2004hroot@57941df35775:/app/vectorops# cd /app/vectorops/dist && pypi-server -p 8080 . &
+[?2004l[1] 1429
+[?2004hroot@57941df35775:/app/vectorops# WARNING: You are using deprecated arguments to pypiserver.
+
+Please run `pypi-server --help` and update your command to align with the current interface.
+
+In most cases, this will be as simple as just using
+
+  pypi-server run [args]
+
+instead of
+
+  pypi-server [args]
+
+Bottle v0.12.25 server starting up (using AutoServer(handler_class=<class 'pypiserver.__main__.WsgiHandler'>))...
+Listening on http://0.0.0.0:8080/
+Hit Ctrl-C to quit.
+
+pip install --index-url http://localhost:8080/simple vectorops==0.1.0
+[?2004lLooking in indexes: http://localhost:8080/simple
+Requirement already satisfied: vectorops==0.1.0 in /usr/local/lib/python3.13/site-packages (0.1.0)
+[33mWARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager, possibly rendering your system unusable. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv. Use the --root-user-action option if you know what you are doing and want to suppress this warning.[0m[33m
+[0m
+[1m[[0m[34;49mnotice[0m[1;39;49m][0m[39;49m A new release of pip is available: [0m[31;49m25.2[0m[39;49m -> [0m[32;49m26.0.1[0m
+[1m[[0m[34;49mnotice[0m[1;39;49m][0m[39;49m To update, run: [0m[32;49mpip install --upgrade pip[0m
+[?2004hroot@57941df35775:/app/vectorops# cd /tmp && python3 -c 'from vectorops import dotproduct; assert 1 == dotproduct([1,1], [0,1]); print("Test passed")'
+[?2004lTraceback (most recent call last):
+  File [35m"<string>"[0m, line [35m1[0m, in [35m<module>[0m
+    [1;31mfrom vectorops import dotproduct[0m; assert 1 == dotproduct([1,1], [0,1]); print("Test passed")
+    [1;31m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+[1;35mModuleNotFoundError[0m: [35mNo module named 'vectorops'[0m
+[?2004hroot@57941df35775:/tmp# ls -la /usr/local/lib/python3.13/site-packages/vectorops*
+[?2004ltotal 32
+drwxr-xr-x 2 root root 4096 Apr  2 04:46 .
+drwxr-xr-x 1 root root 4096 Apr  2 04:46 ..
+-rw-r--r-- 1 root root    4 Apr  2 04:46 INSTALLER
+-rw-r--r-- 1 root root   53 Apr  2 04:46 METADATA
+-rw-r--r-- 1 root root  487 Apr  2 04:46 RECORD
+-rw-r--r-- 1 root root    0 Apr  2 04:46 REQUESTED
+-rw-r--r-- 1 root root   91 Apr  2 04:46 WHEEL
+-rw-r--r-- 1 root root    1 Apr  2 04:46 top_level.txt
+[?2004hroot@57941df35775:/tmp# cat /usr/local/lib/python3.13/site-packages/vectorops-0.1.0.dist-info/top_level.txt
+[?2004l
+[?2004hroot@57941df35775:/tmp# ls -la /usr/local/lib/python3.13/site-packages/ | grep vector
+[?2004ldrwxr-xr-x  2 root root   4096 Apr  2 04:46 vectorops-0.1.0.dist-info
+[?2004hroot@57941df35775:/tmp# pip uninstall -y vectorops
+[?2004lFound existing installation: vectorops 0.1.0
+Uninstalling vectorops-0.1.0:
+  Successfully uninstalled vectorops-0.1.0
+[33mWARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager, possibly rendering your system unusable. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv. Use the --root-user-action option if you know what you are doing and want to suppress this warning.[0m[33m
+[0m[?2004hroot@57941df35775:/tmp# cd /app/vectorops/dist && pip install --index-url http://localhost:8080/simple vectorops==0.1.0
+[?2004lLooking in indexes: http://localhost:8080/simple
+Collecting vectorops==0.1.0
+  Downloading http://localhost:8080/packages/vectorops-0.1.0-py3-none-any.whl (1.2 kB)
+Installing collected packages: vectorops
+Successfully installed vectorops-0.1.0
+[33mWARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager, possibly rendering your system unusable. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv. Use the --root-user-action option if you know what you are doing and want to suppress this warning.[0m[33m
+[0m
+[1m[[0m[34;49mnotice[0m[1;39;49m][0m[39;49m A new release of pip is available: [0m[31;49m25.2[0m[39;49m -> [0m[32;49m26.0.1[0m
+[1m[[0m[34;49mnotice[0m[1;39;49m][0m[39;49m To update, run: [0m[32;49mpip install --upgrade pip[0m
+[?2004hroot@57941df35775:/app/vectorops/dist# ls -la /usr/local/lib/python3.13/site-packages/vectorops*
+[?2004l/usr/local/lib/python3.13/site-packages/vectorops:
+total 20
+drwxr-xr-x 3 root root 4096 Apr  2 04:49 .
+drwxr-xr-x 1 root root 4096 Apr  2 04:49 ..
+-rw-r--r-- 1 root root  116 Apr  2 04:49 __init__.py
+drwxr-xr-x 2 root root 4096 Apr  2 04:49 __pycache__
+
+/usr/local/lib/python3.13/site-packages/vectorops-0.1.0.dist-info:
+total 32
+drwxr-xr-x 2 root root 4096 Apr  2 04:49 .
+drwxr-xr-x 1 root root 4096 Apr  2 04:49 ..
+-rw-r--r-- 1 root root    4 Apr  2 04:49 INSTALLER
+-rw-r--r-- 1 root root   53 Apr  2 04:49 METADATA
+-rw-r--r-- 1 root root  616 Apr  2 04:49 RECORD
+-rw-r--r-- 1 root root    0 Apr  2 04:49 REQUESTED
+-rw-r--r-- 1 root root   91 Apr  2 04:49 WHEEL
+-rw-r--r-- 1 root root   10 Apr  2 04:49 top_level.txt
+[?2004hroot@57941df35775:/app/vectorops/dist# cat /usr/local/lib/python3.13/site-packages/vectorops-0.1.0.dist-info/top_level.txt
+[?2004lvectorops
+[?2004hroot@57941df35775:/app/vectorops/dist# python3 -c 'from vectorops import dotproduct; assert 1 == dotproduct([1,1], [0,1]); print("Test passed")'
+[?2004lTest passed
+[?2004hroot@57941df35775:/app/vectorops/dist# pip uninstall -y vectorops
+[?2004lFound existing installation: vectorops 0.1.0
+Uninstalling vectorops-0.1.0:
+  Successfully uninstalled vectorops-0.1.0
+[33mWARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager, possibly rendering your system unusable. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv. Use the --root-user-action option if you know what you are doing and want to suppress this warning.[0m[33m
+[0m[?2004hroot@57941df35775:/app/vectorops/dist# pip install --index-url http://localhost:8080/simple vectorops==0.1.0
+[?2004lLooking in indexes: http://localhost:8080/simple
+Collecting vectorops==0.1.0
+  Downloading http://localhost:8080/packages/vectorops-0.1.0-py3-none-any.whl (1.2 kB)
+Installing collected packages: vectorops
+Successfully installed vectorops-0.1.0
+[33mWARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager, possibly rendering your system unusable. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv. Use the --root-user-action option if you know what you are doing and want to suppress this warning.[0m[33m
+[0m
+[1m[[0m[34;49mnotice[0m[1;39;49m][0m[39;49m A new release of pip is available: [0m[31;49m25.2[0m[39;49m -> [0m[32;49m26.0.1[0m
+[1m[[0m[34;49mnotice[0m[1;39;49m][0m[39;49m To update, run: [0m[32;49mpip install --upgrade pip[0m
+[?2004hroot@57941df35775:/app/vectorops/dist# python3 -c 'from vectorops import dotproduct; print(dotproduct([1,1], [0,1]))'
+[?2004l1
+[?2004hroot@57941df35775:/app/vectorops/dist# pip uninstall -y vectorops && pip install --index-url http://localhost:8080/simple vectorops==0.1.0
+[?2004lFound existing installation: vectorops 0.1.0
+Uninstalling vectorops-0.1.0:
+  Successfully uninstalled vectorops-0.1.0
+[33mWARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager, possibly rendering your system unusable. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv. Use the --root-user-action option if you know what you are doing and want to suppress this warning.[0m[33m
+[0mLooking in indexes: http://localhost:8080/simple
+Collecting vectorops==0.1.0
+  Downloading http://localhost:8080/packages/vectorops-0.1.0-py3-none-any.whl (1.2 kB)
+Installing collected packages: vectorops
+Successfully installed vectorops-0.1.0
+[33mWARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager, possibly rendering your system unusable. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv. Use the --root-user-action option if you know what you are doing and want to suppress this warning.[0m[33m
+[0m
+[1m[[0m[34;49mnotice[0m[1;39;49m][0m[39;49m A new release of pip is available: [0m[31;49m25.2[0m[39;49m -> [0m[32;49m26.0.1[0m
+[1m[[0m[34;49mnotice[0m[1;39;49m][0m[39;49m To update, run: [0m[32;49mpip install --upgrade pip[0m
+[?2004hroot@57941df35775:/app/vectorops/dist# python3 -c 'from vectorops import dotproduct; assert 1 == dotproduct([1,1], [0,1]); print("All tests passed!")'
+[?2004lAll tests passed!
+[?2004hroot@57941df35775:/app/vectorops/dist# 

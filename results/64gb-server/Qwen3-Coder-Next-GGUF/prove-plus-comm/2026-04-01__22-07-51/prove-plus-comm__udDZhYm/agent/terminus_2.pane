@@ -1,0 +1,73 @@
+[?2004hroot@f144aa805b5d:/workspace# asciinema rec --stdin /logs/agent/recording.cast
+[?2004l[0;32masciinema: recording asciicast to /logs/agent/recording.cast[0m
+[0;32masciinema: press <ctrl-d> or type "exit" when you're done[0m
+[?2004hroot@f144aa805b5d:/workspace# clear
+[?2004l[H[J[3J[?2004hroot@f144aa805b5d:/workspace# ls -la
+[?2004ltotal 12
+drwxr-xr-x 1 root root 4096 Oct 31 02:55 [0m[01;34m.[0m
+drwxr-xr-x 1 root root 4096 Apr  2 04:09 [01;34m..[0m
+-rw-r--r-- 1 root root  277 Oct 24 05:18 plus_comm.v
+[?2004hroot@f144aa805b5d:/workspace# cat plus_comm.v
+[?2004lRequire Import Arith.
+
+Theorem plus_comm : forall n m : nat,
+  n + m = m + n.
+Proof.
+  intros n m.
+  induction n as [|n' IHn'].
+  - simpl.
+    (* Need to handle the base case *)
+    admit.
+  - simpl.
+    (* Need to use the inductive hypothesis and plus_n_Sm *)
+    admit.
+Qed. [?2004hroot@f144aa805b5d:/workspace# coqtop -batch -load-vernac-source /dev/null <<< 'Require Import Arith. Check plus_n_Sm.' 2>&1 | head -20 || echo 'Checking available lemmas...'
+[?2004lError: Can't find file /dev/null.v.
+
+[?2004hroot@f144aa805b5d:/workspace# cat > plus_comm.v << 'EOF'
+[?2004l[?2004h> Require Import Arith.
+[?2004l[?2004h> 
+[?2004l[?2004h> Theorem plus_comm : forall n m : nat,
+[?2004l[?2004h>   n + m = m + n.
+[?2004l[?2004h> Proof.
+[?2004l[?2004h>   intros n m.
+[?2004l[?2004h>   induction n as [|n' IHn'].
+[?2004l[?2004h>   - simpl.
+[?2004l[?2004h>     rewrite <- plus_n_O.
+[?2004l[?2004h>     reflexivity.
+[?2004l[?2004h>   - simpl.
+[?2004l[?2004h>     rewrite IHn'.
+[?2004l[?2004h>     rewrite plus_n_Sm.
+[?2004l[?2004h>     reflexivity.
+[?2004l[?2004h> Qed.
+[?2004l[?2004h> EOF
+[?2004l[?2004hroot@f144aa805b5d:/workspace# cat plus_comm.v
+[?2004lRequire Import Arith.
+
+Theorem plus_comm : forall n m : nat,
+  n + m = m + n.
+Proof.
+  intros n m.
+  induction n as [|n' IHn'].
+  - simpl.
+    rewrite <- plus_n_O.
+    reflexivity.
+  - simpl.
+    rewrite IHn'.
+    rewrite plus_n_Sm.
+    reflexivity.
+Qed.
+[?2004hroot@f144aa805b5d:/workspace# coqc plus_comm.v
+[?2004l[?2004hroot@f144aa805b5d:/workspace# ls -la
+[?2004ltotal 40
+drwxr-xr-x 1 root root  4096 Apr  2 04:10 [0m[01;34m.[0m
+drwxr-xr-x 1 root root  4096 Apr  2 04:09 [01;34m..[0m
+-rw-r--r-- 1 root root   238 Apr  2 04:10 .plus_comm.aux
+-rw-r--r-- 1 root root   687 Apr  2 04:10 plus_comm.glob
+-rw-r--r-- 1 root root   255 Apr  2 04:09 plus_comm.v
+-rw-r--r-- 1 root root 14499 Apr  2 04:10 plus_comm.vo
+-rw-r--r-- 1 root root     0 Apr  2 04:10 plus_comm.vok
+-rw-r--r-- 1 root root     0 Apr  2 04:10 plus_comm.vos
+[?2004hroot@f144aa805b5d:/workspace# coqc -q plus_comm.v && echo 'Proof verified successfully'
+[?2004lProof verified successfully
+[?2004hroot@f144aa805b5d:/workspace# 

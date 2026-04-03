@@ -1,0 +1,15 @@
+{
+  "analysis": "The issue is that my loop copies 'copy' to the destination, but 'copy' is just dat 0,0, not the loop code. I need to copy the entire loop, not just the dat at copy. Let me look at paper.red more carefully - it copies from 'copy' which is spl 0,0 and then the loop continues.",
+  "plan": "Create a proper paper-like warrior where the code to copy includes the loop instructions. The key insight is that 'mov copy, *ptr' copies the instruction at 'copy' (which is spl 0,0), and the loop continues.",
+  "commands": [
+    {
+      "keystrokes": "cat > my_warrior.red << 'EOF'\n;redcode-94\n;name QuickPaper\n;strategy Fast replicator\n\nstep    equ 2667\n\n        org start\n\nstart   spl 0, 0\nloop    mov copy, *ptr\n        add #1, ptr\n        mov copy, @ptr\n        add #step, ptr\n        jmp loop\n\ncopy    spl 0, 0\nptr     dat step, step*2\n\n        end start\nEOF\n",
+      "duration": 0.5
+    },
+    {
+      "keystrokes": "pmars -b -r 100 -f my_warrior.red warriors/stone.red\n",
+      "duration": 3.0
+    }
+  ],
+  "task_complete": false
+}

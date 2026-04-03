@@ -1,0 +1,15 @@
+{
+  "analysis": "Still not enough wins against stone. I need to look at this differently. Looking at the paper.red code more carefully, it has a proper loop with spl 0 that creates many processes. The key difference is the loop structure. Let me create a proper replicator that matches the paper pattern exactly.",
+  "plan": "Create a cleaner paper-like warrior that uses the exact pattern from paper.red - spl 0 to start, then a loop that copies itself around the core using mov with @ pointers.",
+  "commands": [
+    {
+      "keystrokes": "cat > my_warrior.red << 'EOF'\n;redcode-94\n;name QuickPaper\n;strategy Fast replicator\n\nstep    equ 2667\n\n        org start\n\nstart   spl 0, 0\nloop    mov copy, *ptr\n        add #1, ptr\n        mov copy, @ptr\n        add #step, ptr\n        jmp loop\n\ncopy    spl 0, 0\nptr     dat step, step*2\n\n        end start\nEOF\n",
+      "duration": 0.5
+    },
+    {
+      "keystrokes": "pmars -b -r 100 -f my_warrior.red warriors/stone.red\n",
+      "duration": 3.0
+    }
+  ],
+  "task_complete": false
+}

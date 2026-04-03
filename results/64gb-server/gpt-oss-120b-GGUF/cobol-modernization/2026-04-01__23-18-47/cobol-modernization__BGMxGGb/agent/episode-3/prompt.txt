@@ -1,0 +1,123 @@
+New Terminal Output:
+
+B0030000000020U003U001B0030000000050U001U002B0010000000150U001U002root@34cde06ed11c:/app# cat > /app/program.py <<'PY'
+> #!/usr/bin/env python3
+> import sys
+>
+> # Fixed widths
+> ACC_ID_W = 4
+> ACC_NAME_W = 20
+> ACC_BAL_W = 10
+> BOOK_ID_W = 4
+> BOOK_TITLE_W = 20
+> BOOK_OWNER_W = 4
+> TRANS_BOOK_W = 4
+> TRANS_AMT_W = 10
+> TRANS_SELLER_W = 4
+> TRANS_BUYER_W = 4
+>
+> def read_fixed_records(path, rec_len):
+>     data = open(path, 'r').read()
+>     return [data[i:i+rec_len] for i in range(0, len(data), rec_len) if len(data[i:i+rec_len]) == rec_len]
+>
+> def parse_accounts(records):
+>     accounts = []
+>     for rec in records:
+>         acct_id = rec[0:ACC_ID_W]
+>         name = rec[ACC_ID_W:ACC_ID_W+ACC_NAME_W]
+>         balance = int(rec[ACC_ID_W+ACC_NAME_W:ACC_ID_W+ACC_NAME_W+ACC_BAL_W])
+>         accounts.append([acct_id, name, balance])
+>     return accounts
+>
+> def serialize_accounts(accounts):
+>     out = []
+>     for acct_id, name, balance in accounts:
+>         out.append(
+>             f"{acct_id}" +
+>             f"{name}" +
+>             f"{balance:0{ACC_BAL_W}d}"
+>         )
+>     return ''.join(out)
+>
+> def parse_books(records):
+>     books = []
+>     for rec in records:
+>         book_id = rec[0:BOOK_ID_W]
+>         title = rec[BOOK_ID_W:BOOK_ID_W+BOOK_TITLE_W]
+>         owner = rec[BOOK_ID_W+BOOK_TITLE_W:BOOK_ID_W+BOOK_TITLE_W+BOOK_OWNER_W]
+>         books.append([book_id, title, owner])
+>     return books
+>
+> def serialize_books(books):
+>     out = []
+>     for book_id, title, owner in books:
+>         out.append(f"{book_id}{title}{owner}")
+>     return ''.join(out)
+>
+> def parse_transactions(records):
+>     trans = []
+>     for rec in records:
+>         book = rec[0:TRANS_BOOK_W]
+>         amt = int(rec[TRANS_BOOK_W:TRANS_BOOK_W+TRANS_AMT_W])
+>         seller = rec[TRANS_BOOK_W+TRANS_AMT_W:TRANS_BOOK_W+TRANS_AMT_W+TRANS_SELLER_W]
+>         buyer = rec[TRANS_BOOK_W+TRANS_AMT_W+TRANS_SELLER_W:]
+>         trans.append([book, amt, seller, buyer])
+>     return trans
+>
+> def serialize_transaction(book, amt, seller, buyer):
+>     return f"{book}{amt:0{TRANS_AMT_W}d}{seller}{buyer}"
+>
+> # --- Main processing ---
+> # Read INPUT.DAT (single record)
+> input_data = open('src/INPUT.DAT', 'r').read().strip()
+> if len(input_data) < 12:
+>     print('Error: Input file is empty')
+>     sys.exit(1)
+> buyer_id = input_data[0:4]
+> seller_id = input_data[4:8]
+> book_id = input_data[8:12]
+> amount_str = input_data[12:]
+> # amount may be shorter than 10 digits; treat missing leading zeros as zeros
+> amount = int(amount_str) if amount_str else 0
+>
+> # Load data files
+> account_records = read_fixed_records('data/ACCOUNTS.DAT', ACC_ID_W+ACC_NAME_W+ACC_BAL_W)
+> accounts = parse_accounts(account_records)
+> book_records = read_fixed_records('data/BOOKS.DAT', BOOK_ID_W+BOOK_TITLE_W+BOOK_OWNER_W)
+> books = parse_books(book_records)
+> trans_records = read_fixed_records('data/TRANSACTIONS.DAT', TRANS_BOOK_W+TRANS_AMT_W+TRANS_SELLER_W+TRANS_BUYER_W)
+> transactions = parse_transactions(trans_records)
+>
+> # Validation flags
+> buyer_found = any(acct_id == buyer_id for acct_id, _, _ in accounts)
+> seller_found = any(acct_id == seller_id for acct_id, _, _ in accounts)
+> book_entry = next((b for b in books if b[0] == book_id), None)
+> book_found = book_entry is not None
+> valid_owner = book_found and (book_entry[2] == seller_id)
+>
+> if buyer_found and seller_found and book_found and valid_owner:
+>     # Process transaction: update balances
+>     for acct in accounts:
+>         if acct[0] == buyer_id:
+>             acct[2] -= amount
+>         if acct[0] == seller_id:
+>             acct[2] += amount
+>     # Update book owner
+>     for b in books:
+>         if b[0] == book_id:
+>             b[2] = buyer_id
+>     # Append transaction record
+>     new_trans = serialize_transaction(book_id, amount, seller_id, buyer_id)
+>     transactions.append([book_id, amount, seller_id, buyer_id])
+>     # Write back files
+>     open('data/ACCOUNTS.DAT', 'w').write(serialize_accounts(accounts))
+>     open('data/BOOKS.DAT', 'w').write(serialize_books(books))
+>     # Append to transactions file preserving existing content
+>     with open('data/TRANSACTIONS.DAT', 'a') as f:
+>         f.write(new_trans)
+>     print('Transaction completed successfully')
+> else:
+>     print('Transaction failed due to validation errors')
+> PY
+root@34cde06ed11c:/app# chmod +x /app/program.py
+root@34cde06ed11c:/app#

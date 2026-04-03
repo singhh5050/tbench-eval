@@ -1,0 +1,50 @@
+New Terminal Output:
+
+root@6367a317ec00:/app# cat > my_warrior.red <<'EOF'
+> ;redcode-94
+> ;name MyWarrior
+> ;author AI
+> ;strategy Core‑clear with early SPLs and a fast moving bomb to beat replicators and snake
+> ;assert CORESIZE == 8000 && MAXCYCLES == 80000
+>
+> start   spl   1, >0          ; first extra process
+>         spl   1, >0          ; second extra process
+>         mov   #0, >0         ; fast moving DAT bomb
+>         jmp   clear          ; jump into clear loop
+>
+> ;--- core‑clear (G2‑Clear) ---
+>
+> dec     equ     2700                ; Decrement value for bomb counter
+> gate    equ     clear-4             ; Gate location relative to clear
+>
+>         org     clear-1             ; start just before clear
+>
+> bptr    dat     bomb,       9       ; pointer to bomb with offset 9
+> bomb    spl     #dec,       11      ; split with decrement value, creates processes
+> clear   mov     *bptr,      >gate   ; move bomb contents through gate pointer
+>         mov     *bptr,      >gate   ; second move for double clearing
+>         djn.f   clear,      }bomb   ; decrement and jump if not zero (loop control)
+>
+>         end
+> EOF
+root@6367a317ec00:/app# pmars -b -r 100 -f my_warrior.red warriors/paper.red | tail -n 5
+MyWarrior by AI scores 268
+Paper by mzvince (Everything2) scores 16
+Results: 84 0 16
+root@6367a317ec00:/app# pmars -b -r 100 -f my_warrior.red warriors/snake.red | tail -n 5
+MyWarrior by AI scores 91
+Snake by Wayne Sheppard scores 187
+Results: 23 55 22
+root@6367a317ec00:/app# pmars -b -r 100 -f my_warrior.red warriors/stone.red | tail -n 5
+MyWarrior by AI scores 254
+Stone by mzvince (Everything2) scores 23
+Results: 77 0 23
+root@6367a317ec00:/app# pmars -b -r 100 -f my_warrior.red warriors/vampire.red | tail -n 5
+MyWarrior by AI scores 275
+Vampire by mzvince (Everything2) scores 17
+Results: 89 3 8
+root@6367a317ec00:/app# pmars -b -r 100 -f my_warrior.red warriors/g2-clear.red | tail -n 5
+MyWarrior by AI scores 147
+G2-Clear by Unknown scores 153
+Results: 49 51 0
+root@6367a317ec00:/app#

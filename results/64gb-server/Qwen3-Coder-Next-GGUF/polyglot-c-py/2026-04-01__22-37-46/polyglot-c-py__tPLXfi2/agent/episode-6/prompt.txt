@@ -1,0 +1,31 @@
+New Terminal Output:
+
+root@22de8bcc306f:/app# cat > /app/polyglot/main.py.c << 'POLYGLOT'
+> #ifdef __GNUC__
+> #include <stdio.h>
+> #include <stdlib.h>
+> int main(int argc, char**argv) {
+>     int n = atoi(argv[1]);
+>     if (n <= 0) { printf("0\n"); return 0; }
+>     int a = 0, b = 1;
+>     for (int i = 1; i < n; i++) { int t = a + b; a = b; b = t; }
+>     printf("%d\n", b);
+>     return 0;
+> }
+> #else
+> import sys
+> n = int(sys.argv[1])
+> if n <= 0: print(0)
+> else:
+>     a, b = 0, 1
+>     for i in range(1, n):
+>         a, b = b, a + b
+>     print(b)
+> #endif
+> POLYGLOT
+root@22de8bcc306f:/app# python3 /app/polyglot/main.py.c 10
+  File "/app/polyglot/main.py.c", line 4
+    int main(int argc, char**argv) {
+        ^^^^
+SyntaxError: invalid syntax
+root@22de8bcc306f:/app#

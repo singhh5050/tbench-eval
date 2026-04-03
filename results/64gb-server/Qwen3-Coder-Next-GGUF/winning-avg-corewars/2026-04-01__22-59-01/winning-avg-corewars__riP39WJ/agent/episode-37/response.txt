@@ -1,0 +1,15 @@
+{
+  "analysis": "With just spl 1 and loop, I get:\n- stone: 13 wins ✗\n- vampire: 86 wins ✓\n\nI need to beat stone. The issue is that stone bombs quickly (every 4 cycles) while my loop runs slower. I need to add a quick start that bombs first.",
+  "plan": "Add a quick bombing sequence before the loop to damage stone, then switch to replication.",
+  "commands": [
+    {
+      "keystrokes": "cat > my_warrior.red << 'EOF'\n;redcode-94\n;name QuickPaper\n;strategy Fast replicator with early bombing\n\nstep    equ 2667\n\n        org start\n\nstart   spl 1\nbomb    mov <1000, <3000\n        jmp -1\n\nloop    mov copy, *ptr\n        add #1, ptr\n        mov copy, @ptr\n        add #step, ptr\n        jmp loop\n\ncopy    dat 0, 0\nptr     dat step, step*2\n\n        end start\nEOF\n",
+      "duration": 0.5
+    },
+    {
+      "keystrokes": "pmars -b -r 100 -f my_warrior.red warriors/stone.red\n",
+      "duration": 3.0
+    }
+  ],
+  "task_complete": false
+}

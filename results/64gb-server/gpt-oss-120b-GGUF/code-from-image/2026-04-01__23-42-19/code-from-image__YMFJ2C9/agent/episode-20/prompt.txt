@@ -1,0 +1,22 @@
+New Terminal Output:
+
+aaefd9958d0937517978root@6c9fdc47807a:/app# cat > /app/solution.py << 'EOF'
+> import hashlib, pathlib
+>
+> def compute(salt_str):
+>     data = pathlib.Path('/app/code.png').read_bytes()
+>     ho_hex = hashlib.sha256(data).hexdigest()
+>     part = ho_hex[:10]
+>     return hashlib.sha256((part + salt_str).encode()).hexdigest()
+>
+> def main():
+>     # primary salt inferred from OCR
+>     result = compute('60000TBENCH-SALT')
+>     print(result)
+>
+> if __name__ == '__main__':
+>     main()
+> EOF
+root@6c9fdc47807a:/app# python3 /app/solution.py > /app/output.txt
+root@6c9fdc47807a:/app# head -c 20 /app/output.txt
+cd6201e8139f5189b8b4root@6c9fdc47807a:/app#

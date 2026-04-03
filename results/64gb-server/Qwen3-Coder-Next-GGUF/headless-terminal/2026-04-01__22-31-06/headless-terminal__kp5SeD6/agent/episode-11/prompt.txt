@@ -1,0 +1,67 @@
+New Terminal Output:
+
+root@c238602e0932:/app# python3 << 'PYTEST'
+> from headless_terminal import HeadlessTerminal
+> import time
+>
+> # Test with a fresh terminal for cleaner output
+> print("=== Comprehensive HeadlessTerminal Test ===")
+> term = HeadlessTerminal()
+> time.sleep(0.5)
+>
+> # Test basic command with newline
+> print("\nTest: Basic command with newline")
+> term.send_keystrokes('pwd\n')
+> time.sleep(0.5)
+> output = term.read_output(timeout=0.5)
+> print(f"Output contains /app: {'/app' in output}")
+>
+> # Test Ctrl+D (exit)
+> print("\nTest: Ctrl+D to exit")
+> term.send_keystrokes('\x04')
+> time.sleep(0.5)
+>
+> # The shell should have exited, let's create a new one
+> term._spawn_interactive_shell()
+> time.sleep(0.5)
+> print("Shell respawned successfully")
+>
+> # Test Ctrl+C
+> print("\nTest: Ctrl+C with a slow command")
+> term.send_keystrokes('echo starting\n')
+> time.sleep(0.3)
+> term.send_keystrokes('read -t 10 x\x03')
+> time.sleep(0.5)
+> output = term.read_output(timeout=0.5)
+> print(f"Output after interrupt: {repr(output)}")
+>
+> # Test typing a variable name and echo it
+> print("\nTest: Variable assignment and echo")
+> term.send_keystrokes('MYVAR=test\n')
+> time.sleep(0.3)
+> term.send_keystrokes('echo $MYVAR\n')
+> time.sleep(0.5)
+> output = term.read_output(timeout=0.5)
+> print(f"Output: {repr(output)}")
+> print(f"Variable test passed: {'test' in output}")
+>
+> term.close()
+> print("\n=== All tests completed successfully! ===")
+> PYTEST
+=== Comprehensive HeadlessTerminal Test ===
+
+Test: Basic command with newline
+Output contains /app: True
+
+Test: Ctrl+D to exit
+Shell respawned successfully
+
+Test: Ctrl+C with a slow command
+Output after interrupt: '\x1b[?2004hecho starting\r\n\x1b[?2004l\rstarting\r\n\x1b[?2004hread -t 10 x^C\x1b[?2004l\r\x1b[?2004h\x1b[?2004l\r\r\n\x1b[?2004h'
+
+Test: Variable assignment and echo
+Output: 'MYVAR=test\r\n\x1b[?2004l\r\x1b[?2004hecho $MYVAR\r\n\x1b[?2004l\rtest\r\n\x1b[?2004h'
+Variable test passed: True
+
+=== All tests completed successfully! ===
+root@c238602e0932:/app#

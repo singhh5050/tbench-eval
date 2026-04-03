@@ -1,0 +1,48 @@
+New Terminal Output:
+
+root@6367a317ec00:/app# cat > my_warrior.red <<'EOF'
+> ;redcode-94
+> ;name MyWarrior
+> ;author AI
+> ;strategy Core‑clear with early SPL to beat replicators
+> ;assert CORESIZE == 8000 && MAXCYCLES == 80000
+>
+> start   spl   1, >0          ; spawn extra process
+>         jmp   clear          ; jump into clear loop
+>
+> ;--- core‑clear (G2‑Clear) ---
+>
+> dec     equ     2700                ; Decrement value for bomb counter
+> gate    equ     clear-4             ; Gate location relative to clear
+>
+>         org     clear-1             ; start just before clear
+>
+> bptr    dat     bomb,       9       ; pointer to bomb with offset 9
+> bomb    spl     #dec,       11      ; split with decrement value, creates processes
+> clear   mov     *bptr,      >gate   ; move bomb contents through gate pointer
+>         mov     *bptr,      >gate   ; second move for double clearing
+>         djn.f   clear,      }bomb   ; decrement and jump if not zero (loop control)
+>
+>         end
+> EOF
+root@6367a317ec00:/app# pmars -b -r 100 -f my_warrior.red warriors/paper.red | tail -n 5
+MyWarrior by AI scores 266
+Paper by mzvince (Everything2) scores 17
+Results: 83 0 17
+root@6367a317ec00:/app# pmars -b -r 100 -f my_warrior.red warriors/stone.red | tail -n 5
+MyWarrior by AI scores 240
+Stone by mzvince (Everything2) scores 30
+Results: 70 0 30
+root@6367a317ec00:/app# pmars -b -r 100 -f my_warrior.red warriors/vampire.red | tail -n 5
+MyWarrior by AI scores 263
+Vampire by mzvince (Everything2) scores 23
+Results: 83 3 14
+root@6367a317ec00:/app# pmars -b -r 100 -f my_warrior.red warriors/snake.red | tail -n 5
+MyWarrior by AI scores 110
+Snake by Wayne Sheppard scores 173
+Results: 31 52 17
+root@6367a317ec00:/app# pmars -b -r 100 -f my_warrior.red warriors/g2-clear.red | tail -n 5
+MyWarrior by AI scores 132
+G2-Clear by Unknown scores 168
+Results: 44 56 0
+root@6367a317ec00:/app#

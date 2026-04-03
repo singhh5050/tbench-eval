@@ -1,0 +1,92 @@
+New Terminal Output:
+
+root@9a81d6a7cadd:/app# apt-get install -y libncurses5-dev
+Reading package lists... Done
+Building dependency tree... Done
+Reading state information... Done
+Note, selecting 'libncurses-dev' instead of 'libncurses5-dev'
+The following additional packages will be installed:
+  libncurses6
+Suggested packages:
+  ncurses-doc
+The following NEW packages will be installed:
+  libncurses-dev libncurses6
+0 upgraded, 2 newly installed, 0 to remove and 14 not upgraded.
+Need to get 458 kB of archives.
+After this operation, 2787 kB of additional disk space will be used.
+Get:1 http://deb.debian.org/debian trixie/main amd64 libncurses6 amd64 6.5+20250216-2 [105 kB]
+Get:2 http://deb.debian.org/debian trixie/main amd64 libncurses-dev amd64 6.5+20250216-2 [353 kB]
+Fetched 458 kB in 0s (1308 kB/s)
+debconf: unable to initialize frontend: Dialog
+debconf: (No usable dialog-like program is installed, so the dialog based frontend cannot be used. at /usr/share/perl5/Debconf/FrontEnd/Dialog.pm line 79, <STDI
+N> line 2.)
+debconf: falling back to frontend: Readline
+Selecting previously unselected package libncurses6:amd64.
+(Reading database ... 17853 files and directories currently installed.)
+Preparing to unpack .../libncurses6_6.5+20250216-2_amd64.deb ...
+Unpacking libncurses6:amd64 (6.5+20250216-2) ...
+Selecting previously unselected package libncurses-dev:amd64.
+Preparing to unpack .../libncurses-dev_6.5+20250216-2_amd64.deb ...
+Unpacking libncurses-dev:amd64 (6.5+20250216-2) ...
+Setting up libncurses6:amd64 (6.5+20250216-2) ...
+Setting up libncurses-dev:amd64 (6.5+20250216-2) ...
+Processing triggers for libc-bin (2.41-12+deb13u2) ...
+root@9a81d6a7cadd:/app# sed -i 's/-DXWINGRAPHX //g' pmars-0.9.4/src/Makefile
+root@9a81d6a7cadd:/app# sed -i 's|LIB = -L/usr/X11R6/lib -lX11|LIB = -lcurses|' pmars-0.9.4/src/Makefile
+root@9a81d6a7cadd:/app# cd pmars-0.9.4/src && make
+Making pmars with compiler flags -O -DEXT94 -DPERMUTATE -DRWLIMIT
+Compiling pmars.o
+gcc                       -O -DEXT94 -DPERMUTATE -DRWLIMIT  -c pmars.c
+Compiling asm.o
+gcc                       -O -DEXT94 -DPERMUTATE -DRWLIMIT  -c asm.c
+Compiling eval.o
+gcc                       -O -DEXT94 -DPERMUTATE -DRWLIMIT  -c eval.c
+Compiling disasm.o
+gcc                       -O -DEXT94 -DPERMUTATE -DRWLIMIT  -c disasm.c
+In file included from disasm.c:26:
+sim.h:92:12: warning: built-in function ‘round’ declared as non-function [-Wbuiltin-declaration-mismatch]
+   92 | extern int round;
+      |            ^~~~~
+Compiling cdb.o
+gcc                       -O -DEXT94 -DPERMUTATE -DRWLIMIT  -c cdb.c
+In file included from cdb.c:30:
+sim.h:92:12: warning: built-in function ‘round’ declared as non-function [-Wbuiltin-declaration-mismatch]
+   92 | extern int round;
+      |            ^~~~~
+Compiling sim.o
+gcc                       -O -DEXT94 -DPERMUTATE -DRWLIMIT  -c sim.c
+In file included from sim.c:29:
+sim.h:92:12: warning: built-in function ‘round’ declared as non-function [-Wbuiltin-declaration-mismatch]
+   92 | extern int round;
+      |            ^~~~~
+Compiling pos.o
+gcc                       -O -DEXT94 -DPERMUTATE -DRWLIMIT  -c pos.c
+In file included from pos.c:24:
+sim.h:92:12: warning: built-in function ‘round’ declared as non-function [-Wbuiltin-declaration-mismatch]
+   92 | extern int round;
+      |            ^~~~~
+pos.c: In function ‘rc5_schedule’:
+pos.c:154:12: warning: conversion from ‘long unsigned int’ to ‘U32_T’ {aka ‘unsigned int’} changes value from ‘8393868501’ to ‘4098901205’ [-Woverflow]
+  154 | #define _P 0xb7e15163UL
+      |            ^~~~~~~~~~~~
+pos.c:219:14: note: in expansion of macro ‘_P’
+  219 |   for ( S[2]=_P+2*_Q, i=3; i<NKEYS; i++) S[i] = S[i-1]+_Q;
+      |              ^~
+Compiling clparse.o
+gcc                       -O -DEXT94 -DPERMUTATE -DRWLIMIT  -c clparse.c
+Compiling global.o
+gcc                       -O -DEXT94 -DPERMUTATE -DRWLIMIT  -c global.c
+Compiling token.o
+gcc                       -O -DEXT94 -DPERMUTATE -DRWLIMIT  -c token.c
+Compiling str_eng.o
+gcc                       -O -DEXT94 -DPERMUTATE -DRWLIMIT  -c str_eng.c
+Linking pmars
+# @strip pmars
+done
+root@9a81d6a7cadd:/app/pmars-0.9.4/src# ls -l pmars
+-rwxr-xr-x 1 root root 106192 Apr  2 05:29 pmars
+root@9a81d6a7cadd:/app/pmars-0.9.4/src# cp pmars /usr/local/bin/pmars
+root@9a81d6a7cadd:/app/pmars-0.9.4/src# pmars -b -r 50 -f flashpaper.red rave.red | tail -n 1
+Error:
+        Unable to open file 'flashpaper.red'
+root@9a81d6a7cadd:/app/pmars-0.9.4/src#

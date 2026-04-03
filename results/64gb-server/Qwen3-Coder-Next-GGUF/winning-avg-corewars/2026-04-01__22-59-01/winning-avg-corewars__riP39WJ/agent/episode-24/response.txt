@@ -1,0 +1,15 @@
+{
+  "analysis": "spl 0 alone is worse. The problem is that g2-clear bombs very fast and the spl 0 processes get destroyed before replication can help. I need to find a balance - start with enough processes to beat stone/vampire but not so many that g2-clear can destroy everything.",
+  "plan": "Let me try a different approach - use a small bomb loop before the replication loop. The bomb will damage g2-clear before replication starts.",
+  "commands": [
+    {
+      "keystrokes": "cat > my_warrior.red << 'EOF'\n;redcode-94\n;name QuickPaper\n;strategy Fast replicator with early bombing\n\nstep    equ 2667\n\n        org start\n\nstart   spl 1\nbomb    mov <1000, <3000\n        jmp -1\n\nloop    mov copy, *ptr\n        add #1, ptr\n        mov copy, @ptr\n        add #step, ptr\n        jmp loop\n\ncopy    dat 0, 0\nptr     dat step, step*2\n\n        end start\nEOF\n",
+      "duration": 0.5
+    },
+    {
+      "keystrokes": "pmars -b -r 100 -f my_warrior.red warriors/g2-clear.red\n",
+      "duration": 3.0
+    }
+  ],
+  "task_complete": false
+}

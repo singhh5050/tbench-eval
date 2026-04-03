@@ -1,0 +1,47 @@
+New Terminal Output:
+
+root@d72843a798d2:/app# python3 << 'EOF'
+> import hashlib
+>
+> # Read the image bytes
+> with open('/app/code.png', 'rb') as f:
+>     img_bytes = f.read()
+>
+> # Step 1: Compute SHA256 of the image bytes
+> h0 = hashlib.sha256(img_bytes).digest()
+>
+> # Try different salt values
+> salts = [
+>     b'0000TBENCH-SALT',
+>     b'6\'0000TBENCH-SALT"',
+>     b'0000TBENCH-SALT"',
+> ]
+>
+> for salt in salts:
+>     # Try different constructions
+>     h1 = h0[:10] + salt
+>     H = hashlib.sha256(h1).hexdigest()
+>     print(f"h0[:10] + salt: {H}")
+>
+>     h2 = h0 + salt
+>     H2 = hashlib.sha256(h2).hexdigest()
+>     print(f"h0 + salt: {H2}")
+>
+>     h3 = h0 + h0[:10] + salt
+>     H3 = hashlib.sha256(h3).hexdigest()
+>     print(f"h0 + h0[:10] + salt: {H3}")
+>     print()
+> EOF
+h0[:10] + salt: eae0ded95d028070a05a09b81b6b1161b572dc0c9a838df365309245da773f08
+h0 + salt: 333c95d99a807f366b4d66fc43d4ad48996c25911995f0a906b4e1e8c0cd7977
+h0 + h0[:10] + salt: bee26a133f103b9ecda444c70ec22cafef6e31a3de7af6d047974dc90ce3defe
+
+h0[:10] + salt: 54bc5e833210961919f82c415158a889ce3aab5f4f1ae0237861292a4f41fead
+h0 + salt: fc4724105b7badb6864fb2bb80e5887f937405fe0498f4ef88826f972634903b
+h0 + h0[:10] + salt: e070f3ffdcbd05a7a1f598697b7aa28c32824cf2598923c9708668b0f0656284
+
+h0[:10] + salt: 4ecfee67bef09cc057de0f832e0a6d350bc84d5ef618c82977b3c340bfd48e59
+h0 + salt: 66a6531039cd8007f9cea2b05015af9885b8597656ed63e8c7b27d1d561da688
+h0 + h0[:10] + salt: 674ba3bca0b68dd69f06dcd65102811395e0086ff50b14c4cd6378f3efd54f4f
+
+root@d72843a798d2:/app#

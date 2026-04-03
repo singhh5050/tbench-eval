@@ -1,0 +1,20 @@
+New Terminal Output:
+
+af72824e5a9b9462a5aaroot@6c9fdc47807a:/app# cat > /app/solution.py << 'EOF'
+> import hashlib, pathlib
+>
+> def main():
+>     data = pathlib.Path('/app/code.png').read_bytes()
+>     # Initial hash as hex string
+>     h = hashlib.sha256(data).hexdigest()
+>     salt = '6"0000TBENCH-SALT'
+>     for _ in range(10):
+>         h = hashlib.sha256((h + salt).encode()).hexdigest()
+>     print(h)
+>
+> if __name__ == '__main__':
+>     main()
+> EOF
+root@6c9fdc47807a:/app# python3 /app/solution.py > /app/output.txt
+root@6c9fdc47807a:/app# head -c 20 /app/output.txt
+adbf0c91c5451dea1e65root@6c9fdc47807a:/app#

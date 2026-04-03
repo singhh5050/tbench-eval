@@ -1,0 +1,15 @@
+{
+  "analysis": "Still only 52 wins against stone. Let me try a different approach - a simple, fast paper-like warrior that matches paper.red exactly but starts with spl 0 immediately.",
+  "plan": "Create a warrior that starts immediately with spl 0 and then uses a mov loop to spread. The key is to not have any setup code before the spl 0.",
+  "commands": [
+    {
+      "keystrokes": "cat > my_warrior.red << 'EOF'\n;redcode-94\n;name QuickPaper\n;strategy Fast replicator\n\nstep    equ 2667\n\n        org start\n\nstart   spl 0, 0\nloop    mov copy, *ptr\n        add #1, ptr\n        mov copy, @ptr\n        add #step, ptr\n        jmp loop\n\ncopy    dat 0, 0\nptr     dat step, step*2\n\n        end start\nEOF\n",
+      "duration": 0.5
+    },
+    {
+      "keystrokes": "pmars -b -r 100 -f my_warrior.red warriors/stone.red\n",
+      "duration": 3.0
+    }
+  ],
+  "task_complete": false
+}

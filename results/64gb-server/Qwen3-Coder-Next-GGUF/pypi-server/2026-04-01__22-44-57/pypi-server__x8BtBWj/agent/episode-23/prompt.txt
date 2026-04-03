@@ -1,0 +1,21 @@
+New Terminal Output:
+
+root@57941df35775:/app/vectorops# cat /proc/*/fd/* 2>/dev/null | head -5
+python3 << 'EOF'
+import os
+import signal
+
+# Find all pids and check which one is using port 8080
+for pid in os.listdir('/proc'):
+    if pid.isdigit():
+        try:
+            with open(f'/proc/{pid}/cmdline', 'r') as f:
+                cmdline = f.read()
+                if 'pypi' in cmdline:
+                    print(f'Found pypi process with PID {pid}: {cmdline}')
+                    os.kill(int(pid), signal.SIGKILL)
+        except:
+            pass
+EOF
+cd /app/vectorops/dist && pypi-server -p 8080 . &
+

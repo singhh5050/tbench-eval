@@ -1,0 +1,53 @@
+New Terminal Output:
+
+d7e5c68114b0e0264c72root@6c9fdc47807a:/app# cat > /app/brute.py << 'EOF'
+> import hashlib, pathlib
+>
+> data = pathlib.Path('/app/code.png').read_bytes()
+> initial = hashlib.sha256(data).digest()
+>
+> candidates = [
+>     b'60000TBENCH-SALT',
+>     b'60000BENCH-SALT',
+>     b'60000TBENCH-SALT"',
+>     b'"60000TBENCH-SALT"',
+>     b'6"0000TBENCH-SALT',
+>     b'6"0000TBENCH-SALT"',
+>     b'60000TBENCH-SALT\n',
+>     b'60000TBENCH-SALT\r',
+> ]
+>
+> for salt in candidates:
+>     for it in range(5, 16):
+>         h = initial
+>         for _ in range(it):
+>             h = hashlib.sha256(h + salt).digest()
+>         prefix = h.hex()[:6]
+>         if prefix.startswith('bee26a'):
+>             print('FOUND', salt, 'iters', it, 'hash', h.hex())
+>         else:
+>             print('TRY', salt, 'iters', it, 'prefix', prefix)
+> EOF
+root@6c9fdc47807a:/app# python3 /app/brute.py > /app/brute_output.txt
+root@6c9fdc47807a:/app# head -n 20 /app/brute_output.txt
+TRY b'60000TBENCH-SALT' iters 5 prefix c761f1
+TRY b'60000TBENCH-SALT' iters 6 prefix f501ea
+TRY b'60000TBENCH-SALT' iters 7 prefix a897cb
+TRY b'60000TBENCH-SALT' iters 8 prefix 4438ae
+TRY b'60000TBENCH-SALT' iters 9 prefix 6202c1
+TRY b'60000TBENCH-SALT' iters 10 prefix af7282
+TRY b'60000TBENCH-SALT' iters 11 prefix 3d6718
+TRY b'60000TBENCH-SALT' iters 12 prefix 1f00eb
+TRY b'60000TBENCH-SALT' iters 13 prefix 3a40bd
+TRY b'60000TBENCH-SALT' iters 14 prefix 1084ba
+TRY b'60000TBENCH-SALT' iters 15 prefix cb5404
+TRY b'60000BENCH-SALT' iters 5 prefix 600e1a
+TRY b'60000BENCH-SALT' iters 6 prefix 667166
+TRY b'60000BENCH-SALT' iters 7 prefix 4c8d0f
+TRY b'60000BENCH-SALT' iters 8 prefix ae2c33
+TRY b'60000BENCH-SALT' iters 9 prefix 7ad62d
+TRY b'60000BENCH-SALT' iters 10 prefix f0234a
+TRY b'60000BENCH-SALT' iters 11 prefix e1b7f5
+TRY b'60000BENCH-SALT' iters 12 prefix 267506
+TRY b'60000BENCH-SALT' iters 13 prefix 88148c
+root@6c9fdc47807a:/app#

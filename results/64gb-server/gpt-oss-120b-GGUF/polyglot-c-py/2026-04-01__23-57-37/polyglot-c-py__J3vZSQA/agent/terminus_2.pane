@@ -1,0 +1,41 @@
+[?2004hroot@066c51d8268f:/app# asciinema rec --stdin /logs/agent/recording.cast
+[?2004l[0;32masciinema: recording asciicast to /logs/agent/recording.cast[0m
+[0;32masciinema: press <ctrl-d> or type "exit" when you're done[0m
+[?2004hroot@066c51d8268f:/app# clear
+[?2004l[H[J[3J[?2004hroot@066c51d8268f:/app# mkdir -p /app/polyglot
+[?2004l[?2004hroot@066c51d8268f:/app# cat > /app/polyglot/main.py.c <<'EOF'
+[?2004l[?2004h> #!/usr/bin/env python3
+[?2004l[?2004h> #if 0
+[?2004l[?2004h> import sys
+[?2004l[?2004h> def fib(n):
+[?2004l[?2004h>     a,b=0,1
+[?2004l[?2004h>     for _ in range(n):
+[?2004l[?2004h>         a,b=b,a+b
+[?2004l[?2004h>     return a
+[?2004l[?2004h> print(fib(int(sys.argv[1])))
+[?2004l[?2004h> #endif
+[?2004l[?2004h> 
+[?2004l[?2004h> #include <stdio.h>
+[?2004l[?2004h> #include <stdlib.h>
+[?2004l[?2004h> 
+[?2004l[?2004h> int main(int argc, char *argv[]) {
+[?2004l[?2004h>     if (argc < 2) return 0;
+[?2004l[?2004h>     long n = strtol(argv[1], NULL, 10);
+[?2004l[?2004h>     long a=0,b=1;
+[?2004l[?2004h>     for (long i=0;i<n;i++) { long t=a+b; a=b; b=t; }
+[?2004l[?2004h>     printf("%ld\n", a);
+[?2004l[?2004h>     return 0;
+[?2004l[?2004h> }
+[?2004l[?2004h> EOF
+[?2004l[?2004hroot@066c51d8268f:/app# python3 /app/polyglot/main.py.c 10
+[?2004l  File "/app/polyglot/main.py.c", line 15
+    int main(int argc, char *argv[]) {
+        ^^^^
+SyntaxError: invalid syntax
+[?2004hroot@066c51d8268f:/app# gcc /app/polyglot/main.py.c -o /app/polyglot/cmain
+[?2004l[01m[K/app/polyglot/main.py.c:1:2:[m[K [01;31m[Kerror: [m[Kinvalid preprocessing directive #!
+    1 | #[01;31m[K![m[K/usr/bin/env python3
+      |  [01;31m[K^[m[K
+[?2004hroot@066c51d8268f:/app# /app/polyglot/cmain 10
+[?2004lbash: /app/polyglot/cmain: No such file or directory
+[?2004hroot@066c51d8268f:/app# 

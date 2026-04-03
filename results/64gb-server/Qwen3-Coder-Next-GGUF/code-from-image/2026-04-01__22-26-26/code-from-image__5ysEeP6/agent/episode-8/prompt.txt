@@ -1,0 +1,23 @@
+New Terminal Output:
+
+root@d72843a798d2:/app# python3 << 'EOF'
+> import hashlib
+>
+> # Read the image bytes
+> with open('/app/code.png', 'rb') as f:
+>     img_bytes = f.read()
+>
+> # Step 1: Compute SHA256 of the image bytes
+> h0 = hashlib.sha256(img_bytes).digest()
+>
+> # Step 2: Take first 10 bytes of h0 and concatenate with SALT
+> SALT = b'BENCH-SALT'
+> h1 = h0[:10] + SALT
+>
+> # Step 3: Compute SHA256 of the concatenation
+> H = hashlib.sha256(h1).hexdigest()
+>
+> print(H)
+> EOF
+909d69c968d545cdc3d3e4796d1ac93016dc75ad51a7f537bc049f5f369ad42b
+root@d72843a798d2:/app#

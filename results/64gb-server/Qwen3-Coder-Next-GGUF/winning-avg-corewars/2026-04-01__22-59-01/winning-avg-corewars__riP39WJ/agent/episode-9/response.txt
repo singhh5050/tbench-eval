@@ -1,0 +1,15 @@
+{
+  "analysis": "Now I have 0 wins against stone (88 for stone). The issue is that my warrior is too slow - stone bombs quickly while my replicator takes time to spread. I need to add a quick start that bombs first, then switches to replicating.",
+  "plan": "Create a hybrid warrior: first bomb the core quickly to damage stone, then switch to replicating. Or better, just make a faster replicator that starts immediately.",
+  "commands": [
+    {
+      "keystrokes": "cat > my_warrior.red << 'EOF'\n;redcode-94\n;name QuickPaper\n;strategy Fast replicator\n\nstep    equ 2667\n\n        org start\n\nstart   spl #1, <1\n        mov }-1, >-1\n        jmp -2\n\n        spl 0, 0\nloop    mov copy, *ptr\n        add #1, ptr\n        mov copy, @ptr\n        add #step, ptr\n        jmp loop\n\ncopy    spl 0, 0\nptr     dat step, step*2\n\n        end start\nEOF\n",
+      "duration": 0.5
+    },
+    {
+      "keystrokes": "pmars -b -r 100 -f my_warrior.red warriors/stone.red\n",
+      "duration": 3.0
+    }
+  ],
+  "task_complete": false
+}

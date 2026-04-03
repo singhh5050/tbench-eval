@@ -1,0 +1,44 @@
+New Terminal Output:
+
+root@c238602e0932:/app# python3 << 'PYTEST'
+> from headless_terminal import HeadlessTerminal
+> import time
+>
+> # Test 1: Basic command execution
+> print("Test 1: Basic command execution")
+> term = HeadlessTerminal()
+> time.sleep(0.5)
+>
+> # Send 'echo hello' and press Enter
+> term.send_keystrokes('echo hello\r')
+> time.sleep(0.5)
+>
+> # Read output
+> output = term.read_output(timeout=0.5)
+> print(f"Output: {repr(output)}")
+>
+> # Test 2: Ctrl+C
+> print("\nTest 2: Sending Ctrl+C")
+> term.send_keystrokes('sleep 10\x03')
+> time.sleep(0.5)
+> output = term.read_output(timeout=0.5)
+> print(f"Output after Ctrl+C: {repr(output)}")
+>
+> # Test 3: Test that bashrc was sourced (check if prompt is set)
+> print("\nTest 3: Checking bashrc was sourced")
+> term.send_keystrokes('echo $PS1\r')
+> time.sleep(0.5)
+> output = term.read_output(timeout=0.5)
+> print(f"PS1 output: {repr(output)}")
+>
+> term.close()
+> print("\nAll tests passed!")
+> PYTEST
+Test 1: Basic command execution
+Traceback (most recent call last):
+  File "<stdin>", line 10, in <module>
+  File "/app/headless_terminal.py", line 80, in send_keystrokes
+    self.child.sendchar(char)
+    ^^^^^^^^^^^^^^^^^^^
+AttributeError: 'spawn' object has no attribute 'sendchar'. Did you mean: 'searcher'?
+root@c238602e0932:/app#

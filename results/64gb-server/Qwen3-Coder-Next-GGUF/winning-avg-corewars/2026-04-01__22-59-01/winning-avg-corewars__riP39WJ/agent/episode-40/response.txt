@@ -1,0 +1,15 @@
+{
+  "analysis": "29 wins against stone with spl 0. The issue is that spl 0 creates too many processes that get overwritten before the bomb can run. Let me try a different approach - use spl 1 but with a faster bomb pattern.",
+  "plan": "Try a simpler approach - just spl 1 and loop without any bomb. The replication should eventually win against stone.",
+  "commands": [
+    {
+      "keystrokes": "cat > my_warrior.red << 'EOF'\n;redcode-94\n;name QuickPaper\n;strategy Fast replicator\n\nstep    equ 2667\n\n        org start\n\nstart   spl 1\nloop    mov copy, *ptr\n        add #1, ptr\n        mov copy, @ptr\n        add #step, ptr\n        jmp loop\n\ncopy    dat 0, 0\nptr     dat step, step*2\n\n        end start\nEOF\n",
+      "duration": 0.5
+    },
+    {
+      "keystrokes": "pmars -b -r 100 -f my_warrior.red warriors/stone.red\n",
+      "duration": 3.0
+    }
+  ],
+  "task_complete": false
+}

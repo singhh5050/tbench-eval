@@ -1,0 +1,47 @@
+New Terminal Output:
+
+root@c238602e0932:/app# python3 << 'PYTEST'
+> from headless_terminal import HeadlessTerminal
+> import time
+>
+> # Test 1: Basic command execution
+> print("Test 1: Basic command execution")
+> term = HeadlessTerminal()
+> time.sleep(0.5)
+>
+> # Send 'echo hello' and press Enter
+> term.send_keystrokes('echo hello\r')
+> time.sleep(0.5)
+>
+> # Read output
+> output = term.read_output(timeout=0.5)
+> print(f"Output: {repr(output)}")
+>
+> # Test 2: Ctrl+C
+> print("\nTest 2: Sending Ctrl+C")
+> term.send_keystrokes('sleep 10\x03')
+> time.sleep(0.5)
+> output = term.read_output(timeout=0.5)
+> print(f"Output after Ctrl+C: {repr(output)}")
+>
+> # Test 3: Test that bashrc was sourced (check if prompt is set)
+> print("\nTest 3: Checking bashrc was sourced")
+> term.send_keystrokes('echo $PS1\r')
+> time.sleep(0.5)
+> output = term.read_output(timeout=0.5)
+> print(f"PS1 output: {repr(output)}")
+>
+> term.close()
+> print("\nAll tests passed!")
+> PYTEST
+Test 1: Basic command execution
+Output: '\x1b[?2004hecho hello\r\n\x1b[?2004l\rhello\r\n\x1b[?2004h'
+
+Test 2: Sending Ctrl+C
+Output after Ctrl+C: 'sleep 10^C\x1b[?2004l\r\x1b[?2004h\x1b[C\x1b[C\x1b[C\x1b[C\x1b[C\x1b[C\x1b[C\x1b[C'
+
+Test 3: Checking bashrc was sourced
+PS1 output: 'echo $PS1\r\n\x1b[?2004l\r\r\nbash: leep: command not found\r\n\x1b[?2004h'
+
+All tests passed!
+root@c238602e0932:/app#

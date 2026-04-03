@@ -1,0 +1,21 @@
+New Terminal Output:
+
+OSError: [Errno 98] Address already in use
+python3 -c "
+[1]+  Exit 1                  cd /app/vectorops/dist && pypi-server -p 8080 .
+> import socket
+> import subprocess
+> import os
+>
+> # Check if port is in use
+> sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+> result = sock.connect_ex(('localhost', 8080))
+> if result == 0:
+>     print('Port 8080 is open')
+> else:
+>     print('Port 8080 is closed')
+> sock.close()
+> "
+Port 8080 is open
+root@57941df35775:/app/vectorops# cat /proc/*/fd/* 2>/dev/null | head -5
+

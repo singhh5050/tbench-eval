@@ -1,0 +1,15 @@
+{
+  "analysis": "Still not enough wins against g2-clear (need 33+). Let me try a different approach - instead of a mov loop, I'll start with a simple spl 0 and then immediately go to the replication loop.",
+  "plan": "Create a warrior that starts with spl 0 to create many processes, then immediately begins the replication loop. The key is to not have any code between spl 0 and the loop that could be overwritten.",
+  "commands": [
+    {
+      "keystrokes": "cat > my_warrior.red << 'EOF'\n;redcode-94\n;name QuickPaper\n;strategy Fast replicator\n\nstep    equ 2667\n\n        org start\n\nstart   spl 0\nloop    mov copy, *ptr\n        add #1, ptr\n        mov copy, @ptr\n        add #step, ptr\n        jmp loop\n\ncopy    dat 0, 0\nptr     dat step, step*2\n\n        end start\nEOF\n",
+      "duration": 0.5
+    },
+    {
+      "keystrokes": "pmars -b -r 100 -f my_warrior.red warriors/g2-clear.red\n",
+      "duration": 3.0
+    }
+  ],
+  "task_complete": false
+}

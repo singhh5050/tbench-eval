@@ -1,0 +1,122 @@
+[?2004hroot@37645a53157a:/app# asciinema rec --stdin /logs/agent/recording.cast
+[?2004l[0;32masciinema: recording asciicast to /logs/agent/recording.cast[0m
+[0;32masciinema: press <ctrl-d> or type "exit" when you're done[0m
+[?2004hroot@37645a53157a:/app# clear
+[?2004l[H[J[3J[?2004hroot@37645a53157a:/app# ls -R .
+[?2004l.:
+base_terminal.py
+[?2004hroot@37645a53157a:/app# sed -n '1,200p' base_terminal.py
+[?2004lfrom abc import ABC, abstractmethod
+
+
+class BaseTerminal(ABC):
+    @abstractmethod
+    def send_keystrokes(self, keystrokes: str, wait_sec: float = 0.0) -> None:
+        """
+        Sends keystrokes to the terminal.
+
+        Args:
+            keystrokes: The keystrokes to send to the terminal.
+            wait_sec: The number of seconds to wait for the command to complete.
+        """
+        pass
+[?2004hroot@37645a53157a:/app# pip install pexpect
+[?2004lCollecting pexpect
+  Downloading pexpect-4.9.0-py2.py3-none-any.whl.metadata (2.5 kB)
+Collecting ptyprocess>=0.5 (from pexpect)
+  Downloading ptyprocess-0.7.0-py2.py3-none-any.whl.metadata (1.3 kB)
+Downloading pexpect-4.9.0-py2.py3-none-any.whl (63 kB)
+Downloading ptyprocess-0.7.0-py2.py3-none-any.whl (13 kB)
+Installing collected packages: ptyprocess, pexpect
+[?25l[2K   [38;5;70m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m [32m2/2[0m [pexpect]
+[?25h[1A[2KSuccessfully installed pexpect-4.9.0 ptyprocess-0.7.0
+[33mWARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager, possibly rendering your system unusable. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv. Use the --root-user-action option if you know what you are doing and want to suppress this warning.[0m[33m
+[0m
+[1m[[0m[34;49mnotice[0m[1;39;49m][0m[39;49m A new release of pip is available: [0m[31;49m25.2[0m[39;49m -> [0m[32;49m26.0.1[0m
+[1m[[0m[34;49mnotice[0m[1;39;49m][0m[39;49m To update, run: [0m[32;49mpip install --upgrade pip[0m
+[?2004hroot@37645a53157a:/app# cat > headless_terminal.py <<'EOF'
+[?2004l[?2004h> from abc import ABC, abstractmethod
+[?2004l[?2004h> import time
+[?2004l[?2004h> import pexpect
+[?2004l[?2004h> 
+[?2004l[?2004h> class BaseTerminal(ABC):
+[?2004l[?2004h>     @abstractmethod
+[?2004l[?2004h>     def send_keystrokes(self, keystrokes: str, wait_sec: float = 0.0) -> None:
+[?2004l[?2004h>         """
+[?2004l[?2004h>         Sends keystrokes to the terminal.
+[?2004l[?2004h> 
+[?2004l[?2004h>         Args:
+[?2004l[?2004h>             keystrokes: The keystrokes to send to the terminal.
+[?2004l[?2004h>             wait_sec: The number of seconds to wait for the command to complete.
+[?2004l[?2004h>         """
+[?2004l[?2004h>         pass
+[?2004l[?2004h> 
+[?2004l[?2004h> class HeadlessTerminal(BaseTerminal):
+[?2004l[?2004h>     """Concrete implementation of BaseTerminal using an interactive bash shell.
+[?2004l[?2004h> 
+[?2004l[?2004h>     This class spawns an interactive bash process (so that ~/.bashrc and other
+[?2004l[?2004h>     startup files are sourced) and provides a `send_keystrokes` method that
+[?2004l[?2004h>     writes characters (including control sequences) to the process' stdin.
+[?2004l[?2004h>     """
+[?2004l[?2004h> 
+[?2004l[?2004h>     def __init__(self):
+[?2004l[?2004h>         # Start an interactive bash shell. The '-i' flag ensures that startup
+[?2004l[?2004h>         # files such as ~/.bashrc are sourced.
+[?2004l[?2004h>         self._process = pexpect.spawn('/bin/bash', ['-i'], encoding='utf-8', echo=False)
+[?2004l[?2004h>         # Wait for the initial prompt. Bash typically ends prompts with '$' for
+[?2004l[?2004h>         # normal users or '#' for root. The regex is deliberately permissive.
+[?2004l[?2004h>         try:
+[?2004l[?2004h>             self._process.expect(r'[#$] ', timeout=5)
+[?2004l[?2004h>         except pexpect.exceptions.TIMEOUT:
+[?2004l[?2004h>             # If we cannot detect a prompt, continue; the shell is likely ready.
+[?2004l[?2004h>             pass
+[?2004l[?2004h> 
+[?2004l[?2004h>     def send_keystrokes(self, keystrokes: str, wait_sec: float = 0.0) -> None:
+[?2004l[?2004h>         """Send keystrokes to the interactive bash process.
+[?2004l[?2004h> 
+[?2004l[?2004h>         Parameters
+[?2004l[?2004h>         ----------
+[?2004l[?2004h>         keystrokes: str
+[?2004l[?2004h>             The characters to send. This may include newline characters to
+[?2004l[?2004h>             execute commands and control characters (e.g., "\x03" for Ctrl‑C).
+[?2004l[?2004h>         wait_sec: float, optional
+[?2004l[?2004h>             Seconds to wait after sending the keystrokes. Defaults to ``0.0``.
+[?2004l[?2004h>         """
+[?2004l[?2004h>         if not keystrokes:
+[?2004l[?2004h>             # Nothing to send – just wait if requested.
+[?2004l[?2004h>             if wait_sec:
+[?2004l[?2004h>                 time.sleep(wait_sec)
+[?2004l[?2004h>             return
+[?2004l[?2004h> 
+[?2004l[?2004h>         # Send the keystrokes directly to the pexpect child.
+[?2004l[?2004h>         self._process.send(keystrokes)
+[?2004l[?2004h>         # Flush any pending output by briefly waiting; the caller can specify a
+[?2004l[?2004h>         # longer wait if the command is expected to take more time.
+[?2004l[?2004h>         if wait_sec:
+[?2004l[?2004h>             time.sleep(wait_sec)
+[?2004l[?2004h>         else:
+[?2004l[?2004h>             # A very short pause helps interactive programs process the input.
+[?2004l[?2004h>             time.sleep(0.01)
+[?2004l[?2004h> 
+[?2004l[?2004h>     def __del__(self):
+[?2004l[?2004h>         # Ensure the child process is terminated when the object is garbage
+[?2004l[?2004h>         # collected.
+[?2004l[?2004h>         if hasattr(self, '_process') and self._process.isalive():
+[?2004l[?2004h>             self._process.terminate(force=True)
+[?2004l[?2004h> EOF
+[?2004l[?2004hroot@37645a53157a:/app# python - <<'PY'
+[?2004l[?2004h> import sys, time
+[?2004l[?2004h> sys.path.append('.')
+[?2004l[?2004h> from headless_terminal import HeadlessTerminal
+[?2004l[?2004h> term = HeadlessTerminal()
+[?2004l[?2004h> term.send_keystrokes('echo hello_world\n', wait_sec=0.2)
+[?2004l[?2004h> # Give the process a moment to flush output
+[?2004l[?2004h> time.sleep(0.1)
+[?2004l[?2004h> # Read any available output
+[?2004l[?2004h> output = term._process.read_nonblocking(size=1024, timeout=1)
+[?2004l[?2004h> print('OUTPUT:', output.strip())
+[?2004l[?2004h> PY
+[?2004lOUTPUT: [?2004l
+hello_world
+[?2004hroot@37645a53157a:/app#
+[?2004hroot@37645a53157a:/app# 

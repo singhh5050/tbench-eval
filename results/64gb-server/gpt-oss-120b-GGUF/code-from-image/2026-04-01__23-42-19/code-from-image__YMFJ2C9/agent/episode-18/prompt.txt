@@ -1,0 +1,42 @@
+New Terminal Output:
+
+root@6c9fdc47807a:/app# cat > /app/brute2.py << 'EOF'
+
+            print('FOUND HEX', salt, 'iters', it, 'hash', h_hex)
+EOF
+> import hashlib, pathlib
+>
+> data = pathlib.Path('/app/code.png').read_bytes()
+> initial_bin = hashlib.sha256(data).digest()
+> initial_hex = hashlib.sha256(data).hexdigest()
+>
+> candidates = [
+>     b'60000TBENCH-SALT',
+>     b'60000BENCH-SALT',
+>     b'60000TBENCH-SALT"',
+>     b'"60000TBENCH-SALT"',
+>     b'6"0000TBENCH-SALT',
+>     b'6"0000TBENCH-SALT"',
+>     b'60000TBENCH-SALT\n',
+>     b'60000TBENCH-SALT\r',
+> ]
+>
+> for salt in candidates:
+>     salt_str = salt.decode('utf-8', errors='ignore')
+>     for it in range(5, 31):
+>         # binary‑digest loop
+>         h_bin = initial_bin
+>         for _ in range(it):
+>             h_bin = hashlib.sha256(h_bin + salt).digest()
+>         if h_bin.hex().startswith('bee26a'):
+>             print('FOUND BIN', salt, 'iters', it, 'hash', h_bin.hex())
+>         # hex‑string loop (hash of hex representation + salt)
+>         h_hex = initial_hex
+>         for _ in range(it):
+>             h_hex = hashlib.sha256((h_hex + salt_str).encode()).hexdigest()
+>         if h_hex.startswith('bee26a'):
+>             print('FOUND HEX', salt, 'iters', it, 'hash', h_hex)
+> EOF
+root@6c9fdc47807a:/app# python3 /app/brute2.py > /app/brute2_output.txt
+root@6c9fdc47807a:/app# grep -i bee26a -n /app/brute2_output.txt
+root@6c9fdc47807a:/app#

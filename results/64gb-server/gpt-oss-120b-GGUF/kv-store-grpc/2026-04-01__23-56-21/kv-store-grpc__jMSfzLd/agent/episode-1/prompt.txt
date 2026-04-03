@@ -1,0 +1,122 @@
+Current terminal state:
+New Terminal Output:
+root@9c6a2777f75c:/app# pip install grpcio==1.73.0 grpcio-tools==1.73.0
+Collecting grpcio==1.73.0
+  Downloading grpcio-1.73.0-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (3.8 kB)
+Collecting grpcio-tools==1.73.0
+  Downloading grpcio_tools-1.73.0-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (5.3 kB)
+Collecting protobuf<7.0.0,>=6.30.0 (from grpcio-tools==1.73.0)
+  Downloading protobuf-6.33.6-cp39-abi3-manylinux2014_x86_64.whl.metadata (593 bytes)
+Collecting setuptools (from grpcio-tools==1.73.0)
+  Downloading setuptools-82.0.1-py3-none-any.whl.metadata (6.5 kB)
+Downloading grpcio-1.73.0-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (6.0 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 6.0/6.0 MB 65.5 MB/s  0:00:00
+Downloading grpcio_tools-1.73.0-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (2.7 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 2.7/2.7 MB 86.6 MB/s  0:00:00
+Downloading protobuf-6.33.6-cp39-abi3-manylinux2014_x86_64.whl (323 kB)
+Downloading setuptools-82.0.1-py3-none-any.whl (1.0 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.0/1.0 MB 71.3 MB/s  0:00:00
+Installing collected packages: setuptools, protobuf, grpcio, grpcio-tools
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 0/4 [setuptools]cat > /app/kv-store.proto <<'EOF'
+syntax = "proto3";
+
+package kvstore;
+
+service KVStore {
+  rpc GetVal (GetValRequest) returns (GetValResponse);
+  rpc SetVal (SetValRequest) returns (SetValResponse);
+}
+
+message GetValRequest {
+  string key = 1;
+}
+
+message GetValResponse {
+  int32 val = 1;
+}
+
+message SetValRequest {
+  string key = 1;
+  int32 val = 2;
+}
+
+message SetValResponse {
+  int32 val = 1;
+}
+EOF
+python -m grpc_tools.protoc -I. --python_out=. --grpc_python_out=. kv-store.proto
+Successfully installed grpcio-1.73.0 grpcio-tools-1.73.0 protobuf-6.33.6 setuptools-82.0.1
+WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager, possibly rendering your syst
+em unusable. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv. Use the --root-user-action option if you know what you a
+re doing and want to suppress this warning.
+
+[notice] A new release of pip is available: 25.2 -> 26.0.1
+[notice] To update, run: pip install --upgrade pip
+root@9c6a2777f75c:/app# cat > /app/kv-store.proto <<'EOF'
+> syntax = "proto3";
+>
+> package kvstore;
+>
+> service KVStore {
+>   rpc GetVal (GetValRequest) returns (GetValResponse);
+>   rpc SetVal (SetValRequest) returns (SetValResponse);
+> }
+>
+> message GetValRequest {
+>   string key = 1;
+> }
+>
+> message GetValResponse {
+>   int32 val = 1;
+> }
+>
+> message SetValRequest {
+>   string key = 1;
+>   int32 val = 2;
+> }
+>
+> message SetValResponse {
+>   int32 val = 1;
+> }
+> EOF
+root@9c6a2777f75c:/app# python -m grpc_tools.protoc -I. --python_out=. --grpc_python_out=. kv-store.proto
+root@9c6a2777f75c:/app# cat > /app/server.py <<'EOF'
+> import grpc
+> from concurrent import futures
+> import time
+>
+> import kv_store_pb2
+> import kv_store_pb2_grpc
+>
+> class Server(kv_store_pb2_grpc.KVStoreServicer):
+>     def __init__(self):
+>         self.store = {}
+>
+>     def GetVal(self, request, context):
+>         val = self.store.get(request.key, 0)
+>         return kv_store_pb2.GetValResponse(val=val)
+>
+>     def SetVal(self, request, context):
+>         self.store[request.key] = request.val
+>         return kv_store_pb2.SetValResponse(val=request.val)
+>
+> def serve():
+>     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
+>     kv_store_pb2_grpc.add_KVStoreServicer_to_server(Server(), server)
+>     server.add_insecure_port('[::]:5328')
+>     server.start()
+>     try:
+>         while True:
+>             time.sleep(86400)
+>     except KeyboardInterrupt:
+>         server.stop(0)
+>
+> if __name__ == '__main__':
+>     serve()
+> EOF
+root@9c6a2777f75c:/app# nohup python /app/server.py > /app/server.log 2>&1 &
+[1] 631
+root@9c6a2777f75c:/app#
+
+
+Are you sure you want to mark the task as complete? This will trigger your solution to be graded and you won't be able to make any further corrections. If so, include "task_complete": true in your JSON response again.

@@ -1,0 +1,118 @@
+New Terminal Output:
+
+root@c238602e0932:/app# cat /app/headless_terminal.py
+import pexpect
+import os
+import time
+from base_terminal import BaseTerminal
+
+
+class HeadlessTerminal(BaseTerminal):
+    """A headless terminal implementation using pexpect."""
+
+    def __init__(self, shell: str = "bash", timeout: float = 30.0):
+        """
+        Initialize the headless terminal with an interactive bash shell.
+
+        Args:
+            shell: The shell to use (default: bash)
+            timeout: Timeout for operations in seconds
+        """
+        self.shell = shell
+        self.timeout = timeout
+        self.child = None
+        self._spawn_interactive_shell()
+
+    def _spawn_interactive_shell(self):
+        """Spawn an interactive bash shell that sources startup files."""
+        # Use -i for interactive mode which sources ~/.bashrc
+        # Set TERM to a valid terminal type to avoid issues
+        env = os.environ.copy()
+        env['TERM'] = 'xterm'
+        env['PS1'] = ''  # Remove prompt to make parsing easier
+
+        # The -i flag makes it interactive, sourcing ~/.bashrc
+        self.child = pexpect.spawn(
+            self.shell,
+            ['-i'],
+            env=env,
+            encoding='utf-8',
+            timeout=self.timeout
+        )
+
+        # Give the shell a moment to initialize
+        try:
+            self.child.expect('.*', timeout=1.0)
+        except pexpect.ExceptionPexpect:
+            pass
+
+    def send_keystrokes(self, keystrokes: str, wait_sec: float = 0.0) -> None:
+        """
+        Sends keystrokes to the terminal.
+
+        Args:
+            keystrokes: The keystrokes to send to the terminal.
+                Can include regular characters and modifier keys:
+                - \x03 for Ctrl+C
+                - \x04 for Ctrl+D
+                - \x1a for Ctrl+Z
+                - \r for Enter
+                - \n for newline
+                - regular characters are typed as-is
+            wait_sec: The number of seconds to wait for the command to complete.
+        """
+        for i, char in enumerate(keystrokes):
+            if char == '\x03':  # Ctrl+C
+                self.child.sendcontrol('c')
+            elif char == '\x04':  # Ctrl+D
+                self.child.sendcontrol('d')
+            elif char == '\x1a':  # Ctrl+Z
+                self.child.sendcontrol('z')
+            elif char == '\r' or char == '\n':  # Enter/Return
+                self.child.sendline('')
+            elif char == '\t':  # Tab
+                self.child.sendchar('\t')
+            elif char == '\b':  # Backspace
+                self.child.sendchar('\b')
+            elif char == '\x7f':  # Delete
+                self.child.sendcontrol('h')
+            elif char == '\x1b':  # Escape
+                self.child.sendchar('\x1b')
+            else:
+                # Send regular character
+                self.child.sendchar(char)
+
+        # Wait if specified
+        if wait_sec > 0:
+            time.sleep(wait_sec)
+
+    def read_output(self, timeout: float = 0.1) -> str:
+        """
+        Read any available output from the terminal.
+
+        Args:
+            timeout: Timeout for reading in seconds
+
+        Returns:
+            The output from the terminal
+        """
+        self.child.timeout = timeout
+        try:
+            output = self.child.read_nonblocking(size=1000, timeout=timeout)
+            return output if output else ''
+        except pexpect.TIMEOUT:
+            return ''
+        except pexpect.EOF:
+            return ''
+
+    def close(self) -> None:
+        """Close the terminal session."""
+        if self.child is not None:
+            self.child.close()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close()
+root@c238602e0932:/app#

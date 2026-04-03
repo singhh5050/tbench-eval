@@ -1,0 +1,23 @@
+New Terminal Output:
+
+root@6c9fdc47807a:/app# cat > /app/solution.py << 'EOF'
+> import hashlib, pathlib
+>
+> def main():
+>     data = pathlib.Path('/app/code.png').read_bytes()
+>     # Initial SHA-256 binary digest of the file
+>     h = hashlib.sha256(data).digest()
+>     # Salt string as inferred from OCR (including the double quote)
+>     salt = b'6"0000TBENCH-SALT'
+>     # Perform 10 iterations of hashing digest + salt
+>     for _ in range(10):
+>         h = hashlib.sha256(h + salt).digest()
+>     # Print final digest in hex
+>     print(h.hex())
+>
+> if __name__ == '__main__':
+>     main()
+> EOF
+root@6c9fdc47807a:/app# python3 /app/solution.py > /app/output.txt
+root@6c9fdc47807a:/app# head -c 20 /app/output.txt
+8af1ac76c73f49f5a484root@6c9fdc47807a:/app#

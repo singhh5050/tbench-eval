@@ -1,0 +1,23 @@
+New Terminal Output:
+
+root@a27207966d06:/app# python3 -c "
+> import grpc
+> import kv_store_pb2
+> import kv_store_pb2_grpc
+>
+> channel = grpc.insecure_channel('localhost:5328')
+> stub = kv_store_pb2_grpc.KVStoreStub(channel)
+>
+> # Test SetVal
+> response = stub.SetVal(kv_store_pb2.SetValRequest(key='test', value=42))
+> print(f'SetVal response: {response.val}')
+>
+> # Test GetVal
+> response = stub.GetVal(kv_store_pb2.GetValRequest(key='test'))
+> print(f'GetVal response: {response.val}')
+> print('Server is working!')
+> "
+SetVal response: 42
+GetVal response: 42
+Server is working!
+root@a27207966d06:/app#

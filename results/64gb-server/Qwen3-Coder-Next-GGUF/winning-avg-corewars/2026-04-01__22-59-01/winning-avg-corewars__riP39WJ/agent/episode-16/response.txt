@@ -1,0 +1,15 @@
+{
+  "analysis": "I notice paper.red uses 'spl 1' not 'spl 0'. The difference is 'spl 1' creates 1 new process (2 total), while 'spl 0' creates infinite processes. But paper.red uses 'spl 1' and it works. The key difference is 'spl 1' vs 'spl 0'. Let me try 'spl 1' first to match paper.red exactly.",
+  "plan": "Create a warrior that matches paper.red exactly, with 'spl 1' at the start, then the mov loop to spread copies.",
+  "commands": [
+    {
+      "keystrokes": "cat > my_warrior.red << 'EOF'\n;redcode-94\n;name QuickPaper\n;strategy Fast replicator - matches paper.red exactly\n\nstep    equ 2667\n\n        org start\n\nstart   spl 1       ; split for more processes\n\nloop    mov copy, *ptr\n        add #1, ptr\n        mov copy, @ptr\n        add #step, ptr\n        jmp loop\n\ncopy    spl 0, 0\nptr     dat step, step*2\n\n        end start\nEOF\n",
+      "duration": 0.5
+    },
+    {
+      "keystrokes": "pmars -b -r 100 -f my_warrior.red warriors/stone.red\n",
+      "duration": 3.0
+    }
+  ],
+  "task_complete": false
+}

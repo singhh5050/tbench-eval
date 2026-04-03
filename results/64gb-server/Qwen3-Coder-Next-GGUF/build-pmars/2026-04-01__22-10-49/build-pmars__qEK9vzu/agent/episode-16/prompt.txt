@@ -1,0 +1,73 @@
+New Terminal Output:
+
+root@66fa1f9b2400:/app/pmars-0.9.4# grep -n 'GRAPHX\|LINUX\|XWIN' src/config.h
+28: * The most important switches are GRAPHX, SERVER, SMALLMEM, EXT94 and KEYPRESS.
+38:   GRAPHX: pMARS supports a graphical core display on DOS and Unix
+45:   Uncomment the next lines or add -DGRAPHX to CFLAGS to compile in a
+50:#ifndef GRAPHX
+51:#define GRAPHX
+60:   GRAPHX and SERVER are mutually exclusive.
+146:   "cls" command. It is not used in GRAPHX versions of pMARS. The
+153:   XWINGRAPHX: If defined, specifies that pMARS should use the XWindows
+154:    interface for graphical display. Specifying XWINGRAPHX overrides all
+155:    other graphical displays (e.g. LINUXGRAPHX or CURSESGRAPHX)
+159:#ifndef XWINGRAPHX
+160:#define XWINGRAPHX
+238:   LINUX: You should use gcc and therefore __linux__ should already be
+239:    defined. If you specified GRAPHX, the SVGA version will be built by
+240:    default. Define CURSESGRAPHX to override this option and build pmars
+283:#if (defined(DOSTXTGRAPHX) && defined(DOSGRXGRAPHX)) || defined(OS2PMGRAPHX)\
+284:    || defined(MACGRAPHX) || defined(CURSESGRAPHX) || defined(DOSALLGRAPHX)\
+285:     || defined(LINUXGRAPHX) || defined(XWINGRAPHX)
+286:#ifndef GRAPHX
+287:#define GRAPHX
+291:#if defined(__MSDOS__) && defined(GRAPHX)
+292:#ifndef DOSALLGRAPHX
+293:#define DOSALLGRAPHX
+295:#endif                                /* __MSDOS__ && GRAPHX */
+297:#if defined(DOSTXTGRAPHX) && defined(DOSGRXGRAPHX)
+298:#define DOSALLGRAPHX
+300:#if defined(DOSALLGRAPHX)
+301:#define DOSTXTGRAPHX
+302:#define DOSGRXGRAPHX
+310:#ifdef GRAPHX
+311:#define MACGRAPHX
+315:#if defined(GRAPHX) && defined(unix) && !defined(DJGPP) && !defined(__linux__)
+316:#ifndef CURSESGRAPHX
+317:#define CURSESGRAPHX
+319:#endif                                /* GRAPHX && unix */
+321:#if defined(GRAPHX) && defined(__linux__)
+322:#ifndef LINUXGRAPHX
+323:#ifndef CURSESGRAPHX
+324:#define LINUXGRAPHX
+327:#ifdef CURSESGRAPHX
+328:#undef CURSESGRAPHX
+333:#ifdef CURSESGRAPHX
+334:#ifndef DOSTXTGRAPHX
+335:#define DOSTXTGRAPHX
+339:#if defined(__OS2__) && defined(GRAPHX)
+340:#ifndef OS2PMGRAPHX
+341:#define OS2PMGRAPHX
+345:#if defined(GRAPHX)
+351:#if defined(XWINGRAPHX)
+352:#ifdef CURSESGRAPHX
+353:#undef CURSESGRAPHX
+355:#ifdef LINUXGRAPHX
+356:#undef LINUXGRAPHX
+358:#ifdef DOSTXTGRAPHX
+359:#undef DOSTXTGRAPHX
+root@66fa1f9b2400:/app/pmars-0.9.4# cat debian/rules
+#!/usr/bin/make -f
+
+export DEB_BUILD_MAINT_OPTIONS = hardening=+all
+
+%:
+        dh $@
+
+override_dh_auto_build:
+        dh_auto_build --sourcedir src
+
+override_dh_auto_clean:
+        dh_auto_clean --sourcedir src
+        rm -f src/pmars
+root@66fa1f9b2400:/app/pmars-0.9.4#
