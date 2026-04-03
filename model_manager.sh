@@ -209,7 +209,7 @@ start_model() {
 
   # Find the GGUF file
   local MODEL_DIR="${LLAMA_MODELS_DIR}/${MODEL}"
-  local GGUF_FILE=$(find "$MODEL_DIR" -name "*.gguf" -type f 2>/dev/null | head -1)
+  local GGUF_FILE=$(find "$MODEL_DIR" -name "*.gguf" -type f 2>/dev/null | sort | head -1)
 
   if [ -z "$GGUF_FILE" ]; then
     echo "  ERROR: No GGUF file found in $MODEL_DIR"

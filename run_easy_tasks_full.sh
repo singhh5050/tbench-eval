@@ -18,13 +18,10 @@ AGENT="terminus-2"
 RESULTS_DIR="/var/tmp/harbor-results/easy-tasks-full-$(date +%Y%m%d-%H%M)"
 mkdir -p "$RESULTS_DIR"
 
-# Models to test (including the ones that failed fix-git)
+# Large models for 64GB+ RAM server benchmark
 MODELS=(
-  "Qwen3.5-35B-A3B-GGUF|unsloth/Qwen3.5-35B-A3B-GGUF|Q4_K_M"
-  "Nemotron-3-Nano-30B-A3B-GGUF|unsloth/Nemotron-3-Nano-30B-A3B-GGUF|Q4_K_M"
-  "GLM-4.7-Flash-GGUF|unsloth/GLM-4.7-Flash-GGUF|Q4_K_M"
-  "Qwen3-Coder-30B-A3B-Instruct-GGUF|unsloth/Qwen3-Coder-30B-A3B-Instruct-GGUF|Q4_K_M"
-  "gpt-oss-20b-GGUF|ggml-org/gpt-oss-20b-GGUF|mxfp4"
+  "Qwen3-Coder-Next-GGUF|Qwen/Qwen3-Coder-Next-GGUF|Q4_K_M"
+  "gpt-oss-120b-GGUF|ggml-org/gpt-oss-120b-GGUF|mxfp4"
 )
 
 # Read easy tasks from file
