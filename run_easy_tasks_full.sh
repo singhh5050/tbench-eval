@@ -18,15 +18,19 @@ AGENT="terminus-2"
 RESULTS_DIR="/var/tmp/harbor-results/${RUN_NAME:-easy-tasks-full}-$(date +%Y%m%d-%H%M)"
 mkdir -p "$RESULTS_DIR"
 
-# Models for 64GB+ RAM server benchmark
-MODELS=(
-  # Large models (only fit on 64GB+ server)
-  "Qwen3-Coder-Next-GGUF|Qwen/Qwen3-Coder-Next-GGUF|Q4_K_M"              # 48GB
-  "gpt-oss-120b-GGUF|ggml-org/gpt-oss-120b-GGUF|mxfp4"                   # 63GB
-  # Medium models (fit on both servers)
-  "Nemotron-3-Nano-30B-A3B-GGUF|unsloth/Nemotron-3-Nano-30B-A3B-GGUF|Q4_K_M"  # 25GB
-  "gemma-4-26B-A4B-it-GGUF|unsloth/gemma-4-26B-A4B-it-GGUF|Q4_K_M"       # 17GB
-)
+# Models - can be overridden via MODELS_FILE env var
+if [ -n "${MODELS_FILE:-}" ] && [ -f "$MODELS_FILE" ]; then
+  mapfile -t MODELS < <(grep -v '^$' "$MODELS_FILE")
+else
+  MODELS=(
+    # Large models (only fit on 64GB+ server)
+    "Qwen3-Coder-Next-GGUF|Qwen/Qwen3-Coder-Next-GGUF|Q4_K_M"              # 48GB
+    "gpt-oss-120b-GGUF|ggml-org/gpt-oss-120b-GGUF|mxfp4"                   # 63GB
+    # Medium models (fit on both servers)
+    "Nemotron-3-Nano-30B-A3B-GGUF|unsloth/Nemotron-3-Nano-30B-A3B-GGUF|Q4_K_M"  # 25GB
+    "gemma-4-26B-A4B-it-GGUF|unsloth/gemma-4-26B-A4B-it-GGUF|Q4_K_M"       # 17GB
+  )
+fi
 
 # Read easy tasks from file
 # Format: either "task" (uses DATASET env var) or "dataset|task" (inline dataset)
