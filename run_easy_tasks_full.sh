@@ -26,10 +26,10 @@ MODELS=(
   # Medium models (fit on both servers)
   "Nemotron-3-Nano-30B-A3B-GGUF|unsloth/Nemotron-3-Nano-30B-A3B-GGUF|Q4_K_M"  # 25GB
   "gemma-4-26B-A4B-it-GGUF|unsloth/gemma-4-26B-A4B-it-GGUF|Q4_K_M"       # 17GB
-  "NVIDIA-Nemotron-3-Nano-4B-GGUF|unsloth/NVIDIA-Nemotron-3-Nano-4B-GGUF|Q4_K_M"  # 3GB
 )
 
 # Read easy tasks from file
+# Format: either "task" (uses DATASET env var) or "dataset|task" (inline dataset)
 mapfile -t TASKS < <(grep -v '^$' "${TASK_FILE:-easy_tasks.txt}")
 
 SUMMARY="${RESULTS_DIR}/summary.txt"
@@ -90,9 +90,18 @@ for MODEL_CONFIG in "${MODELS[@]}"; do
   fi
 
   # Run all tasks for this model
-  for TASK in "${TASKS[@]}"; do
+  for TASK_ENTRY in "${TASKS[@]}"; do
+    # Parse dataset|task format, or use default dataset
+    if [[ "$TASK_ENTRY" == *"|"* ]]; then
+      TASK_DATASET="${TASK_ENTRY%%|*}"
+      TASK="${TASK_ENTRY#*|}"
+    else
+      TASK_DATASET="${DATASET:-terminal-bench@2.0}"
+      TASK="$TASK_ENTRY"
+    fi
+
     echo ""
-    echo "  >>> Testing task: $TASK"
+    echo "  >>> Testing task: $TASK (dataset: $TASK_DATASET)"
 
     START_TIME=$(date +%s)
     STATUS="UNKNOWN"
@@ -100,7 +109,7 @@ for MODEL_CONFIG in "${MODELS[@]}"; do
     JOB_DIR="${RESULTS_DIR}/${MODEL_NAME}/${TASK}"
 
     if timeout 600 harbor run \
-      -d "${DATASET:-terminal-bench@2.0}" \
+      -d "$TASK_DATASET" \
       -a "$AGENT" \
       -m "openai/${MODEL_NAME}" \
       -n 1 \
