@@ -18,10 +18,15 @@ AGENT="terminus-2"
 RESULTS_DIR="/var/tmp/harbor-results/${RUN_NAME:-easy-tasks-full}-$(date +%Y%m%d-%H%M)"
 mkdir -p "$RESULTS_DIR"
 
-# Large models for 64GB+ RAM server benchmark
+# Models for 64GB+ RAM server benchmark
 MODELS=(
-  "Qwen3-Coder-Next-GGUF|Qwen/Qwen3-Coder-Next-GGUF|Q4_K_M"
-  "gpt-oss-120b-GGUF|ggml-org/gpt-oss-120b-GGUF|mxfp4"
+  # Large models (only fit on 64GB+ server)
+  "Qwen3-Coder-Next-GGUF|Qwen/Qwen3-Coder-Next-GGUF|Q4_K_M"              # 48GB
+  "gpt-oss-120b-GGUF|ggml-org/gpt-oss-120b-GGUF|mxfp4"                   # 63GB
+  # Medium models (fit on both servers)
+  "Nemotron-3-Nano-30B-A3B-GGUF|unsloth/Nemotron-3-Nano-30B-A3B-GGUF|Q4_K_M"  # 25GB
+  "gemma-4-26B-A4B-it-GGUF|unsloth/gemma-4-26B-A4B-it-GGUF|Q4_K_M"       # 17GB
+  "NVIDIA-Nemotron-3-Nano-4B-GGUF|unsloth/NVIDIA-Nemotron-3-Nano-4B-GGUF|Q4_K_M"  # 3GB
 )
 
 # Read easy tasks from file
