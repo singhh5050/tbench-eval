@@ -15,7 +15,7 @@ export OPENAI_API_KEY=lemonade
 export OPENAI_API_BASE=http://localhost:8000/v1
 
 AGENT="terminus-2"
-RESULTS_DIR="/var/tmp/harbor-results/easy-tasks-full-$(date +%Y%m%d-%H%M)"
+RESULTS_DIR="/var/tmp/harbor-results/${RUN_NAME:-easy-tasks-full}-$(date +%Y%m%d-%H%M)"
 mkdir -p "$RESULTS_DIR"
 
 # Large models for 64GB+ RAM server benchmark
@@ -25,7 +25,7 @@ MODELS=(
 )
 
 # Read easy tasks from file
-mapfile -t TASKS < <(grep -v '^$' easy_tasks.txt)
+mapfile -t TASKS < <(grep -v '^$' "${TASK_FILE:-easy_tasks.txt}")
 
 SUMMARY="${RESULTS_DIR}/summary.txt"
 echo "# Easy Tasks Full Benchmark - $(date)" > "$SUMMARY"
@@ -95,7 +95,7 @@ for MODEL_CONFIG in "${MODELS[@]}"; do
     JOB_DIR="${RESULTS_DIR}/${MODEL_NAME}/${TASK}"
 
     if timeout 600 harbor run \
-      -d terminal-bench@2.0 \
+      -d "${DATASET:-terminal-bench@2.0}" \
       -a "$AGENT" \
       -m "openai/${MODEL_NAME}" \
       -n 1 \
