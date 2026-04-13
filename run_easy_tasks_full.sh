@@ -28,7 +28,7 @@ else
     "gpt-oss-120b-GGUF|ggml-org/gpt-oss-120b-GGUF|mxfp4"                   # 63GB
     # Medium models (fit on both servers)
     "Nemotron-3-Nano-30B-A3B-GGUF|unsloth/Nemotron-3-Nano-30B-A3B-GGUF|Q4_K_M"  # 25GB
-    "gemma-4-26B-A4B-it-GGUF|unsloth/gemma-4-26B-A4B-it-GGUF|Q4_K_M"       # 17GB
+    "gemma-4-26B-A4B-it-GGUF|unsloth/gemma-4-26B-A4B-it-GGUF|Q8_0"         # 27GB
   )
 fi
 
