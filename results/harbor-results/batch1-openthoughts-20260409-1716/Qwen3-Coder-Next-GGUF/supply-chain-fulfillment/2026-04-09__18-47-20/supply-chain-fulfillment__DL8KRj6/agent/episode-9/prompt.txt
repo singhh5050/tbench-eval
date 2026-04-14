@@ -1,0 +1,110 @@
+New Terminal Output:
+
+root@b12cd1002d87:/app# python3 << 'EOF'
+> import json
+> from pathlib import Path
+>
+> # Load data
+> with open('/app/task_file/input_data/shipments.jsonl') as f:
+>     shipments = {json.loads(line)['shipment_id']: json.loads(line) for line in f}
+>
+> with open('/app/task_file/input_data/warehouses.jsonl') as f:
+>     warehouses = {json.loads(line)['warehouse_id']: json.loads(line) for line in f}
+>
+> with open('/app/task_file/input_data/routes.jsonl') as f:
+>     routes = {}
+>     routes_by_key = {}
+>     for line in f:
+>         r = json.loads(line)
+>         routes[r['route_id']] = r
+>         routes_by_key[(r['warehouse_id'], r['destination_id'])] = r
+>
+> with open('/app/task_file/input_data/destinations.jsonl') as f:
+>     destinations = {json.loads(line)['destination_id']: json.loads(line) for line in f}
+>
+> shipment = shipments[990]
+> print(f"Shipment 990: {shipment}")
+> print(f"\nDestination: {destinations[shipment['destination_id']]}")
+>
+> print("\nLooking for valid routes:")
+> for (wh_id, dest_id), route in routes_by_key.items():
+>     if dest_id != shipment['destination_id']:
+>         continue
+>     wh = warehouses[wh_id]
+>     dest = destinations[dest_id]
+>
+>     # Check capabilities
+>     if shipment['requires_hazmat'] and not wh['handles_hazmat']:
+>         continue
+>     if shipment['requires_refrigerated'] and not wh['handles_refrigerated']:
+>         continue
+>     if shipment['requires_oversized'] and not wh['handles_oversized']:
+>         continue
+>
+>     # Check route capabilities
+>     if shipment['requires_hazmat'] and not route['allows_hazmat']:
+>         continue
+>     if shipment['requires_refrigerated'] and not route['allows_refrigerated']:
+>         continue
+>     if shipment['requires_oversized'] and not route['allows_oversized']:
+>         continue
+>
+>     # Check capacities
+>     if shipment['volume'] > route['capacity_volume']:
+>         continue
+>     if shipment['weight'] > route['capacity_weight']:
+>         continue
+>     if shipment['volume'] > wh['volume_capacity']:
+>         continue
+>     if shipment['weight'] > wh['weight_capacity']:
+>         continue
+>
+>     arrival = wh['availability_start'] + route['transit_time_hours']
+>
+>     # Check deadline
+>     if arrival > shipment['deadline_hours']:
+>         print(f"  WH{wh_id} -> Dest{dest_id}: arrival={arrival:.2f}, deadline={shipment['deadline_hours']} - FAIL (late)")
+>         continue
+>
+>     # Check time window
+>     if arrival < dest['delivery_window_start'] or arrival > dest['delivery_window_end']:
+>         print(f"  WH{wh_id} -> Dest{dest_id}: arrival={arrival:.2f}, window=[{dest['delivery_window_start']}, {dest['delivery_window_end']}] - FAIL (time wind
+ow)")
+>         continue
+>
+>     print(f"  WH{wh_id} -> Dest{dest_id}: arrival={arrival:.2f}, cost={(wh['base_handling_cost'] * shipment['volume']/100 + route['base_cost_per_km'] * route[
+'distance_km'] * shipment['weight']/1000) * shipment['priority_multiplier']:.2f}")
+> EOF
+Shipment 990: {'shipment_id': 990, 'destination_id': 7, 'volume': 123, 'weight': 776, 'priority': 'low', 'priority_multiplier': 0.8, 'deadline_hours': 69, 'requ
+ires_hazmat': False, 'requires_refrigerated': False, 'requires_oversized': False, 'value': 3251}
+
+Destination: {'destination_id': 7, 'name': 'City_7', 'region': 'Region_0', 'latitude': 27.6133, 'longitude': -120.9606, 'delivery_window_start': 5, 'delivery_wi
+ndow_end': 58, 'consolidation_bonus': 0.1}
+
+Looking for valid routes:
+  WH1 -> Dest7: arrival=4.00, window=[5, 58] - FAIL (time window)
+  WH2 -> Dest7: arrival=2.53, window=[5, 58] - FAIL (time window)
+  WH3 -> Dest7: arrival=2.25, window=[5, 58] - FAIL (time window)
+  WH4 -> Dest7: arrival=3.91, window=[5, 58] - FAIL (time window)
+  WH5 -> Dest7: arrival=24.91, cost=1060.05
+  WH6 -> Dest7: arrival=29.90, cost=1235.13
+  WH7 -> Dest7: arrival=25.99, cost=1294.28
+  WH8 -> Dest7: arrival=28.78, cost=1257.47
+  WH9 -> Dest7: arrival=66.94, window=[5, 58] - FAIL (time window)
+  WH10 -> Dest7: arrival=58.99, window=[5, 58] - FAIL (time window)
+  WH11 -> Dest7: arrival=47.99, cost=1921.53
+  WH12 -> Dest7: arrival=66.21, window=[5, 58] - FAIL (time window)
+  WH13 -> Dest7: arrival=65.56, window=[5, 58] - FAIL (time window)
+  WH14 -> Dest7: arrival=69.80, deadline=69 - FAIL (late)
+  WH15 -> Dest7: arrival=88.27, deadline=69 - FAIL (late)
+  WH16 -> Dest7: arrival=95.65, deadline=69 - FAIL (late)
+  WH17 -> Dest7: arrival=80.61, deadline=69 - FAIL (late)
+  WH18 -> Dest7: arrival=110.62, deadline=69 - FAIL (late)
+  WH19 -> Dest7: arrival=88.70, deadline=69 - FAIL (late)
+  WH20 -> Dest7: arrival=109.29, deadline=69 - FAIL (late)
+  WH21 -> Dest7: arrival=140.90, deadline=69 - FAIL (late)
+  WH22 -> Dest7: arrival=140.07, deadline=69 - FAIL (late)
+  WH23 -> Dest7: arrival=148.08, deadline=69 - FAIL (late)
+  WH24 -> Dest7: arrival=124.26, deadline=69 - FAIL (late)
+  WH25 -> Dest7: arrival=101.04, deadline=69 - FAIL (late)
+root@b12cd1002d87:/app#

@@ -1,0 +1,29 @@
+New Terminal Output:
+
+root@0683b4795d80:/app/src# mkdir -p /app/src/config/mode
+root@0683b4795d80:/app/src# cat > /app/src/config/mode/debug.yaml << 'EOF'
+> debug: true
+>
+> train:
+>   max_num_epochs: 1
+> EOF
+root@0683b4795d80:/app/src# cat > /app/src/config/slurm.yaml << 'EOF'
+> # @package _global_
+>
+> hydra:
+>   launcher:
+>     _target_: hydra_plugins.hydra_submitit_launcher.submitit_launcher.SlurmLauncher
+>     timeout_min: 60
+>     cpus_per_task: 4
+>     gpus_per_node: 0
+>     tasks_per_node: 1
+>     nodes: 1
+>     additional_parameters:
+>       wckey: ''
+>     srun_args:
+>       - '--cpu-bind=none'
+>     comment: ''
+>
+> _debug: false
+> EOF
+root@0683b4795d80:/app/src#

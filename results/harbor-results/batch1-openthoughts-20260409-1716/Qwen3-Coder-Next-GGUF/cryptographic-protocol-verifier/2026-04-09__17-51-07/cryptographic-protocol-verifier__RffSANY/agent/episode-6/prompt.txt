@@ -1,0 +1,26 @@
+New Terminal Output:
+
+root@18bf6c1cf223:/app# python3 << 'EOF'
+> import struct
+> import json
+>
+> with open('protocol_001.zkp', 'rb') as f:
+>     data = f.read()
+>
+> protocol_type = data[:16].rstrip(b'\x00').decode('utf-8')
+> json_len = struct.unpack('<I', data[24:28])[0]
+> json_data = data[28:28+json_len].decode('utf-8')
+>
+> print("PLONK Protocol:")
+> print(f"Type: {protocol_type}")
+> protocol = json.loads(json_data)
+> print(f"Keys: {list(protocol.keys())}")
+> print(f"Protocol ID: {protocol.get('protocol_id', 'N/A')}")
+> if 'circuit' in protocol:
+>     print(f"Circuit gates: {len(protocol['circuit'].get('gates', []))}")
+> EOF
+PLONK Protocol:
+Type: plonk
+Keys: ['protocol_id', 'circuit_size', 'witness_commitments', 'permutation_proof', 'quotient_polynomial', 'evaluation_proof']
+Protocol ID: plonk_001
+root@18bf6c1cf223:/app#

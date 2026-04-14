@@ -1,0 +1,365 @@
+[?2004hroot@874732d32470:/app# asciinema rec --stdin /logs/agent/recording.cast
+[?2004l[0;32masciinema: recording asciicast to /logs/agent/recording.cast[0m
+[0;32masciinema: press <ctrl-d> or type "exit" when you're done[0m
+[?2004hroot@874732d32470:/app# clear
+[?2004l[H[J[3J[?2004hroot@874732d32470:/app# mkdir -p /app/ca /app/signing /app/signed
+[?2004l[?2004hroot@874732d32470:/app# cat > /app/setup_ca.sh <<'EOS'
+[?2004l[?2004h> #!/usr/bin/env bash
+[?2004l[?2004h> set -euo pipefail
+[?2004l[?2004h> 
+[?2004l[?2004h> # Directories
+[?2004l[?2004h> CA_DIR="/app/ca"
+[?2004l[?2004h> 
+[?2004l[?2004h> # Root CA
+[?2004l[?2004h> ROOT_KEY="$CA_DIR/root-ca-key.pem"
+[?2004l[?2004h> ROOT_CERT="$CA_DIR/root-ca.pem"
+[?2004l[?2004h> openssl req -x509 -newkey rsa:4096 -sha256 -days 3650 -nodes \
+[?2004l[?2004h>   -subj "/CN=Software Signing Root CA/O=SecureBuild/C=US" \
+[?2004l[?2004h>   -addext "basicConstraints=critical,CA:TRUE" \
+[?2004l[?2004h>   -addext "keyUsage=critical,keyCertSign,cRLSign" \
+[?2004l[?2004h>   -keyout "$ROOT_KEY" -out "$ROOT_CERT"
+[?2004l[?2004h> 
+[?2004l[?2004h> # Intermediate CA
+[?2004l[?2004h> INT_KEY="$CA_DIR/intermediate-ca-key.pem"
+[?2004l[?2004h> INT_CERT="$CA_DIR/intermediate-ca.pem"
+[?2004l[?2004h> INT_CSR="$CA_DIR/intermediate-ca.csr"
+[?2004l[?2004h> openssl req -new -newkey rsa:4096 -sha256 -nodes \
+[?2004l[?2004h>   -subj "/CN=Build Pipeline Intermediate CA/O=SecureBuild/C=US" \
+[?2004l[?2004h>   -keyout "$INT_KEY" -out "$INT_CSR"
+[?2004l[?2004h> openssl x509 -req -in "$INT_CSR" -CA "$ROOT_CERT" -CAkey "$ROOT_KEY" -CAcreateserial \
+[?2004l[?2004h>   -days 1825 -sha256 \
+[?2004l[?2004h>   -addext "basicConstraints=critical,CA:TRUE,pathlen:0" \
+[?2004l[?2004h>   -addext "keyUsage=critical,keyCertSign,digitalSignature" \
+[?2004l[?2004h>   -out "$INT_CERT"
+[?2004l[?2004h> 
+[?2004l[?2004h> # Clean up CSR and serial files
+[?2004l[?2004h> rm -f "$INT_CSR" "$CA_DIR/root-ca.srl"
+[?2004l[?2004h> EOS
+[?2004l[?2004hroot@874732d32470:/app# chmod +x /app/setup_ca.sh
+[?2004l[?2004hroot@874732d32470:/app# cat > /app/sign_artifact.sh <<'EOS'
+[?2004l[?2004h> #!/usr/bin/env bash
+[?2004l[?2004h> set -euo pipefail
+[?2004l[?2004h> 
+[?2004l[?2004h> if [[ $# -ne 2 ]]; then
+[?2004l[?2004h>   echo "Usage: $0 <artifact-path> <build-id>"
+[?2004l[?2004h>   exit 1
+[?2004l[?2004h> fi
+[?2004l[?2004h> 
+[?2004l[?2004h> ARTIFACT="$1"
+[?2004l[?2004h> BUILD_ID="$2"
+[?2004l[?2004h> BASE_NAME="$(basename "$ARTIFACT")"
+[?2004l[?2004h> 
+[?2004l[?2004h> # Verify artifact exists
+[?2004l[?2004h> if [[ ! -f "$ARTIFACT" ]]; then
+[?2004l[?2004h>   echo "Artifact not found: $ARTIFACT"
+[?2004l[?2004h>   exit 1
+[?2004l[?2004h> fi
+[?2004l[?2004h> 
+[?2004l[?2004h> # Compute checksum
+[?2004l[?2004h> CHECKSUM=$(sha256sum "$ARTIFACT" | awk '{print $1}')
+[?2004l[?2004h> 
+[?2004l[?2004h> # Directories
+[?2004l[?2004h> SIGNING_DIR="/app/signing"
+[?2004l[?2004h> SIGNED_DIR="/app/signed"
+[?2004l[?2004h> CA_DIR="/app/ca"
+[?2004l[?2004h> 
+[?2004l[?2004h> # Ephemeral EC key (P‑256)
+[?2004l[?2004h> EPHEMERAL_KEY="$SIGNING_DIR/key_${BUILD_ID}.pem"
+[?2004l[?2004h> openssl ecparam -name prime256v1 -genkey -noout -out "$EPHEMERAL_KEY"
+[?2004l[?2004h> 
+[?2004l[?2004h> # CSR for signing certificate
+[?2004l[?2004h> CSR="$SIGNING_DIR/csr_${BUILD_ID}.pem"
+[?2004l[?2004h> openssl req -new -key "$EPHEMERAL_KEY" -subj "/CN=build-${BUILD_ID},O=SecureBuild,C=US" -out "$CSR"
+[?2004l[?2004h> 
+[?2004l[?2004h> # Signing certificate (valid 1 day)
+[?2004l[?2004h> CERT="$SIGNING_DIR/cert_${BUILD_ID}.pem"
+[?2004l[?2004h> openssl x509 -req -in "$CSR" -CA "$CA_DIR/intermediate-ca.pem" -CAkey "$CA_DIR/intermediate-ca-key.pem" -CAcreateserial \
+[?2004l[?2004h>   -days 1 -sha256 \
+[?2004l[?2004h>   -addext "basicConstraints=critical,CA:FALSE" \
+[?2004l[?2004h>   -addext "keyUsage=critical,digitalSignature" \
+[?2004l[?2004h>   -out "$CERT"
+[?2004l[?2004h> 
+[?2004l[?2004h> # Sign the artifact
+[?2004l[?2004h> SIG_FILE="$SIGNED_DIR/${BASE_NAME}.sig"
+[?2004l[?2004h> openssl dgst -sha256 -sign "$EPHEMERAL_KEY" -out "$SIG_FILE" "$ARTIFACT"
+[?2004l[?2004h> 
+[?2004l[?2004h> # Create provenance JSON
+[?2004l[?2004h> TIMESTAMP=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+[?2004l[?2004h> PROV_JSON="$SIGNED_DIR/${BASE_NAME}.provenance.json"
+[?2004l[?2004h> cat > "$PROV_JSON" <<JSON
+[?2004l[?2004h> {
+[?2004l[?2004h>   "buildID": "${BUILD_ID}",
+[?2004l[?2004h>   "artifact": "${BASE_NAME}",
+[?2004l[?2004h>   "sha256": "${CHECKSUM}",
+[?2004l[?2004h>   "signedAt": "${TIMESTAMP}",
+[?2004l[?2004h>   "signer": "build-${BUILD_ID}",
+[?2004l[?2004h>   "certificateChain": ["intermediate-ca", "root-ca"]
+[?2004l[?2004h> }
+[?2004l[?2004h> JSON
+[?2004l[?2004h> 
+[?2004l[?2004h> # Sign provenance JSON
+[?2004l[?2004h> PROV_SIG="$SIGNED_DIR/${BASE_NAME}.provenance.sig"
+[?2004l[?2004h> openssl dgst -sha256 -sign "$EPHEMERAL_KEY" -out "$PROV_SIG" "$PROV_JSON"
+[?2004l[?2004h> 
+[?2004l[?2004h> # Assemble certificate chain (signing cert + intermediate + root)
+[?2004l[?2004h> CHAIN_FILE="$SIGNED_DIR/${BASE_NAME}.chain.pem"
+[?2004l[?2004h> cat "$CERT" "$CA_DIR/intermediate-ca.pem" "$CA_DIR/root-ca.pem" > "$CHAIN_FILE"
+[?2004l[?2004h> 
+[?2004l[?2004h> # Cleanup: delete private key and CSR
+[?2004l[?2004h> rm -f "$EPHEMERAL_KEY" "$CSR"
+[?2004l[?2004h> EOS
+[?2004l[?2004hroot@874732d32470:/app# chmod +x /app/sign_artifact.sh
+[?2004l[?2004hroot@874732d32470:/app# cat > /app/verify_artifact.sh <<'EOS'
+[?2004l[?2004h> #!/usr/bin/env bash
+[?2004l[?2004h> set -euo pipefail
+[?2004l[?2004h> 
+[?2004l[?2004h> if [[ $# -ne 1 ]]; then
+[?2004l[?2004h>   echo "Usage: $0 <artifact-path>"
+[?2004l[?2004h>   exit 1
+[?2004l[?2004h> fi
+[?2004l[?2004h> 
+[?2004l[?2004h> ARTIFACT="$1"
+[?2004l[?2004h> BASE_NAME="$(basename "$ARTIFACT")"
+[?2004l[?2004h> SIGNED_DIR="/app/signed"
+[?2004l[?2004h> CA_DIR="/app/ca"
+[?2004l[?2004h> 
+[?2004l[?2004h> # Expected files
+[?2004l[?2004h> SIG_FILE="$SIGNED_DIR/${BASE_NAME}.sig"
+[?2004l[?2004h> PROV_JSON="$SIGNED_DIR/${BASE_NAME}.provenance.json"
+[?2004l[?2004h> PROV_SIG="$SIGNED_DIR/${BASE_NAME}.provenance.sig"
+[?2004l[?2004h> CHAIN_FILE="$SIGNED_DIR/${BASE_NAME}.chain.pem"
+[?2004l[?2004h> 
+[?2004l[?2004h> # Verify existence
+[?2004l[?2004h> for f in "$ARTIFACT" "$SIG_FILE" "$PROV_JSON" "$PROV_SIG" "$CHAIN_FILE"; do
+[?2004l[?2004h>   if [[ ! -f "$f" ]]; then
+[?2004l[?2004h>     echo "VERIFICATION_FAILED"
+[?2004l[?2004h>     exit 1
+[?2004l[?2004h>   fi
+[?2004l[?2004h> done
+[?2004l[?2004h> 
+[?2004l[?2004h> # Extract signing certificate (first cert in chain)
+[?2004l[?2004h> SIGNING_CERT="/tmp/signing_cert_$$.pem"
+[?2004l[?2004h> awk 'BEGIN{c=0} /-----BEGIN CERTIFICATE-----/{c++} c==1' "$CHAIN_FILE" > "$SIGNING_CERT"
+[?2004l[?2004h> 
+[?2004l[?2004h> # Verify chain: signing cert -> intermediate -> root
+[?2004l[?2004h> # intermediate is the second cert in chain
+[?2004l[?2004h> INTERMEDIATE_CERT="/tmp/intermediate_cert_$$.pem"
+[?2004l[?2004h> awk 'BEGIN{c=0} /-----BEGIN CERTIFICATE-----/{c++} c==2' "$CHAIN_FILE" > "$INTERMEDIATE_CERT"
+[?2004l[?2004h> 
+[?2004l[?2004h> # Verify intermediate is signed by root and signing cert by intermediate
+[?2004l[?2004h> openssl verify -CAfile "$CA_DIR/root-ca.pem" -untrusted "$INTERMEDIATE_CERT" "$SIGNING_CERT" > /dev/null 2>&1 || {
+[?2004l[?2004h>   echo "VERIFICATION_FAILED"
+[?2004l[?2004h>   rm -f "$SIGNING_CERT" "$INTERMEDIATE_CERT"
+[?2004l[?2004h>   exit 1
+[?2004l[?2004h> }
+[?2004l[?2004h> 
+[?2004l[?2004h> # Extract public key from signing certificate
+[?2004l[?2004h> PUBKEY="/tmp/pubkey_$$.pem"
+[?2004l[?2004h> openssl x509 -in "$SIGNING_CERT" -pubkey -noout > "$PUBKEY"
+[?2004l[?2004h> 
+[?2004l[?2004h> # Verify artifact signature
+[?2004l[?2004h> openssl dgst -sha256 -verify "$PUBKEY" -signature "$SIG_FILE" "$ARTIFACT" > /dev/null 2>&1 || {
+[?2004l[?2004h>   echo "VERIFICATION_FAILED"
+[?2004l[?2004h>   rm -f "$SIGNING_CERT" "$INTERMEDIATE_CERT" "$PUBKEY"
+[?2004l[?2004h>   exit 1
+[?2004l[?2004h> }
+[?2004l[?2004h> 
+[?2004l[?2004h> # Verify provenance signature
+[?2004l[?2004h> openssl dgst -sha256 -verify "$PUBKEY" -signature "$PROV_SIG" "$PROV_JSON" > /dev/null 2>&1 || {
+[?2004l[?2004h>   echo "VERIFICATION_FAILED"
+[?2004l[?2004h>   rm -f "$SIGNING_CERT" "$INTERMEDIATE_CERT" "$PUBKEY"
+[?2004l[?2004h>   exit 1
+[?2004l[?2004h> }
+[?2004l[?2004h> 
+[?2004l[?2004h> # Validate provenance content
+[?2004l[?2004h> EXPECTED_CHECKSUM=$(sha256sum "$ARTIFACT" | awk '{print $1}')
+[?2004l[?2004h> # Use jq to parse fields (jq must be installed)
+[?2004l[?2004h> ART_NAME=$(jq -r '.artifact' "$PROV_JSON")
+[?2004l[?2004h> PROV_CHECKSUM=$(jq -r '.sha256' "$PROV_JSON")
+[?2004l[?2004h> BUILD_ID=$(jq -r '.buildID' "$PROV_JSON")
+[?2004l[?2004h> SIGNED_AT=$(jq -r '.signedAt' "$PROV_JSON")
+[?2004l[?2004h> SIGNER=$(jq -r '.signer' "$PROV_JSON")
+[?2004l[?2004h> 
+[?2004l[?2004h> if [[ "$ART_NAME" != "$BASE_NAME" ]] || [[ "$PROV_CHECKSUM" != "$EXPECTED_CHECKSUM" ]] || [[ -z "$BUILD_ID" ]] || [[ -z "$SIGNED_AT" ]] || [[ -z "$SIGNER" ]]; then
+[?2004l[?2004h>   echo "VERIFICATION_FAILED"
+[?2004l[?2004h>   rm -f "$SIGNING_CERT" "$INTERMEDIATE_CERT" "$PUBKEY"
+[?2004l[?2004h>   exit 1
+[?2004l[?2004h> fi
+[?2004l[?2004h> 
+[?2004l[?2004h> # Clean up temp files
+[?2004l[?2004h> rm -f "$SIGNING_CERT" "$INTERMEDIATE_CERT" "$PUBKEY"
+[?2004l[?2004h> 
+[?2004l[?2004h> echo "VERIFICATION_PASSED"
+[?2004l[?2004h> exit 0
+[?2004l[?2004h> EOS
+[?2004l[?2004hroot@874732d32470:/app# chmod +x /app/verify_artifact.sh
+[?2004l[?2004hroot@874732d32470:/app# /app/setup_ca.sh
+[?2004l.+...+.......+..+....+.........+........+....+........+.+..+.............+..+...+++++++++++++++++++++++++++++++++++++++++++++*.+.+.....+......+...+......+.......+..+...+.......+...+...+.....+......+.+.....+....+...+..+...+.+.....+....+............+......+...+.....+......+.+.....+.......+++++++++++++++++++++++++++++++++++++++++++++*.......+....+..+.+............+...+..............+....+..+....+...+......+......+...+......+.....+.........+.+............+........+................+...+..+......+...+.......+.........+.........+............+..+.+...........+.........................+...+........+.......+......+..+.............+........................+........+...+.......+..+.......+......+.........+...+.....+............................+.................+.......+...+...+.....+...+...............+.+.....+..................+.............+........+....+..+.............+...........+....+...+............+..+.........+..........+..+....+......+..+...+....+..............+........................+.+.................+...+.........................+...........+..........+...........+.............+....................+.+......+..+..........+..+.........+.+........+.+..+...+.......+..+...+...+.+.....................+...+..+....+...+............+.........+.........+..................+..+.+..............+...+...+..........+..+.......+...+...+.....................+........+......+.+........................+..+....+.....+.+.....+...............+...+....+..+.+..+.+..+...................+........+................+......+.............................+.+.........+............+..+..............................+......+.......+...............+..+.+............+..+.......+...+..+.+........+................+..................+......+......+........+...............+......+.+........+..........+..+.............+..+..................................+......+......+...+...........+.+..+.+..+.........+...+.......+..............+....+.....+...+....+...+..+......+.......+......+.........+...+...+......+.........+...........+.........+..........+.....+.........+.+..+.........+...+.............+............+.....+.......+.....+...+.......+...........+.......+......+..+.......+........+..............................+...+....+..+...+.+.....+...............................+....................+......+.........+...+.............+........+....+.....+.+...........+....+......+...........+.........+......+...+.......+...+...............+..+..........+............+..+...+.....................+.........+......+......+.+.....+.......+...+.........+...+..+...+.+......+......+...+..+.......+...+........+.....................+.+...............+...+.........+..+......+......................+.....+.......+...+............+......+...............+............+..+......+............+...............+......+....+............+...............+.....+.+........+.+.....+.............+...+...+.....+................+........+...+...............+....+...............+.....+.+...+..+.......+.................+....+...........+.+...+.........+..+......+.......+......+......+........+......+.+........+...+..................+....+..+.............+..+.+.........+...+.....+.+.........+...........+.......+........+.+........+.+......+........+......+..........+..+.......+..+.+.....+...............+....+...+........+....+...+...+..+..................+....+...+..+...+............+.+...............+...+..............+...............+......+....+......+......+.....+.........+....+..+.........+....+..............................+......+..............+.+..+...+......+.+...............+.................+++++
+.+.+...+......+++++++++++++++++++++++++++++++++++++++++++++*........+......+.+++++++++++++++++++++++++++++++++++++++++++++*.............+.+..............+....+........+...+....+..+.............+...........+....+............+...+..+..........+++++
+-----
+..+..+...+.....................+++++++++++++++++++++++++++++++++++++++++++++*.+......+.......+...+..+++++++++++++++++++++++++++++++++++++++++++++*...+...+..+..........+..............+++++
+.......+.+......+..+................+.....+......+.+..+.......+.........+.................+....+........+...+....+........+......+.......+++++++++++++++++++++++++++++++++++++++++++++*.........+...+++++++++++++++++++++++++++++++++++++++++++++*......+.+....................+....+.........+...+........+....+..+.........+.....................+......+...+....+...............+.....+..................+...+....+.................+.+............+..+..........+.........+......+......+..+.+......+...............+......+............+..+.+....................+.......+........+.............+..+...+..........+...........+.+..+.+...........+...+.+.....+............+..........+.....+...+....+.....+.+..+....+.....+..........+...........+............+......+......+....+.................+....+.................................+.....+.............+...+............+..+.+...........+...+...+....+..............+.+......+........+..........+..+....+...+......+............+............+.....+.+............+.........+.....+...+...+.........................+..................+.....+....+...............+...+..................+..............+...+...+.+.....+.+..................+.............................+.+...............+...........+++++
+ls -l /app/artifacts
+-----
+x509: Multiple digest or unknown options: -sha256 and -addext
+x509: Use -help for summary.
+[?2004hroot@874732d32470:/app# ls -l /app/artifacts
+[?2004ltotal 24
+-rw-r--r-- 1 root root 10240 Apr  9 23:44 app.bin
+-rwxr-xr-x 1 root root    34 Apr  9 23:44 release.sh
+-rw-r--r-- 1 root root   195 Apr  9 23:44 release.tar.gz
+-rw-r--r-- 1 root root   328 Apr  9 23:44 sbom.json
+[?2004hroot@874732d32470:/app# /app/sign_artifact.sh /app/artifacts/sample.bin build-001
+[?2004lArtifact not found: /app/artifacts/sample.bin
+[?2004hroot@874732d32470:/app# /app/verify_artifact.sh /app/artifacts/sample.bin
+[?2004lVERIFICATION_FAILED
+[?2004hroot@874732d32470:/app# cat > /app/setup_ca.sh <<'EOS'
+[?2004l[?2004h> #!/usr/bin/env bash
+[?2004l[?2004h> set -euo pipefail
+[?2004l[?2004h> 
+[?2004l[?2004h> # Directories
+[?2004l[?2004h> CA_DIR="/app/ca"
+[?2004l[?2004h> 
+[?2004l[?2004h> # Clean any existing CA files
+[?2004l[?2004h> rm -rf "$CA_DIR"/*
+[?2004l[?2004h> 
+[?2004l[?2004h> # Root CA
+[?2004l[?2004h> ROOT_KEY="$CA_DIR/root-ca-key.pem"
+[?2004l[?2004h> ROOT_CERT="$CA_DIR/root-ca.pem"
+[?2004l[?2004h> openssl req -x509 -newkey rsa:4096 -sha256 -days 3650 -nodes \
+[?2004l[?2004h>   -subj "/CN=Software Signing Root CA/O=SecureBuild/C=US" \
+[?2004l[?2004h>   -addext "basicConstraints=critical,CA:TRUE" \
+[?2004l[?2004h>   -addext "keyUsage=critical,keyCertSign,cRLSign" \
+[?2004l[?2004h>   -keyout "$ROOT_KEY" -out "$ROOT_CERT"
+[?2004l[?2004h> 
+[?2004l[?2004h> # Intermediate CA key and CSR
+[?2004l[?2004h> INT_KEY="$CA_DIR/intermediate-ca-key.pem"
+[?2004l[?2004h> INT_CSR="$CA_DIR/intermediate-ca.csr"
+[?2004l[?2004h> openssl req -new -newkey rsa:4096 -sha256 -nodes \
+[?2004l[?2004h>   -subj "/CN=Build Pipeline Intermediate CA/O=SecureBuild/C=US" \
+[?2004l[?2004h>   -keyout "$INT_KEY" -out "$INT_CSR"
+[?2004l[?2004h> 
+[?2004l[?2004h> # Create a temporary OpenSSL config for CA extensions
+[?2004l[?2004h> EXTFILE=$(mktemp)
+[?2004l[?2004h> cat > "$EXTFILE" <<'EOT'
+[?2004l[?2004h> [ v3_ca ]
+[?2004l[?2004h> basicConstraints=critical,CA:TRUE,pathlen:0
+[?2004l[?2004h> keyUsage=critical,keyCertSign,digitalSignature
+[?2004l[?2004h> EOT
+[?2004l[?2004h> 
+[?2004l[?2004h> # Sign Intermediate CA with Root CA using the extensions file
+[?2004l[?2004h> INT_CERT="$CA_DIR/intermediate-ca.pem"
+[?2004l[?2004h> openssl x509 -req -in "$INT_CSR" -CA "$ROOT_CERT" -CAkey "$ROOT_KEY" -CAcreateserial \
+[?2004l[?2004h>   -days 1825 -sha256 -extfile "$EXTFILE" -extensions v3_ca -out "$INT_CERT"
+[?2004l[?2004h> 
+[?2004l[?2004h> # Clean up temporary files
+[?2004l[?2004h> rm -f "$INT_CSR" "$CA_DIR/root-ca.srl" "$EXTFILE"
+[?2004l[?2004h> EOS
+[?2004l[?2004hroot@874732d32470:/app# chmod +x /app/setup_ca.sh
+[?2004l[?2004hroot@874732d32470:/app# /app/setup_ca.sh
+[?2004l.+.....+....+..............+................+...+........+...+.+.....................+..+.+...........+.+..+.......+...+.....+...+...+++++++++++++++++++++++++++++++++++++++++++++*.+....+..+...+....+............+.....+...+..........+...+..+...+..........+...+.....+.+.........+......+++++++++++++++++++++++++++++++++++++++++++++*...+..............+.......+......+.....+...+...............+.+...........+...+.....................+......+............+.+......+..........................+....+...+..+...+......+.+........................+.................+..........+..+++++
+.....+..+...............+.+..+.+..+....+........+................+..+....+...+......+......+......+..+......+.+...+..+.+.....+.......+...+.....+...+......+......+++++++++++++++++++++++++++++++++++++++++++++*........+........+..........+++++++++++++++++++++++++++++++++++++++++++++*..+..+....+.....+.......+.....+.........................+..+...+...+.........+............+.+..+...+.........+.+.........+......+++++
+-----
+......................+....+.....+...+++++++++++++++++++++++++++++++++++++++++++++*..+...+...+.........+...+...+......+..............+++++++++++++++++++++++++++++++++++++++++++++*......+...+.+.........+..............+...+...............+...+.........+.............+......................................+..........+...........+..........+.....+...+...+............+.+.........+...+...+............+.........+...+........+...+.+......+.....+...............+....+...+...............+.....+..........+..+++++
+..+...+...+..+.......+.....+.+++++++++++++++++++++++++++++++++++++++++++++*...+.....+................+++++++++++++++++++++++++++++++++++++++++++++*...+....+............+..............+....+.....+....+...+.....+....+...............+...............+.....+.........+............+..........+.................+.+.....+............+.........+...+.+.................+++++
+-----
+Certificate request self-signature ok
+subject=CN=Build Pipeline Intermediate CA, O=SecureBuild, C=US
+[?2004hroot@874732d32470:/app# ls -l /app/artifacts
+[?2004ltotal 24
+-rw-r--r-- 1 root root 10240 Apr  9 23:44 app.bin
+-rwxr-xr-x 1 root root    34 Apr  9 23:44 release.sh
+-rw-r--r-- 1 root root   195 Apr  9 23:44 release.tar.gz
+-rw-r--r-- 1 root root   328 Apr  9 23:44 sbom.json
+[?2004hroot@874732d32470:/app# /app/sign_artifact.sh /app/artifacts/app.bin build-001
+[?2004lx509: Multiple digest or unknown options: -sha256 and -addext
+x509: Use -help for summary.
+[?2004hroot@874732d32470:/app# /app/verify_artifact.sh /app/artifacts/app.bin
+[?2004lVERIFICATION_FAILED
+[?2004hroot@874732d32470:/app# cat > /app/sign_artifact.sh <<'EOS'
+[?2004l[?2004h> #!/usr/bin/env bash
+[?2004l[?2004h> set -euo pipefail
+[?2004l[?2004h> 
+[?2004l[?2004h> if [[ $# -ne 2 ]]; then
+[?2004l[?2004h>   echo "Usage: $0 <artifact-path> <build-id>"
+[?2004l[?2004h>   exit 1
+[?2004l[?2004h> fi
+[?2004l[?2004h> 
+[?2004l[?2004h> ARTIFACT="$1"
+[?2004l[?2004h> BUILD_ID="$2"
+[?2004l[?2004h> BASE_NAME="$(basename "$ARTIFACT")"
+[?2004l[?2004h> 
+[?2004l[?2004h> # Verify artifact exists
+[?2004l[?2004h> if [[ ! -f "$ARTIFACT" ]]; then
+[?2004l[?2004h>   echo "Artifact not found: $ARTIFACT"
+[?2004l[?2004h>   exit 1
+[?2004l[?2004h> fi
+[?2004l[?2004h> 
+[?2004l[?2004h> # Compute checksum
+[?2004l[?2004h> CHECKSUM=$(sha256sum "$ARTIFACT" | awk '{print $1}')
+[?2004l[?2004h> 
+[?2004l[?2004h> # Directories
+[?2004l[?2004h> SIGNING_DIR="/app/signing"
+[?2004l[?2004h> SIGNED_DIR="/app/signed"
+[?2004l[?2004h> CA_DIR="/app/ca"
+[?2004l[?2004h> 
+[?2004l[?2004h> # Ephemeral EC key (P‑256)
+[?2004l[?2004h> EPHEMERAL_KEY="$SIGNING_DIR/key_${BUILD_ID}.pem"
+[?2004l[?2004h> openssl ecparam -name prime256v1 -genkey -noout -out "$EPHEMERAL_KEY"
+[?2004l[?2004h> 
+[?2004l[?2004h> # CSR for signing certificate
+[?2004l[?2004h> CSR="$SIGNING_DIR/csr_${BUILD_ID}.pem"
+[?2004l[?2004h> openssl req -new -key "$EPHEMERAL_KEY" -subj "/CN=build-${BUILD_ID},O=SecureBuild,C=US" -out "$CSR"
+[?2004l[?2004h> 
+[?2004l[?2004h> # Create temporary extensions file for the signing certificate
+[?2004l[?2004h> EXTFILE=$(mktemp)
+[?2004l[?2004h> cat > "$EXTFILE" <<'EOT'
+[?2004l[?2004h> [ v3_sign ]
+[?2004l[?2004h> basicConstraints=critical,CA:FALSE
+[?2004l[?2004h> keyUsage=critical,digitalSignature
+[?2004l[?2004h> EOT
+[?2004l[?2004h> 
+[?2004l[?2004h> # Signing certificate (valid 1 day)
+[?2004l[?2004h> CERT="$SIGNING_DIR/cert_${BUILD_ID}.pem"
+[?2004l[?2004h> openssl x509 -req -in "$CSR" -CA "$CA_DIR/intermediate-ca.pem" -CAkey "$CA_DIR/intermediate-ca-key.pem" -CAcreateserial \
+[?2004l[?2004h>   -days 1 -sha256 -extfile "$EXTFILE" -extensions v3_sign -out "$CERT"
+[?2004l[?2004h> 
+[?2004l[?2004h> # Clean up the temporary extensions file
+[?2004l[?2004h> rm -f "$EXTFILE"
+[?2004l[?2004h> 
+[?2004l[?2004h> # Sign the artifact
+[?2004l[?2004h> SIG_FILE="$SIGNED_DIR/${BASE_NAME}.sig"
+[?2004l[?2004h> openssl dgst -sha256 -sign "$EPHEMERAL_KEY" -out "$SIG_FILE" "$ARTIFACT"
+[?2004l[?2004h> 
+[?2004l[?2004h> # Create provenance JSON
+[?2004l[?2004h> TIMESTAMP=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+[?2004l[?2004h> PROV_JSON="$SIGNED_DIR/${BASE_NAME}.provenance.json"
+[?2004l[?2004h> cat > "$PROV_JSON" <<JSON
+[?2004l[?2004h> {
+[?2004l[?2004h>   "buildID": "${BUILD_ID}",
+[?2004l[?2004h>   "artifact": "${BASE_NAME}",
+[?2004l[?2004h>   "sha256": "${CHECKSUM}",
+[?2004l[?2004h>   "signedAt": "${TIMESTAMP}",
+[?2004l[?2004h>   "signer": "build-${BUILD_ID}",
+[?2004l[?2004h>   "certificateChain": ["intermediate-ca", "root-ca"]
+[?2004l[?2004h> }
+[?2004l[?2004h> JSON
+[?2004l[?2004h> 
+[?2004l[?2004h> # Sign provenance JSON
+[?2004l[?2004h> PROV_SIG="$SIGNED_DIR/${BASE_NAME}.provenance.sig"
+[?2004l[?2004h> openssl dgst -sha256 -sign "$EPHEMERAL_KEY" -out "$PROV_SIG" "$PROV_JSON"
+[?2004l[?2004h> 
+[?2004l[?2004h> # Assemble certificate chain (signing cert + intermediate + root)
+[?2004l[?2004h> CHAIN_FILE="$SIGNED_DIR/${BASE_NAME}.chain.pem"
+[?2004l[?2004h> cat "$CERT" "$CA_DIR/intermediate-ca.pem" "$CA_DIR/root-ca.pem" > "$CHAIN_FILE"
+[?2004l[?2004h> 
+[?2004l[?2004h> # Cleanup: delete private key and CSR
+[?2004l[?2004h> rm -f "$EPHEMERAL_KEY" "$CSR"
+[?2004l[?2004h> EOS
+[?2004l[?2004hroot@874732d32470:/app# chmod +x /app/sign_artifact.sh
+[?2004l[?2004hroot@874732d32470:/app# /app/sign_artifact.sh /app/artifacts/app.bin build-001
+[?2004lCertificate request self-signature ok
+subject=CN=build-build-001,O=SecureBuild,C=US
+[?2004hroot@874732d32470:/app# /app/verify_artifact.sh /app/artifacts/app.bin
+[?2004lVERIFICATION_PASSED
+[?2004hroot@874732d32470:/app# 

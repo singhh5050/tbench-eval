@@ -1,0 +1,27 @@
+New Terminal Output:
+
+root@ac4d5de4c098:/opt/myapp# cat > /etc/rsyslog.d/50-myapp.conf << 'EOF'
+> # myapp log routing configuration
+>
+> # Route all myapp logs to app_events.log
+> if $programname == 'myapp' then /var/log/app_events.log
+> & stop
+>
+> # Route ERROR level events to separate file
+> if $programname == 'myapp' and $msg contains '"level":"ERROR"' then /var/log/app_errors.log
+> & stop
+> EOF
+root@ac4d5de4c098:/opt/myapp# cat /etc/rsyslog.d/50-myapp.conf
+# myapp log routing configuration
+
+# Route all myapp logs to app_events.log
+if $programname == 'myapp' then /var/log/app_events.log
+& stop
+
+# Route ERROR level events to separate file
+if $programname == 'myapp' and $msg contains '"level":"ERROR"' then /var/log/app_errors.log
+& stop
+root@ac4d5de4c098:/opt/myapp# touch /var/log/app_events.log /var/log/app_errors.log
+root@ac4d5de4c098:/opt/myapp# chown myapp:myapp /var/log/app_events.log /var/log/app_errors.log
+root@ac4d5de4c098:/opt/myapp# chmod 644 /var/log/app_events.log /var/log/app_errors.log
+root@ac4d5de4c098:/opt/myapp#

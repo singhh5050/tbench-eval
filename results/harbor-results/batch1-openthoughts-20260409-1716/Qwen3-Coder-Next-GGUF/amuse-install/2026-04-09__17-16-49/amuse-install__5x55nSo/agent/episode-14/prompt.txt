@@ -1,0 +1,41 @@
+Current Terminal Screen:
+checking whether the C compiler works... yes
+checking for C compiler default output file name... a.out
+checking for suffix of executables...
+checking whether we are cross compiling... no
+checking for suffix of object files... o
+checking whether the compiler supports GNU C... yes
+checking whether gcc accepts -g... yes
+checking for gcc option to enable C11 features... none needed
+checking for g++... g++
+checking whether the compiler supports GNU C++... yes
+checking whether g++ accepts -g... yes
+checking for g++ option to enable C++11 features... none needed
+checking target system type... x86_64-pc-linux-gnu
+checking for -ar... no
+checking for ar... ar
+checking for ranlib... ranlib
+checking for mpicc... mpicc
+checking checking MPI C flags... flags found
+checking for MPI_Init... yes
+checking for mpi.h... yes
+checking for mpicxx... mpicxx
+checking checking MPI C++ flags... flags found
+checking for mpi.h... yes
+configure: creating ./config.status
+config.status: creating config.mk
+amusifier --type=c interface.py SeiInterface -o sei_worker.cc
+amusifier --type=h interface.py SeiInterface -o sei_worker.h
+mpicxx -c -o sei_worker.o -I/app/amuse/.venv/include  sei_worker.cc
+mpicxx -c -o interface.o -I/app/amuse/.venv/include  -I./src/ interface.cc
+make -C src -j 32 CC='mpicc' all
+make[1]: Entering directory '/app/amuse/src/amuse_sei/src'
+mpicc  sei.c -c -o sei.o -lm
+rm -f libsei.a
+ar -r libsei.a sei.o
+ar: creating libsei.a
+ranlib libsei.a
+make[1]: Leaving directory '/app/amuse/src/amuse_sei/src'
+mpicxx -o sei_worker -L/app/amuse/.venv/lib -Wl,-rpath,/app/amuse/.venv/lib sei_worker.o interface.o src/libsei.a -lm
+support/shared/uninstall.sh amuse-sei
+

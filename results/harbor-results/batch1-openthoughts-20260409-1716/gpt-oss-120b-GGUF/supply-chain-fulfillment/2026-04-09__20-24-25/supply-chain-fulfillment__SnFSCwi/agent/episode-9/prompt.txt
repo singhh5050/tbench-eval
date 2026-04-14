@@ -1,0 +1,139 @@
+New Terminal Output:
+
+root@7019c07b36ed:/app# cat > /app/task_file/scripts/assign_shipments_balanced.py << 'PY'
+> import json, sys
+> from pathlib import Path
+>
+> input_dir = Path('/app/task_file/input_data')
+> output_file = Path('/app/task_file/output_data/assignments.jsonl')
+>
+> def load_jsonl(p):
+>     with open(p) as f:
+>         return [json.loads(line) for line in f if line.strip()]
+>
+> shipments = load_jsonl(input_dir / 'shipments.jsonl')
+> warehouses = {w['warehouse_id']: w for w in load_jsonl(input_dir / 'warehouses.jsonl')}
+> routes = {}
+> for r in load_jsonl(input_dir / 'routes.jsonl'):
+>     routes[(r['warehouse_id'], r['destination_id'])] = {
+>         'route_id': r['route_id'],
+>         'distance_km': r['distance_km'],
+>         'base_cost_per_km': r['base_cost_per_km'],
+>         'transit_time_hours': r['transit_time_hours'],
+>         'capacity_volume': r['capacity_volume'],
+>         'capacity_weight': r['capacity_weight'],
+>         'allows_hazmat': r['allows_hazmat'],
+>         'allows_refrigerated': r['allows_refrigerated'],
+>         'allows_oversized': r['allows_oversized'],
+>         'used_volume': 0,
+>         'used_weight': 0,
+>     }
+>
+> destinations = {d['destination_id']: d for d in load_jsonl(input_dir / 'destinations.jsonl')}
+>
+> # Initialize warehouse usage counters
+> for w in warehouses.values():
+>     w['used_volume'] = 0
+>     w['used_weight'] = 0
+>
+> assignments = []
+>
+> def capabilities_ok(shipment, wh, rt):
+>     if shipment['requires_hazmat'] and not (wh['handles_hazmat'] and rt['allows_hazmat']):
+>         return False
+>     if shipment['requires_refrigerated'] and not (wh['handles_refrigerated'] and rt['allows_refrigerated']):
+>         return False
+>     if shipment['requires_oversized'] and not (wh['handles_oversized'] and rt['allows_oversized']):
+>         return False
+>     return True
+>
+> # Process shipments in order of ID (could also prioritize by deadline or priority)
+> for shipment in sorted(shipments, key=lambda s: s['shipment_id']):
+>     dest_id = shipment['destination_id']
+>     dest = destinations[dest_id]
+>     feasible = []
+>     for wid, wh in warehouses.items():
+>         route_key = (wid, dest_id)
+>         if route_key not in routes:
+>             continue
+>         rt = routes[route_key]
+>         # Capability check
+>         if not capabilities_ok(shipment, wh, rt):
+>             continue
+>         # Timing check
+>         arrival = wh['availability_start'] + rt['transit_time_hours']
+>         if arrival > shipment['deadline_hours']:
+>             continue
+>         if arrival < dest['delivery_window_start'] or arrival > dest['delivery_window_end']:
+>             continue
+>         # Capacity checks
+>         if wh['used_volume'] + shipment['volume'] > wh['volume_capacity']:
+>             continue
+>         if wh['used_weight'] + shipment['weight'] > wh['weight_capacity']:
+>             continue
+>         if rt['used_volume'] + shipment['volume'] > rt['capacity_volume']:
+>             continue
+>         if rt['used_weight'] + shipment['weight'] > rt['capacity_weight']:
+>             continue
+>         # Compute current utilization ratio for balancing (volume based)
+>         utilization = wh['used_volume'] / wh['volume_capacity'] if wh['volume_capacity'] > 0 else 0
+>         feasible.append((utilization, wid, wh, rt))
+>     if feasible:
+>         # Choose warehouse with lowest utilization
+>         feasible.sort(key=lambda x: x[0])
+>         _, chosen_wid, chosen_wh, chosen_rt = feasible[0]
+>     else:
+>         # Fallback to hub (warehouse 3) – assume route exists
+>         chosen_wid = 3
+>         if (chosen_wid, dest_id) not in routes:
+>             sys.stderr.write(f"No route for fallback hub for shipment {shipment['shipment_id']}\n")
+>             sys.exit(1)
+>         chosen_wh = warehouses[chosen_wid]
+>         chosen_rt = routes[(chosen_wid, dest_id)]
+>         # No further checks; we trust capacities are sufficient for fallback
+>     # Update usage
+>     chosen_wh['used_volume'] += shipment['volume']
+>     chosen_wh['used_weight'] += shipment['weight']
+>     chosen_rt['used_volume'] += shipment['volume']
+>     chosen_rt['used_weight'] += shipment['weight']
+>     assignments.append({
+>         'shipment_id': shipment['shipment_id'],
+>         'warehouse_id': chosen_wid,
+>         'destination_id': dest_id
+>     })
+>
+> # Sort assignments by shipment_id before writing
+> assignments.sort(key=lambda a: a['shipment_id'])
+> output_file.parent.mkdir(parents=True, exist_ok=True)
+> with open(output_file, 'w') as f:
+>     for a in assignments:
+>         f.write(json.dumps(a) + '\n')
+>
+> print(f"Assignments written: {len(assignments)}")
+> PY
+root@7019c07b36ed:/app# python3 /app/task_file/scripts/assign_shipments_balanced.py
+Assignments written: 1000
+root@7019c07b36ed:/app# ls -l /app/task_file/output_data
+total 64
+-rw-r--r-- 1 root root 62416 Apr 10 02:28 assignments.jsonl
+root@7019c07b36ed:/app# head -n 5 /app/task_file/output_data/assignments.jsonl
+{"shipment_id": 1, "warehouse_id": 13, "destination_id": 46}
+{"shipment_id": 2, "warehouse_id": 14, "destination_id": 56}
+{"shipment_id": 3, "warehouse_id": 17, "destination_id": 58}
+{"shipment_id": 4, "warehouse_id": 18, "destination_id": 57}
+{"shipment_id": 5, "warehouse_id": 6, "destination_id": 50}
+root@7019c07b36ed:/app# python3 /app/task_file/scripts/model.py /app/task_file/input_data /app/task_file/output_data/assignments.jsonl
+{
+  "is_valid": true,
+  "cost_score": 0.6546,
+  "on_time_delivery_score": 1.0,
+  "warehouse_balance_score": 1.0,
+  "route_clustering_score": 0.4812,
+  "hub_utilization_score": 1.0,
+  "network_fragmentation_score": 0.0,
+  "multi_hop_penalty_score": 1.0,
+  "priority_fairness_score": 0.3333,
+  "destination_consolidation_score": 0.5,
+  "total_score": 0.6276
+}
+root@7019c07b36ed:/app#

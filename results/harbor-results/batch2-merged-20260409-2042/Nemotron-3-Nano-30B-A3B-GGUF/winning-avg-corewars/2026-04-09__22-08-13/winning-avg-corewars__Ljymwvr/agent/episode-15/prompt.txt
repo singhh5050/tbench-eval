@@ -1,0 +1,54 @@
+New Terminal Output:
+
+root@77bd7acbed24:/app# rm my_warrior.red
+root@77bd7acbed24:/app# cat > my_warrior.red << 'EOF'
+> ;redcode-94
+> ;name MyWarrior
+> ;author AI
+> ;assert CORESIZE == 8000
+>
+> start   jmp init                ; Entry point
+>
+> init    spl 1                   ; Split for replication
+>     mov copy, *ptr            ; Copy code
+>     add #59, ptr              ; Coprime stepping for full coverage
+>     mov copy, @ptr            ; Continue replication
+>     jmp loop                  ; Loop back for more copying
+>
+> copy    spl 0, 0              ; Copy instruction
+> ptr     dat 1, 1            ; Data pointer
+>
+> loop    djn copy, 2           ; Continue replication
+>       spl 0                 ; Prevent termination
+>       djn loop, 7           ; Loop control
+>
+> ; Bombing sequence to disrupt opponents
+> bomb_equ  equ 277             ; Bombing frequency (coprime with 8000)
+> bomb_start equ 1700           ; Start bombing position
+>
+> bomb_loop spl bomb_target, @bomb_start
+>       add #bomb_equ, bomb_start
+>       jmp bomb_loop
+>
+> bomb_target dat bomb_target, 0
+> bomb_equ    dat #bomb_equ, #bomb_equ
+>
+> ; Defensive protection
+> protect_equ equ 3331            ; Protection zone
+> org protect_equ                 ; Start protection
+>     spl 0, 0                  ; Defensive splitting
+>     djn protect, 11           ; Continue protection
+>
+> protect spl 0, 0                ; Protection code
+>     dat 0, 0                  ; Empty data
+>
+> end start
+> EOF
+root@77bd7acbed24:/app# pmars -b -r 100 -f my_warrior.red warriors/stone.red
+Error in line 22: 'bomb_equ  equ 277             '
+        Unrecognized or improper placement of token: '277'
+
+Source: filename 'my_warrior.red'
+Number of errors: 1
+
+root@77bd7acbed24:/app#

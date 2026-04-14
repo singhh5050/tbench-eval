@@ -1,0 +1,103 @@
+New Terminal Output:
+
+root@3e9302d722d8:/opt/myapp# ls -l /dev/log
+ls: cannot access '/dev/log': No such file or directory
+root@3e9302d722d8:/opt/myapp# cat /etc/rsyslog.conf
+# /etc/rsyslog.conf configuration file for rsyslog
+#
+# For more information install rsyslog-doc and see
+# /usr/share/doc/rsyslog-doc/html/configuration/index.html
+
+
+#################
+#### MODULES ####
+#################
+
+#module(load="imuxsock") # provides support for local system logging
+#module(load="imklog")   # provides kernel logging support
+#module(load="immark")  # provides --MARK-- message capability
+
+# provides UDP syslog reception
+#module(load="imudp")
+#input(type="imudp" port="514")
+
+# provides TCP syslog reception
+#module(load="imtcp")
+#input(type="imtcp" port="514")
+
+
+###########################
+#### GLOBAL DIRECTIVES ####
+###########################
+
+#
+# Set the default permissions for all log files.
+#
+$FileOwner root
+$FileGroup adm
+$FileCreateMode 0640
+$DirCreateMode 0755
+$Umask 0022
+
+#
+# Where to place spool and state files
+#
+$WorkDirectory /var/spool/rsyslog
+
+#
+# Include all config files in /etc/rsyslog.d/
+#
+$IncludeConfig /etc/rsyslog.d/*.conf
+
+
+###############
+#### RULES ####
+###############
+
+#
+# Log anything besides private authentication messages to a single log file
+#
+*.*;auth,authpriv.none          -/var/log/syslog
+
+#
+# Log commonly used facilities to their own log file
+#
+auth,authpriv.*                 /var/log/auth.log
+cron.*                          -/var/log/cron.log
+kern.*                          -/var/log/kern.log
+mail.*                          -/var/log/mail.log
+user.*                          -/var/log/user.log
+
+#
+# Emergencies are sent to everybody logged in.
+#
+*.emerg                         :omusrmsg:*
+root@3e9302d722d8:/opt/myapp# cat > /etc/rsyslog.conf <<'EOF'
+> module(load="imuxsock")
+> module(load="imklog")
+> $IncludeConfig /etc/rsyslog.d/*.conf
+> EOF
+root@3e9302d722d8:/opt/myapp# pkill rsyslogd || true
+bash: pkill: command not found
+root@3e9302d722d8:/opt/myapp# rsyslogd -i /tmp/rsyslogd.pid
+rsyslogd: pidfile '/tmp/rsyslogd.pid' and pid 1739 already exist.
+If you want to run multiple instances of rsyslog, you need to specify
+different pid files for them (-i option).
+rsyslogd: run failed with error -3000 (see rsyslog.h or try https://www.rsyslog.com/e/3000 to learn what that number means)
+root@3e9302d722d8:/opt/myapp# sleep 1
+logger -t myapp '{"timestamp":"$(date -u +%Y-%m-%dT%H:%M:%SZ)","level":"INFO","message":"test","service":"myapp"}'
+root@3e9302d722d8:/opt/myapp# logger -t myapp '{"timestamp":"$(date -u +%Y-%m-%dT%H:%M:%SZ)","level":"INFO","message":"test","service":"myapp"}'
+root@3e9302d722d8:/opt/myapp# sleep 1
+cat /var/log/app_events.log | head -n 5
+root@3e9302d722d8:/opt/myapp# cat /var/log/app_events.log | head -n 5
+root@3e9302d722d8:/opt/myapp# cat /var/log/app_errors.log | head -n 5
+root@3e9302d722d8:/opt/myapp# /usr/local/bin/check_service_health.sh
+{
+  "service": "myapp",
+  "time_window": "5 minutes",
+  "restarts": 0,
+  "errors": 0,
+  "restart_loop_detected": false,
+  "timestamp": "2026-04-10T02:37:14Z"
+}
+root@3e9302d722d8:/opt/myapp#

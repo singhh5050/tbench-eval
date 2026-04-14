@@ -1,0 +1,76 @@
+New Terminal Output:
+
+root@874732d32470:/app# cat > /app/setup_ca.sh <<'EOS'
+> #!/usr/bin/env bash
+> set -euo pipefail
+>
+> # Directories
+> CA_DIR="/app/ca"
+>
+> # Clean any existing CA files
+> rm -rf "$CA_DIR"/*
+>
+> # Root CA
+> ROOT_KEY="$CA_DIR/root-ca-key.pem"
+> ROOT_CERT="$CA_DIR/root-ca.pem"
+> openssl req -x509 -newkey rsa:4096 -sha256 -days 3650 -nodes \
+>   -subj "/CN=Software Signing Root CA/O=SecureBuild/C=US" \
+>   -addext "basicConstraints=critical,CA:TRUE" \
+>   -addext "keyUsage=critical,keyCertSign,cRLSign" \
+>   -keyout "$ROOT_KEY" -out "$ROOT_CERT"
+>
+> # Intermediate CA key and CSR
+> INT_KEY="$CA_DIR/intermediate-ca-key.pem"
+> INT_CSR="$CA_DIR/intermediate-ca.csr"
+> openssl req -new -newkey rsa:4096 -sha256 -nodes \
+>   -subj "/CN=Build Pipeline Intermediate CA/O=SecureBuild/C=US" \
+>   -keyout "$INT_KEY" -out "$INT_CSR"
+>
+> # Create a temporary OpenSSL config for CA extensions
+> EXTFILE=$(mktemp)
+> cat > "$EXTFILE" <<'EOT'
+> [ v3_ca ]
+> basicConstraints=critical,CA:TRUE,pathlen:0
+> keyUsage=critical,keyCertSign,digitalSignature
+> EOT
+>
+> # Sign Intermediate CA with Root CA using the extensions file
+> INT_CERT="$CA_DIR/intermediate-ca.pem"
+> openssl x509 -req -in "$INT_CSR" -CA "$ROOT_CERT" -CAkey "$ROOT_KEY" -CAcreateserial \
+>   -days 1825 -sha256 -extfile "$EXTFILE" -extensions v3_ca -out "$INT_CERT"
+>
+> # Clean up temporary files
+> rm -f "$INT_CSR" "$CA_DIR/root-ca.srl" "$EXTFILE"
+> EOS
+root@874732d32470:/app# chmod +x /app/setup_ca.sh
+root@874732d32470:/app# /app/setup_ca.sh
+.+.....+....+..............+................+...+........+...+.+.....................+..+.+...........+.+..+.......+...+.....+...+...+++++++++++++++++++++++++++
+++++++++++++++++++*.+....+..+...+....+............+.....+...+..........+...+..+...+..........+...+.....+.+.........+......++++++++++++++++++++++++++++++++++++++
++++++++*...+..............+.......+......+.....+...+...............+.+...........+...+.....................+......+............+.+......+.......................
+...+....+...+..+...+......+.+........................+.................+..........+..+++++
+.....+..+...............+.+..+.+..+....+........+................+..+....+...+......+......+......+..+......+.+...+..+.+.....+.......+...+.....+...+......+.....
+.+++++++++++++++++++++++++++++++++++++++++++++*........+........+..........+++++++++++++++++++++++++++++++++++++++++++++*..+..+....+.....+.......+.....+........
+.................+..+...+...+.........+............+.+..+...+.........+.+.........+......+++++
+-----
+......................+....+.....+...+++++++++++++++++++++++++++++++++++++++++++++*..+...+...+.........+...+...+......+..............+++++++++++++++++++++++++++
+++++++++++++++++++*......+...+.+.........+..............+...+...............+...+.........+.............+......................................+..........+.....
+......+..........+.....+...+...+............+.+.........+...+...+............+.........+...+........+...+.+......+.....+...............+....+...+...............
++.....+..........+..+++++
+..+...+...+..+.......+.....+.+++++++++++++++++++++++++++++++++++++++++++++*...+.....+................+++++++++++++++++++++++++++++++++++++++++++++*...+....+....
+........+..............+....+.....+....+...+.....+....+...............+...............+.....+.........+............+..........+.................+.+.....+.......
+.....+.........+...+.+.................+++++
+-----
+Certificate request self-signature ok
+subject=CN=Build Pipeline Intermediate CA, O=SecureBuild, C=US
+root@874732d32470:/app# ls -l /app/artifacts
+total 24
+-rw-r--r-- 1 root root 10240 Apr  9 23:44 app.bin
+-rwxr-xr-x 1 root root    34 Apr  9 23:44 release.sh
+-rw-r--r-- 1 root root   195 Apr  9 23:44 release.tar.gz
+-rw-r--r-- 1 root root   328 Apr  9 23:44 sbom.json
+root@874732d32470:/app# /app/sign_artifact.sh /app/artifacts/app.bin build-001
+x509: Multiple digest or unknown options: -sha256 and -addext
+x509: Use -help for summary.
+root@874732d32470:/app# /app/verify_artifact.sh /app/artifacts/app.bin
+VERIFICATION_FAILED
+root@874732d32470:/app#

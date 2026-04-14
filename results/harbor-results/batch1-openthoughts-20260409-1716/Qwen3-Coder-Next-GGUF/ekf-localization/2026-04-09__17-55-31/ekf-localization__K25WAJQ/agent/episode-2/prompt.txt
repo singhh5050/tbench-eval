@@ -1,0 +1,166 @@
+Previous response had warnings:
+WARNINGS: - Extra text detected before JSON object
+- Extra text detected after JSON object
+
+New Terminal Output:
+
+root@aa803a54905b:/app# cat > /app/simulate.py << 'EOF'
+> import numpy as np
+> import csv
+>
+> # Physical parameters
+> m = 2000.0  # kg (lumped mass at each floor)
+> k = 400000.0  # N/m (shear stiffness between floors)
+> zeta = 0.02  # 2% damping ratio
+>
+> # Number of stories (DOFs)
+> n = 3
+>
+> # Mass matrix (diagonal)
+> M = np.diag([m, m, m])
+>
+> # Stiffness matrix for 3-story shear building
+> # K = [[2k, -k, 0], [-k, 2k, -k], [0, -k, k]]
+> K = np.array([
+>     [2*k, -k, 0],
+>     [-k, 2*k, -k],
+>     [0, -k, k]
+> ])
+>
+> # Read ground motion data
+> time_data = []
+> accel_g_data = []  # in G-force
+>
+> with open('/app/data/ground_motion.csv', 'r') as f:
+>     reader = csv.DictReader(f)
+>     for row in reader:
+>         time_data.append(float(row['time']))
+>         accel_g_data.append(float(row['accel_g']))
+>
+> time_data = np.array(time_data)
+> accel_g_data = np.array(accel_g_data)
+> dt = time_data[1] - time_data[0]  # Time step
+>
+> # Convert ground acceleration from G to m/s^2
+> g = 9.81  # m/s^2
+> accel_data = accel_g_data * g  # in m/s^2
+>
+> # Rayleigh damping: C = alpha*M + beta*K
+> # Need to find alpha and beta such that damping ratio = 2% for mode 1 and mode 3
+> # Solve: 1/2 * (alpha/omega_i + beta*omega_i) = zeta for i=1,3
+>
+> # Eigenvalue problem: (K - omega^2*M)*phi = 0
+> # Solve generalized eigenvalue problem K*phi = omega^2*M*phi
+> eigenvalues, eigenvectors = np.linalg.eig(np.linalg.inv(M) @ K)
+>
+> # Get natural frequencies (square root of eigenvalues)
+> natural_freqs_sq = eigenvalues
+> natural_freqs = np.sqrt(natural_freqs_sq)
+>
+> # Sort by frequency
+> idx = np.argsort(natural_freqs)
+> natural_freqs = natural_freqs[idx]
+>
+> omega1 = natural_freqs[0]  # 1st mode frequency
+> omega3 = natural_freqs[2]  # 3rd mode frequency
+>
+> print(f"Natural frequencies (rad/s): {natural_freqs}")
+> print(f"1st mode omega: {omega1}")
+> print(f"3rd mode omega: {omega3}")
+>
+> # Solve for alpha and beta
+> # System: [1/omega1, omega1] [alpha] = [2*zeta]
+> #         [1/omega3, omega3] [beta]  = [2*zeta]
+> A = np.array([[1/omega1, omega1], [1/omega3, omega3]])
+> b = np.array([2*zeta, 2*zeta])
+> alpha, beta = np.linalg.solve(A, b)
+>
+> print(f"Rayleigh damping coefficients: alpha={alpha}, beta={beta}")
+>
+> # Damping matrix
+> C = alpha * M + beta * K
+>
+> print(f"Mass matrix:\n{M}")
+> print(f"Stiffness matrix:\n{K}")
+> print(f"Damping matrix:\n{C}")
+>
+> # Newmark-Beta parameters (Average Acceleration Method)
+> gamma = 0.5
+> beta_newmark = 0.25
+>
+> # Integration constants
+> a0 = 1.0 / (beta_newmark * dt**2)
+> a1 = gamma / (beta_newmark * dt)
+> a2 = 1.0 / (beta_newmark * dt)
+> a3 = 1.0 / (2*beta_newmark) - 1
+> a4 = gamma / beta_newmark - 1
+> a5 = dt * (gamma / (2*beta_newmark) - 1)
+>
+> print(f"\nNewmark constants: a0={a0}, a1={a1}, a2={a2}, a3={a3}, a4={a4}, a5={a5}")
+>
+> # Effective stiffness matrix
+> K_eff = K + a0 * M + a1 * C
+>
+> # Influence vector
+> iota = np.array([1.0, 1.0, 1.0])
+>
+> # Initialize response arrays
+> n_steps = len(time_data)
+> u = np.zeros((n_steps, 3))  # Displacement
+> v = np.zeros((n_steps, 3))  # Velocity
+> a = np.zeros((n_steps, 3))  # Acceleration
+>
+> # Initial conditions
+> u[0] = 0.0
+> v[0] = 0.0
+> # Initial acceleration: M*a0 = -M*iota*accel_data[0] - C*v0 - K*u0
+> a[0] = -iota * accel_data[0]
+>
+> # Time stepping
+> for i in range(n_steps - 1):
+>     # Effective load at t+dt
+>     # P_eff = -M*iota*accel(t+dt) + M*(a0*u_t + a2*v_t + a3*a_t) + C*(a1*u_t + a4*v_t + a5*a_t)
+>     P_eff = -M @ (iota * accel_data[i+1]) + \
+>             M @ (a0 * u[i] + a2 * v[i] + a3 * a[i]) + \
+>             C @ (a1 * u[i] + a4 * v[i] + a5 * a[i])
+>
+>     # Solve for displacement
+>     u[i+1] = np.linalg.solve(K_eff, P_eff)
+>
+>     # Update acceleration and velocity
+>     a[i+1] = a0 * (u[i+1] - u[i]) - a2 * v[i] - a3 * a[i]
+>     v[i+1] = v[i] + dt * ((1 - gamma) * a[i] + gamma * a[i+1])
+>
+> # Write output
+> with open('/app/output/response.csv', 'w', newline='') as f:
+>     writer = csv.writer(f)
+>     writer.writerow(['time', 'u1', 'u2', 'u3'])
+>     for i in range(n_steps):
+>         writer.writerow([f'{time_data[i]:.3f}', f'{u[i,0]:.6f}', f'{u[i,1]:.6f}', f'{u[i,2]:.6f}'])
+>
+> print(f"\nSimulation complete. Output written to /app/output/response.csv")
+> print(f"Max displacements: u1={np.max(np.abs(u[:,0])):.6f}, u2={np.max(np.abs(u[:,1])):.6f}, u3={np.max(np.abs(u[:,2])):.6f}")
+> EOF
+root@aa803a54905b:/app# python3 /app/simulate.py
+Natural frequencies (rad/s): [ 6.29384245 17.63495468 25.48324785]
+1st mode omega: 6.293842454258952
+3rd mode omega: 25.48324784527069
+Rayleigh damping coefficients: alpha=0.2018907906912316, beta=0.0012587684908517906
+Mass matrix:
+[[2000.    0.    0.]
+ [   0. 2000.    0.]
+ [   0.    0. 2000.]]
+Stiffness matrix:
+[[ 800000. -400000.       0.]
+ [-400000.  800000. -400000.]
+ [      0. -400000.  400000.]]
+Damping matrix:
+[[1410.79637406 -503.50739634    0.        ]
+ [-503.50739634 1410.79637406 -503.50739634]
+ [   0.         -503.50739634  907.28897772]]
+
+Newmark constants: a0=10000.0, a1=100.0, a2=200.0, a3=1.0, a4=1.0, a5=0.0
+
+Simulation complete. Output written to /app/output/response.csv
+Max displacements: u1=0.074816, u2=0.133214, u3=0.171159
+root@aa803a54905b:/app#

@@ -1,0 +1,38 @@
+New Terminal Output:
+
+root@0683b4795d80:/app/src# python -c "
+> from hydra.core.config_loader import ConfigLoader
+> from hydra.core.global_hydra import GlobalHydra
+> from omegaconf import OmegaConf
+>
+> # Get the default config
+> GlobalHydra.instance().clear()
+> config_loader = ConfigLoader(
+>     config_search_path={
+>         'path': '/app/src/config',
+>         'provider': 'app',
+>     },
+> )
+>
+> # Try to load the slurm config
+> try:
+>     cfg = config_loader.load_configuration(
+>         config_name='slurm',
+>         overrides=[],
+>         run_mode=None,
+>     )
+>     print('Config:', OmegaConf.to_yaml(cfg))
+> except Exception as e:
+>     print('Error:', e)
+>     import traceback
+>     traceback.print_exc()
+> "
+Traceback (most recent call last):
+  File "<string>", line 8, in <module>
+    config_loader = ConfigLoader(
+        config_search_path={
+    ...<2 lines>...
+        },
+    )
+TypeError: ConfigLoader() takes no arguments
+root@0683b4795d80:/app/src#

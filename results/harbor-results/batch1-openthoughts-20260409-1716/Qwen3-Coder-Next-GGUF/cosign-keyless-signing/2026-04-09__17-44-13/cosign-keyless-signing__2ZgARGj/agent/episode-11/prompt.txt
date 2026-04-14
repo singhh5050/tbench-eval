@@ -1,0 +1,14 @@
+New Terminal Output:
+
+root@2928fe68ba2e:/app# openssl verify -CAfile /app/ca/root-ca.pem /app/ca/intermediate-ca.pem
+/app/ca/intermediate-ca.pem: OK
+root@2928fe68ba2e:/app# # Extract the signing cert from the chain and verify it
+root@2928fe68ba2e:/app# TMP_DIR=$(mktemp -d)
+root@2928fe68ba2e:/app# openssl crl2pkcs7 -nocrl -certfile /app/signed/release.tar.gz.chain.pem | openssl pkcs7 -print_certs -outform PEM -out $TMP_DIR/signing_
+cert.pem 2>/dev/null
+root@2928fe68ba2e:/app# echo "Extracted cert:"
+Extracted cert:
+root@2928fe68ba2e:/app# openssl x509 -in $TMP_DIR/signing_cert.pem -noout -subject -issuer
+subject=CN=build-build-001, O=SecureBuild, C=US
+issuer=CN=Build Pipeline Intermediate CA, O=SecureBuild, C=US
+root@2928fe68ba2e:/app#

@@ -1,0 +1,589 @@
+[?2004hroot@8d75f47cee9b:/app# asciinema rec --stdin /logs/agent/recording.cast
+[?2004l[0;32masciinema: recording asciicast to /logs/agent/recording.cast[0m
+[0;32masciinema: press <ctrl-d> or type "exit" when you're done[0m
+[?2004hroot@8d75f47cee9b:/app# clear
+[?2004l[H[J[3J[?2004hroot@8d75f47cee9b:/app# cat > /app/merkle_cli.py << 'EOF'
+[?2004l[?2004h> #!/usr/bin/env python3
+[?2004l[?2004h> """Merkle Tree CLI Tool using SHA-512"""
+[?2004l[?2004h> 
+[?2004l[?2004h> import argparse
+[?2004l[?2004h> import hashlib
+[?2004l[?2004h> import json
+[?2004l[?2004h> import os
+[?2004l[?2004h> import sys
+[?2004l[?2004h> from pathlib import Path
+[?2004l[?2004h> 
+[?2004l[?2004h> 
+[?2004l[?2004h> def sha512_hash(data):
+[?2004l[?2004h>     """Compute SHA-512 hash of bytes, return 128-char hex string."""
+[?2004l[?2004h>     if isinstance(data, str):
+[?2004l[?2004h>         data = data.encode('utf-8')
+[?2004l[?2004h>     return hashlib.sha512(data).hexdigest()
+[?2004l[?2004h> 
+[?2004l[?2004h> 
+[?2004l[?2004h> def sha512_concatenate(left, right):
+[?2004l[?2004h>     """Concatenate two hash strings and return their SHA-512 hash."""
+[?2004l[?2004h>     combined = left + right
+[?2004l[?2004h>     return sha512_hash(combined.encode('utf-8'))
+[?2004l[?2004h> 
+[?2004l[?2004h> 
+[?2004l[?2004h> class MerkleTree:
+[?2004l[?2004h>     """Merkle Tree implementation with SHA-512."""
+[?2004l[?2004h>     
+[?2004l[?2004h>     def __init__(self):
+[?2004l[?2004h>         self.leaves = []  # List of (file_path, hash) tuples
+[?2004l[?2004h>         self.proofs = {}  # file_path -> list of [side, hash] pairs
+[?2004l[?2004h>         self.file_hashes = {}  # file_path -> leaf hash
+[?2004l[?2004h>         self.root_hash = None
+[?2004l[?2004h>     
+[?2004l[?2004h>     def build_from_directory(self, directory):
+[?2004l[?2004h>         """Scan directory and build Merkle tree."""
+[?2004l[?2004h>         self.leaves = []
+[?2004l[?2004h>         self.proofs = {}
+[?2004l[?2004h>         self.file_hashes = {}
+[?2004l[?2004h>         
+[?2004l[?2004h>         dir_path = Path(directory)
+[?2004l[?2004h>         abs_dir = dir_path.resolve()
+[?2004l[?2004h>         
+[?2004l[?2004h>         # Collect all regular files
+[?2004l[?2004h>         files = []
+[?2004l[?2004h>         for item in sorted(dir_path.rglob('*')):
+[?2004l[?2004h>             if item.is_file() and not item.is_symlink():
+[?2004l[?2004h>                 rel_path = str(item.relative_to(dir_path))
+[?2004l[?2004h>                 files.append((rel_path, item))
+[?2004l[?2004h>         
+[?2004l[?2004h>         # Sort for deterministic ordering
+[?2004l[?2004h>         files.sort(key=lambda x: x[0])
+[?2004l[?2004h>         
+[?2004l[?2004h>         # Hash each file
+[?2004l[?2004h>         for rel_path, file_path in files:
+[?2004l[?2004h>             with open(file_path, 'rb') as f:
+[?2004l[?2004h>                 file_hash = sha512_hash(f.read())
+[?2004l[?2004h>             self.leaves.append((rel_path, file_hash))
+[?2004l[?2004h>             self.file_hashes[rel_path] = file_hash
+[?2004l[?2004h>         
+[?2004l[?2004h>         # Build the tree
+[?2004l[?2004h>         self._build_tree()
+[?2004l[?2004h>     
+[?2004l[?2004h>     def _build_tree(self):
+[?2004l[?2004h>         """Build the Merkle tree and generate proofs."""
+[?2004l[?2004h>         if not self.leaves:
+[?2004l[?2004h>             self.root_hash = sha512_hash(b'')
+[?2004l[?2004h>             return
+[?2004l[?2004h>         
+[?2004l[?2004h>         # Get just the hashes in order
+[?2004l[?2004h>         hashes = [h for _, h in self.leaves]
+[?2004l[?2004h>         
+[?2004l[?2004h>         # Generate proofs for each leaf
+[?2004l[?2004h>         for i, (file_path, _) in enumerate(self.leaves):
+[?2004l[?2004h>             self.proofs[file_path] = self._generate_proof(hashes, i)
+[?2004l[?2004h>         
+[?2004l[?2004h>         # Build to root
+[?2004l[?2004h>         while len(hashes) > 1:
+[?2004l[?2004h>             next_level = []
+[?2004l[?2004h>             for j in range(0, len(hashes), 2):
+[?2004lof(args):
+    """Generate Merkle proof for a file."""
+    data = load_merkle_data()
+    if data is None:
+        print("Error: No merkle_data.json found. Run scan first.", file=sys.stderr)
+        return 1
+    
+    file_path = args.file_path
+    
+    if file_path not in data['file_hashes']:
+        print(f"Error: File '{file_path}' not found in Merkle tree", file=sys.stderr)
+   [?2004h>                 if j + 1 < len(hashes):
+[?2004l[?2004h>                     combined = sha512_concatenate(hashes[j], hashes[j + 1])
+[?2004l[?2004h>                 else:
+[?2004l[?2004h>                     # Duplicate last node if odd number
+[?2004l[?2004h>                     combined = sha512_concatenate(hashes[j], hashes[j])
+[?2004l[?2004h>                 next_level.append(combined)
+[?2004l[?2004h>             hashes = next_level
+[?2004l[?2004h>         
+[?2004l[?2004h>         self.root_hash = hashes[0]
+[?2004l[?2004h>     
+[?2004l[?2004h>     def _generate_proof(self, hashes, leaf_index):
+[?2004l[?2004h>         """Generate Merkle proof for leaf at given index."""
+[?2004l[?2004h>         proof = []
+[?2004l[?2004h>         current_level = hashes[:]
+[?2004l[?2004h>         
+[?2004l[?2004h>         while len(current_level) > 1:
+[?2004l[?2004h>             # Determine sibling
+[?2004l[?2004h>             if leaf_index % 2 == 0:
+[?2004l[?2004h>                 # We're on the left, sibling is on right
+[?2004l[?2004h>                 sibling_index = leaf_index + 1
+[?2004l[?2004h>                 side = "right"
+[?2004l[?2004h>             else:
+[?2004l[?2004h>                 # We're on the right, sibling is on left
+[?2004l[?2004h>                 sibling_index = leaf_index - 1
+[?2004l[?2004h>                 side = "left"
+[?2004l[?2004h>             
+[?2004l[?2004h>             if sibling_index < len(current_level):
+[?2004l[?2004h>                 proof.append([side, current_level[sibling_index]])
+[?2004l[?2004h>             else:
+[?2004l[?2004h>                 # Sibling doesn't exist, use our own hash (duplication case)
+[?2004l[?2004h>                 proof.append([side, current_level[leaf_index]])
+[?2004l[?2004h>             
+[?2004l[?2004h>             # Move to next level
+[?2004l[?2004h>             next_level = []
+[?2004l[?2004h>             for j in range(0, len(current_level), 2):
+[?2004l[?2004h>                 if j + 1 < len(current_level):
+[?2004l[?2004h>                     combined = sha512_concatenate(current_level[j], current_level[j + 1])
+[?2004l[?2004h>                 else:
+[?2004l[?2004h>                     combined = sha512_concatenate(current_level[j], current_level[j])
+[?2004l[?2004h>                 next_level.append(combined)
+[?2004l[?2004h>             
+[?2004l[?2004h>             current_level = next_level
+[?2004l[?2004h>             leaf_index = leaf_index // 2
+[?2004l[?2004h>         
+[?2004l[?2004h>         return proof
+[?2004l[?2004h>     
+[?2004l[?2004h>     def get_proof(self, file_path):
+[?2004l[?2004h>         """Get Merkle proof for a file."""
+[?2004l[?2004h>         return self.proofs.get(file_path)
+[?2004l[?2004h>     
+[?2004l[?2004h>     def to_dict(self, scanned_dir):
+[?2004l[?2004h>         """Convert to dictionary for JSON storage."""
+[?2004l[?2004h>         return {
+[?2004l[?2004h>             "root_hash": self.root_hash,
+[?2004l[?2004h>             "proofs": self.proofs,
+[?2004l    [?2004h>             "file_hashes": self.file_hashes,
+[?2004l[?2004h>             "scanned_directory": str(scanned_dir)
+[?2004l[?2004h>         }
+[?2004l[?2004h> 
+[?2004l[?2004h> 
+[?2004l[?2004h> def load_merkle_data():
+[?2004l[?2004h>     """Load merkle_data.json and validate hashes."""
+[?2004l[?2004h>     data_path = Path('/app/merkle_data.json')
+[?2004l[?2004h>     if not data_path.exists():
+[?2004l[?2004h>         return None
+[?2004l[?2004h>     
+[?2004l[?2004h>     with open(data_path, 'r') as f:
+[?2004l[?2004h>         data = json.load(f)
+[?2004l[?2004h>     
+[?2004l[?2004h>     # Validate hashes are 128-char hex strings
+[?2004l[?2004h>     def validate_hash(h):
+[?2004l[?2004h>         return isinstance(h, str) and len(h) == 128 and all(c in '0123456789abcdef' for c in h)
+[?2004l[?2004h>     
+[?2004l[?2004h>     if not validate_hash(data.get('root_hash', '')):
+[?2004l[?2004h>         return None
+[?2004l[?2004h>     
+[?2004l[?2004h>     for fp, h in data.get('file_hashes', {}).items():
+[?2004l[?2004h>         if not validate_hash(h):
+[?2004l[?2004h>             return None
+[?2004l[?2004h>     
+[?2004l[?2004h>     for fp, proof in data.get('proofs', {}).items():
+[?2004l[?2004h>         for entry in proof:
+[?2004l[?2004h>             if len(entry) != 2 or not validate_hash(entry[1]):
+[?2004l[?2004h>                 return None
+[?2004l[?2004h>     
+[?2004l[?2004h>     return data
+[?2004l[?2004h> 
+[?2004l[?2004h> 
+[?2004l[?2004h> def cmd_scan(args):
+[?2004l[?2004h>     """Scan directory and build Merkle tree."""
+[?2004l[?2004h>     directory = Path(args.directory)
+[?2004l[?2004h>     if not directory.exists():
+[?2004l[?2004h>         print(f"Error: Directory '{directory}' does not exist", file=sys.stderr)
+[?2004l[?2004h>         return 1
+[?2004l[?2004h>     
+[?2004l[?2004h>     if not directory.is_dir():
+[?2004l[?2004h>         print(f"Error: '{directory}' is not a directory", file=sys.stderr)
+[?2004l[?2004h>         return 1
+[?2004l[?2004h>     
+[?2004l[?2004h>     tree = MerkleTree()
+[?2004l[?2004h>     tree.build_from_directory(directory)
+[?2004l[?2004h>     
+[?2004l[?2004h>     data = tree.to_dict(directory.resolve())
+[?2004l[?2004h>     
+[?2004l[?2004h>     with open('/app/merkle_data.json', 'w') as f:
+[?2004l[?2004h>         json.dump(data, f, indent=2)
+[?2004l[?2004h>     
+[?2004l[?2004h>     print(f"Scanned {len(tree.leaves)} files")
+[?2004l[?2004h>     print(f"Root hash: {tree.root_hash}")
+[?2004l[?2004h>     return 0
+[?2004l[?2004h> 
+[?2004l[?2004h> 
+[?2004l[?2004h> def cmd_proof(args):
+[?2004l[?2004h>     """Generate Merkle proof for a file."""
+[?2004l[?2004h>     data = load_merkle_data()
+[?2004l[?2004h>     if data is None:
+[?2004l[?2004h>         print("Error: No merkle_data.json found. Run scan first.", file=sys.stderr)
+[?2004l[?2004h>         return 1
+[?2004l[?2004h>     
+[?2004l[?2004h>     file_path = args.file_path
+[?2004l[?2004h>     
+[?2004l[?2004h>     if file_path not in data['file_hashes']:
+[?2004l[?2004h>         print(f"Error: File '{file_path}' not found in Merkle tree", file=sys.stderr)
+[?2004l[?2004h>         return 1
+[?2004l[?2004h>     
+[?2004l[?2004h>     proof = data['proofs'].get(file_path, [])
+[?2004l[?2004h>     
+[?2004l[?2004h>     output = {
+[?2004l[?2004h>         "file_path": file_path,
+[?2004l[?2004h>         "proof": proof
+[?2004l[?2004h>     }
+[?2004l[?2004h>     
+[?2004l[?2004h>     print(json.dumps(output, indent=2))
+[?2004l[?2004h>     return 0
+[?2004l[?2004h> 
+[?2004l[?2004h> 
+[?2004l[?2004h> def cmd_verify(args):
+[?2004l[?2004h>     """Verify a file's integrity against stored proof."""
+[?2004l[?2004h>     data = load_merkle_data()
+[?2004l[?2004h>     if data is None:
+[?2004l[?2004h>         print("Error: No merkle_data.json found. Run scan first.", file=sys.stderr)
+[?2004l[?2004h>         return 1
+[?2004l[?2004h>     
+[?2004l[?2004h>     file_path = args.file_path
+[?2004l[?2004h>     proof_file = Path(args.proof_file)
+[?2004l[?2004h>     
+[?2004l[?2004h>     # Load proof from file
+[?2004l[?2004h>     if not proof_file.exists():
+[?2004l[?2004h>         print(f"Error: Proof file '{proof_file}' does not exist", file=sys.stderr)
+[?2004l[?2004h>         return 1
+[?2004l[?2004h>     
+[?2004l[?2004h>     with open(proof_file, 'r') as f:
+[?2004l[?2004h>         proof_data = json.load(f)
+[?2004l[?2004h>     
+[?2004l[?2004h>     # Get current hash of the file
+[?2004l[?2004h>     try:
+[?2004l[?2004h>         # Try relative path first (from scanned directory)
+[?2004l[?2004h>         scanned_dir = Path(data['scanned_directory'])
+[?2004l[?2004h>         abs_path = scanned_dir / file_path
+[?2004l[?2004h>         
+[?2004l[?2004h>         if not abs_path.exists():
+[?2004l[?2004h>             # Try as absolute path
+[?2004l[?2004h>             abs_path = Path(file_path)
+[?2004l[?2004h>             if not abs_path.exists():
+[?2004l[?2004h>                 print(f"Error: File not found: {file_path}", file=sys.stderr)
+[?2004l[?2004h>                 return 1
+[?2004l[?2004h>         
+[?2004l[?2004h>         with open(abs_path, 'rb') as f:
+[?2004l[?2004h>             current_hash = sha512_hash(f.read())
+[?2004l[?2004h>     except Exception as e:
+[?2004l[?2004h>         print(f"Error reading file: {e}", file=sys.stderr)
+[?2004l[?2004h>         return 1
+[?2004l[?2004h>     
+[?2004l[?2004h>     # Reconstruct root from proof
+[?2004l[?2004h>     current = current_hash
+[?2004l[?2004h>     for side, sibling in proof_data['proof']:
+[?2004l[?2004h>         if side == "left":
+[?2004l[?2004h>             current = sha512_concatenate(sibling, current)
+[?2004l[?2004h>         else:
+[?2004l[?2004h>             current = sha512_concatenate(current, sibling)
+[?2004l[?2004h>     
+[?2004l[?2004h>     # Check results
+[?2004l[?2004h>     root_matches = (current == data['root_hash'])
+[?2004l[?2004h>     file_hash_matches_storage = (current_hash == data['file_hashes'].get(file_path))
+[?2004l[?2004h>     
+[?2004l[?2004h>     # Check for added/deleted files
+[?2004l[?2004h>     stored_files = set(data['file_hashes'].keys())
+[?2004l[?2004h>     
+[?2004l[?2004h>     # Get current files in scanned directory
+[?2004l[?2004h>     scanned_dir = Path(data['scanned_directory'])
+[?2004l[?2004h>     current_files = set()
+[?2004l[?2004h>     if scanned_dir.exists():
+[?2004l[?2004h>         for item in scanned_dir.rglob('*'):
+[?2004l[?2004h>             if item.is_file() and not item.is_symlink():
+[?2004l[?2004h>                 rel_path = str(item.relative_to(scanned_dir))
+[?2004l[?2004h>                 current_files.add(rel_path)
+[?2004l[?2004h>     
+[?2004l[?2004h>     added_files = current_files - stored_files
+[?2004l[?2004h>     deleted_files = stored_files - current_files
+[?2004l[?2004h>     
+[?2004l[?2004h>     # Check for modified files
+[?2004l[?2004h>     modified_files = set()
+[?2004l[?2004h>     for fp in stored_files & current_files:
+[?2004l[?2004h>         if fp != file_path:  # Don't check the file we're verifying
+[?2004l[?2004h>             abs_fp = scanned_dir / fp
+[?2004l[?2004h>             if abs_fp.exists():
+[?2004l[?2004h>                 with open(abs_fp, 'rb') as f:
+[?2004l[?2004h>                     stored_hash = data['file_hashes'][fp]
+[?2004l[?2004h>                     current_h = sha512_hash(f.read())
+[?2004l[?2004h>                     if stored_hash != current_h:
+[?2004l[?2004h>                         modified_files.add(fp)
+[?2004l[?2004h>     
+[?2004l[?2004h>     success = root_matches and file_hash_matches_storage and not added_files and not deleted_files and not modified_files
+[?2004l[?2004h>     
+[?2004l[?2004h>     output = {
+[?2004l[?2004h>         "file_path": file_path,
+[?2004l[?2004h>         "root_matches": root_matches,
+[?2004l[?2004h>         "file_hash_matches_storage": file_hash_matches_storage,
+[?2004l[?2004h>         "added_files": list(added_files),
+[?2004l[?2004h>         "deleted_files": list(deleted_files),
+[?2004l[?2004h>         "modified_files": list(modified_files)
+[?2004l[?2004h>     }
+[?2004l[?2004h>     
+[?2004l[?2004h>     if success:
+[?2004l[?2004h>         print("Verification successful!")
+[?2004l[?2004h>         print(f"File hash: {current_hash}")
+[?2004l[?2004h>         print(f"Root hash matches: {root_matches}")
+[?2004l[?2004h>         return 0
+[?2004l[?2004h>     else:
+[?2004l[?2004h>         print("Verification failed!")
+[?2004l[?2004h>         print(json.dumps(output, indent=2))
+[?2004l[?2004h>         return 1
+[?2004l[?2004h> 
+[?2004l[?2004h> 
+[?2004l[?2004h> def main():
+[?2004l[?2004h>     parser = argparse.ArgumentParser(description='Merkle Tree CLI Tool')
+[?2004l[?2004h>     subparsers = parser.add_subparsers(dest='command', required=True)
+[?2004l[?2004h>     
+[?2004l[?2004h>     # Scan command
+[?2004l[?2004h>     scan_parser = subparsers.add_parser('scan', help='Scan directory and build Merkle tree')
+[?2004l[?2004h>     scan_parser.add_argument('directory', help='Directory to scan')
+[?2004l[?2004h>     
+[?2004l[?2004h>     # Proof command
+[?2004l[?2004h>     proof_parser = subparsers.add_parser('proof', help='Generate Merkle proof for a file')
+[?2004l[?2004h>     proof_parser.add_argument('file_path', help='File path (relative to scanned directory)')
+[?2004l[?2004h>     
+[?2004l[?2004h>     # Verify command
+[?2004l[?2004h>     verify_parser = subparsers.add_parser('verify', help='Verify file integrity')
+[?2004l[?2004h>     verify_parser.add_argument('file_path', help='File path to verify')
+[?2004l[?2004h>     verify_parser.add_argument('proof_file', help='Path to proof JSON file')
+[?2004l[?2004h>     
+[?2004l[?2004h>     args = parser.parse_args()
+[?2004l[?2004h>     
+[?2004l[?2004h>     if args.command == 'scan':
+[?2004l[?2004h>         return cmd_scan(args)
+[?2004l[?2004h>     elif args.command == 'proof':
+[?2004l[?2004h>         return cmd_proof(args)
+[?2004l[?2004h>     elif args.command == 'verify':
+[?2004l[?2004h>         return cmd_verify(args)
+[?2004l[?2004h>     
+[?2004l[?2004h>     return 1
+[?2004l[?2004h> 
+[?2004l[?2004h> 
+[?2004l[?2004h> if __name__ == '__main__':
+[?2004l[?2004h>     sys.exit(main())
+[?2004l[?2004h> EOF
+[?2004l[?2004hroot@8d75f47cee9b:/app# chmod +x /app/merkle_cli.py
+[?2004l[?2004hroot@8d75f47cee9b:/app# mkdir -p /app/test_data/subdir
+[?2004l[?2004hroot@8d75f47cee9b:/app# echo 'Hello World' > /app/test_data/file1.txt
+[?2004l[?2004hroot@8d75f47cee9b:/app# echo 'Test content' > /app/test_data/file2.txt
+[?2004l[?2004hroot@8d75f47cee9b:/app# echo 'Nested file' > /app/test_data/subdir/nested.txt
+[?2004l[?2004hroot@8d75f47cee9b:/app# python3 /app/merkle_cli.py scan /app/test_data
+[?2004lScanned 4 files
+Root hash: a1cfd6d78fc8b26b91f2beafe334985326d2747ac068cd701b6fdbca6cfbfe08da584eb05f0fbe6b577c782fe499f546822537ec10f709213f4734dce17ff9cb
+[?2004hroot@8d75f47cee9b:/app# cat /app/merkle_data.json
+[?2004l{
+  "root_hash": "a1cfd6d78fc8b26b91f2beafe334985326d2747ac068cd701b6fdbca6cfbfe08da584eb05f0fbe6b577c782fe499f546822537ec10f709213f4734dce17ff9cb",
+  "proofs": {
+    "file1.txt": [
+      [
+        "right",
+        "7d0c8f3d3f4d1a577e6972a7a3fbf4687cb4ba33d7e72c0b96b8ff7f40663e6a40e5f5a68b49036cc1a7cc9792a1145db6219390910d833ab11e0a1635396f33"
+      ],
+      [
+        "right",
+        "c804c15589ee149f48215c65ba775f32ed224b200f49c499b4e4097173dc52c880db15a4213020da8c808d2369a56e1829dcde7efab2a56bac3d3550915432e1"
+      ]
+    ],
+    "file2.txt": [
+      [
+        "left",
+        "e1c112ff908febc3b98b1693a6cd3564eaf8e5e6ca629d084d9f0eba99247cacdd72e369ff8941397c2807409ff66be64be908da17ad7b8a49a2a26c0e8086aa"
+      ],
+      [
+        "right",
+        "c804c15589ee149f48215c65ba775f32ed224b200f49c499b4e4097173dc52c880db15a4213020da8c808d2369a56e1829dcde7efab2a56bac3d3550915432e1"
+      ]
+    ],
+    "file3.txt": [
+      [
+        "right",
+        "ebcbfabcb4aa12351719b821f5759578fc8a31291f697947cf89ec66eb68192a0a9e08a341156b74e3964723012c160c587f5a71cd987f06d9818f05bdf84ac6"
+      ],
+      [
+        "left",
+        "c2c33d26572e6f8b5b74a91811eff9e639226a5779e9a742a591a4a3f48123b0ba3f736490f2b7ea14c05c23cada468cce03ef6bc56e44b93ddce777069d4e24"
+      ]
+    ],
+    "subdir/nested.txt": [
+      [
+        "left",
+        "07999956299510fdcec10cf70a43a874c3f04c099df11694e3a7233071c84b59472a3c2a32691d1f0fda38b6c241cb2e48e62b4e9dce88e3067bd0f142b08632"
+      ],
+      [
+        "left",
+        "c2c33d26572e6f8b5b74a91811eff9e639226a5779e9a742a591a4a3f48123b0ba3f736490f2b7ea14c05c23cada468cce03ef6bc56e44b93ddce777069d4e24"
+      ]
+    ]
+  },
+  "file_hashes": {
+    "file1.txt": "e1c112ff908febc3b98b1693a6cd3564eaf8e5e6ca629d084d9f0eba99247cacdd72e369ff8941397c2807409ff66be64be908da17ad7b8a49a2a26c0e8086aa",
+    "file2.txt": "7d0c8f3d3f4d1a577e6972a7a3fbf4687cb4ba33d7e72c0b96b8ff7f40663e6a40e5f5a68b49036cc1a7cc9792a1145db6219390910d833ab11e0a1635396f33",
+    "file3.txt": "07999956299510fdcec10cf70a43a874c3f04c099df11694e3a7233071c84b59472a3c2a32691d1f0fda38b6c241cb2e48e62b4e9dce88e3067bd0f142b08632",
+    "subdir/nested.txt": "ebcbfabcb4aa12351719b821f5759578fc8a31291f697947cf89ec66eb68192a0a9e08a341156b74e3964723012c160c587f5a71cd987f06d9818f05bdf84ac6"
+  },
+  "scanned_directory": "/app/test_data"
+}[?2004hroot@8d75f47cee9b:/app# python3 /app/merkle_cli.py proof file1.txt > /app/proof.json
+[?2004l[?2004hroot@8d75f47cee9b:/app# cat /app/proof.json
+[?2004l{
+  "file_path": "file1.txt",
+  "proof": [
+    [
+      "right",
+      "7d0c8f3d3f4d1a577e6972a7a3fbf4687cb4ba33d7e72c0b96b8ff7f40663e6a40e5f5a68b49036cc1a7cc9792a1145db6219390910d833ab11e0a1635396f33"
+    ],
+    [
+      "right",
+      "c804c15589ee149f48215c65ba775f32ed224b200f49c499b4e4097173dc52c880db15a4213020da8c808d2369a56e1829dcde7efab2a56bac3d3550915432e1"
+    ]
+  ]
+}
+[?2004hroot@8d75f47cee9b:/app# python3 /app/merkle_cli.py verify file1.txt /app/proof.json
+[?2004lVerification successful!
+File hash: e1c112ff908febc3b98b1693a6cd3564eaf8e5e6ca629d084d9f0eba99247cacdd72e369ff8941397c2807409ff66be64be908da17ad7b8a49a2a26c0e8086aa
+Root hash matches: True
+[?2004hroot@8d75f47cee9b:/app# echo $?
+[?2004l0
+[?2004hroot@8d75f47cee9b:/app# echo 'Modified content' > /app/test_data/file1.txt
+[?2004l[?2004hroot@8d75f47cee9b:/app# python3 /app/merkle_cli.py verify file1.txt /app/proof.json
+[?2004lVerification failed!
+{
+  "file_path": "file1.txt",
+  "root_matches": false,
+  "file_hash_matches_storage": false,
+  "added_files": [],
+  "deleted_files": [],
+  "modified_files": []
+}
+[?2004hroot@8d75f47cee9b:/app# echo $?
+[?2004l1
+[?2004hroot@8d75f47cee9b:/app# echo 'Hello World' > /app/test_data/file1.txt
+[?2004l[?2004hroot@8d75f47cee9b:/app# python3 /app/merkle_cli.py proof subdir/nested.txt
+[?2004l{
+  "file_path": "subdir/nested.txt",
+  "proof": [
+    [
+      "left",
+      "07999956299510fdcec10cf70a43a874c3f04c099df11694e3a7233071c84b59472a3c2a32691d1f0fda38b6c241cb2e48e62b4e9dce88e3067bd0f142b08632"
+    ],
+    [
+      "left",
+      "c2c33d26572e6f8b5b74a91811eff9e639226a5779e9a742a591a4a3f48123b0ba3f736490f2b7ea14c05c23cada468cce03ef6bc56e44b93ddce777069d4e24"
+    ]
+  ]
+}
+[?2004hroot@8d75f47cee9b:/app# python3 /app/merkle_cli.py proof subdir/nested.txt > /app/proof_nested.json && python3 /app/merkle_cli.py verify subdir/nested.txt /app/proof_nested.json
+[?2004lVerification successful!
+File hash: ebcbfabcb4aa12351719b821f5759578fc8a31291f697947cf89ec66eb68192a0a9e08a341156b74e3964723012c160c587f5a71cd987f06d9818f05bdf84ac6
+Root hash matches: True
+[?2004hroot@8d75f47cee9b:/app# mkdir -p /app/empty_test && python3 /app/merkle_cli.py scan /app/empty_test
+[?2004lScanned 0 files
+Root hash: cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e
+[?2004hroot@8d75f47cee9b:/app# echo 'Single file content' > /app/single_test/single.txt 2>/dev/null || mkdir -p /app/single_test && echo 'Single file content' > /app/single_test/single.txt
+[?2004lbash: /app/single_test/single.txt: No such file or directory
+[?2004hroot@8d75f47cee9b:/app# python3 /app/merkle_cli.py scan /app/single_test
+[?2004lScanned 1 files
+Root hash: f2a67bae0569650ce52e093f411908a96fb61ea6b548a29eaaba05304ef02053b7b0ac035ee5e1327bd9f1da5bc4e670731946a62f12b1d6fbd3eecbf7c7e641
+[?2004hroot@8d75f47cee9b:/app# python3 /app/merkle_cli.py proof single.txt
+[?2004l{
+  "file_path": "single.txt",
+  "proof": []
+}
+[?2004hroot@8d75f47cee9b:/app# python3 /app/merkle_cli.py proof single.txt > /app/proof_single.json && python3 /app/merkle_cli.py verify single.txt /app/proof_single.json
+[?2004lVerification successful!
+File hash: f2a67bae0569650ce52e093f411908a96fb61ea6b548a29eaaba05304ef02053b7b0ac035ee5e1327bd9f1da5bc4e670731946a62f12b1d6fbd3eecbf7c7e641
+Root hash matches: True
+[?2004hroot@8d75f47cee9b:/app# python3 -c "import json; data = json.load(open('/app/merkle_data.json')); print('Root hash length:', len(data['root_hash'])); print('File hash lengths:', [len(h) for h in data['file_hashes'].values()])"
+[?2004lRoot hash length: 128
+File hash lengths: [128]
+[?2004hroot@8d75f47cee9b:/app# python3 /app/merkle_cli.py scan /app/test_data
+[?2004lScanned 4 files
+Root hash: a1cfd6d78fc8b26b91f2beafe334985326d2747ac068cd701b6fdbca6cfbfe08da584eb05f0fbe6b577c782fe499f546822537ec10f709213f4734dce17ff9cb
+[?2004hroot@8d75f47cee9b:/app# echo 'Added file' > /app/test_data/new_file.txt
+[?2004l[?2004hroot@8d75f47cee9b:/app# python3 /app/merkle_cli.py proof file1.txt > /app/proof_verify.json && python3 /app/merkle_cli.py verify file1.txt /app/proof_verify.json
+[?2004lVerification failed!
+{
+  "file_path": "file1.txt",
+  "root_matches": true,
+  "file_hash_matches_storage": true,
+  "added_files": [
+    "new_file.txt"
+  ],
+  "deleted_files": [],
+  "modified_files": []
+}
+[?2004hroot@8d75f47cee9b:/app# rm /app/test_data/new_file.txt
+[?2004l[?2004hroot@8d75f47cee9b:/app# rm /app/test_data/file2.txt
+[?2004l[?2004hroot@8d75f47cee9b:/app# python3 /app/merkle_cli.py proof file1.txt > /app/proof_verify.json && python3 /app/merkle_cli.py verify file1.txt /app/proof_verify.json
+[?2004lVerification failed!
+{
+  "file_path": "file1.txt",
+  "root_matches": true,
+  "file_hash_matches_storage": true,
+  "added_files": [],
+  "deleted_files": [
+    "file2.txt"
+  ],
+  "modified_files": []
+}
+[?2004hroot@8d75f47cee9b:/app# echo 'Test content' > /app/test_data/file2.txt
+[?2004l[?2004hroot@8d75f47cee9b:/app# python3 /app/merkle_cli.py scan /app/test_data
+[?2004lScanned 4 files
+Root hash: a1cfd6d78fc8b26b91f2beafe334985326d2747ac068cd701b6fdbca6cfbfe08da584eb05f0fbe6b577c782fe499f546822537ec10f709213f4734dce17ff9cb
+[?2004hroot@8d75f47cee9b:/app# python3 /app/merkle_cli.py proof file1.txt > /app/final_proof.json && python3 /app/merkle_cli.py verify file1.txt /app/final_proof.json
+[?2004lVerification successful!
+File hash: e1c112ff908febc3b98b1693a6cd3564eaf8e5e6ca629d084d9f0eba99247cacdd72e369ff8941397c2807409ff66be64be908da17ad7b8a49a2a26c0e8086aa
+Root hash matches: True
+[?2004hroot@8d75f47cee9b:/app# ls -la /app/merkle_cli.py /app/merkle_data.json
+[?2004l-rwxr-xr-x 1 root root 11230 Apr  9 23:27 /app/merkle_cli.py
+-rw-r--r-- 1 root root  2323 Apr  9 23:28 /app/merkle_data.json
+[?2004hroot@8d75f47cee9b:/app# head -20 /app/merkle_cli.py
+[?2004l#!/usr/bin/env python3
+"""Merkle Tree CLI Tool using SHA-512"""
+
+import argparse
+import hashlib
+import json
+import os
+import sys
+from pathlib import Path
+
+
+def sha512_hash(data):
+    """Compute SHA-512 hash of bytes, return 128-char hex string."""
+    if isinstance(data, str):
+        data = data.encode('utf-8')
+    return hashlib.sha512(data).hexdigest()
+
+
+def sha512_concatenate(left, right):
+    """Concatenate two hash strings and return their SHA-512 hash."""
+[?2004hroot@8d75f47cee9b:/app# python3 /app/merkle_cli.py --help
+[?2004lusage: merkle_cli.py [-h] {scan,proof,verify} ...
+
+Merkle Tree CLI Tool
+
+positional arguments:
+  {scan,proof,verify}
+    scan               Scan directory and build Merkle tree
+    proof              Generate Merkle proof for a file
+    verify             Verify file integrity
+
+options:
+  -h, --help           show this help message and exit
+[?2004hroot@8d75f47cee9b:/app# python3 /app/merkle_cli.py scan /app/test_data && python3 /app/merkle_cli.py proof file1.txt
+[?2004lScanned 4 files
+Root hash: a1cfd6d78fc8b26b91f2beafe334985326d2747ac068cd701b6fdbca6cfbfe08da584eb05f0fbe6b577c782fe499f546822537ec10f709213f4734dce17ff9cb
+{
+  "file_path": "file1.txt",
+  "proof": [
+    [
+      "right",
+      "7d0c8f3d3f4d1a577e6972a7a3fbf4687cb4ba33d7e72c0b96b8ff7f40663e6a40e5f5a68b49036cc1a7cc9792a1145db6219390910d833ab11e0a1635396f33"
+    ],
+    [
+      "right",
+      "c804c15589ee149f48215c65ba775f32ed224b200f49c499b4e4097173dc52c880db15a4213020da8c808d2369a56e1829dcde7efab2a56bac3d3550915432e1"
+    ]
+  ]
+}
+[?2004hroot@8d75f47cee9b:/app# python3 -c "import json; d=json.load(open('/app/merkle_data.json')); print('root_hash len:', len(d['root_hash']), 'hex:', all(c in '0123456789abcdef' for c in d['root_hash'])); print('file_hashes:', {k: len(v) for k,v in d['file_hashes'].items()})"
+[?2004lroot_hash len: 128 hex: True
+file_hashes: {'file1.txt': 128, 'file2.txt': 128, 'file3.txt': 128, 'subdir/nested.txt': 128}
+[?2004hroot@8d75f47cee9b:/app# 

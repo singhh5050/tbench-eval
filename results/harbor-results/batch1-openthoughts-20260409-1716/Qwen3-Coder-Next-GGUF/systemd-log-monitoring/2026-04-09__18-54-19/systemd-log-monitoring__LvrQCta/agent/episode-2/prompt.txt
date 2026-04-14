@@ -1,0 +1,44 @@
+New Terminal Output:
+
+root@ac4d5de4c098:/opt/myapp# id myapp 2>/dev/null || useradd -r -s /bin/false myapp
+uid=999(myapp) gid=999(myapp) groups=999(myapp)
+root@ac4d5de4c098:/opt/myapp# cat > /etc/systemd/system/myapp.service << 'EOF'
+> [Unit]
+> Description=MyApp - JSON logging service
+> After=network.target
+>
+> [Service]
+> Type=simple
+> User=myapp
+> Group=myapp
+> WorkingDirectory=/opt/myapp
+> ExecStart=/opt/myapp/app.py --log-level=INFO
+> Restart=on-failure
+> RestartSec=5
+> StandardOutput=journal
+> StandardError=journal
+> SyslogIdentifier=myapp
+>
+> [Install]
+> WantedBy=multi-user.target
+> EOF
+root@ac4d5de4c098:/opt/myapp# cat /etc/systemd/system/myapp.service
+[Unit]
+Description=MyApp - JSON logging service
+After=network.target
+
+[Service]
+Type=simple
+User=myapp
+Group=myapp
+WorkingDirectory=/opt/myapp
+ExecStart=/opt/myapp/app.py --log-level=INFO
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=myapp
+
+[Install]
+WantedBy=multi-user.target
+root@ac4d5de4c098:/opt/myapp#

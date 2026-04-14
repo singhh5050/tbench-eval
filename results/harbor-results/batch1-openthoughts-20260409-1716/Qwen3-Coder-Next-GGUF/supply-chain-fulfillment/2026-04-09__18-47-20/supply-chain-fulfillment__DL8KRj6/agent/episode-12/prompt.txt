@@ -1,0 +1,38 @@
+New Terminal Output:
+
+root@b12cd1002d87:/app# python3 -c "
+> import sys
+> from pathlib import Path
+> sys.path.append('/app/task_file/scripts')
+> from model import SupplyChainModel
+>
+> model = SupplyChainModel()
+> result = model.evaluate(
+>     input_dir=Path('/app/task_file/input_data'),
+>     output_file=Path('/app/task_file/output_data/assignments.jsonl')
+> )
+>
+> print(f'Valid: {result[\"is_valid\"]}')
+> if result['is_valid']:
+>     print(f'Total Score: {result[\"total_score\"]:.4f}')
+>     print(f'Cost Score: {result[\"cost_score\"]:.4f}')
+>     print(f'On-Time Score: {result[\"on_time_delivery_score\"]:.4f}')
+>     print(f'Balance Score: {result[\"warehouse_balance_score\"]:.4f}')
+>     print(f'Clustering: {result[\"clustering_score\"]:.4f}')
+>     print(f'Hub: {result[\"hub_utilization_score\"]:.4f}')
+>     print(f'Fragmentation: {result[\"fragmentation_score\"]:.4f}')
+>     print(f'Multi-hop: {result[\"multi_hop_score\"]:.4f}')
+>     print(f'Priority: {result[\"priority_fairness_score\"]:.4f}')
+>     print(f'Consolidation: {result[\"destination_consolidation_score\"]:.4f}')
+> else:
+>     print(f'Errors: {result[\"validation_errors\"][:10]}')
+> "
+Valid: True
+Total Score: 0.7164
+Cost Score: 1.0000
+On-Time Score: 1.0000
+Balance Score: 0.4677
+Traceback (most recent call last):
+  File "<string>", line 19, in <module>
+KeyError: 'clustering_score'
+root@b12cd1002d87:/app#

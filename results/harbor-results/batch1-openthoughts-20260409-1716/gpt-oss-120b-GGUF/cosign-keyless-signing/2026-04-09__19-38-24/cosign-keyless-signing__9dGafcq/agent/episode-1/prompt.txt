@@ -1,0 +1,194 @@
+New Terminal Output:
+root@874732d32470:/app# mkdir -p /app/ca /app/signing /app/signed
+root@874732d32470:/app# cat > /app/setup_ca.sh <<'EOS'
+> #!/usr/bin/env bash
+> set -euo pipefail
+>
+> # Directories
+> CA_DIR="/app/ca"
+>
+> # Root CA
+> ROOT_KEY="$CA_DIR/root-ca-key.pem"
+> ROOT_CERT="$CA_DIR/root-ca.pem"
+> openssl req -x509 -newkey rsa:4096 -sha256 -days 3650 -nodes \
+>   -subj "/CN=Software Signing Root CA/O=SecureBuild/C=US" \
+>   -addext "basicConstraints=critical,CA:TRUE" \
+>   -addext "keyUsage=critical,keyCertSign,cRLSign" \
+>   -keyout "$ROOT_KEY" -out "$ROOT_CERT"
+>
+> # Intermediate CA
+> INT_KEY="$CA_DIR/intermediate-ca-key.pem"
+> INT_CERT="$CA_DIR/intermediate-ca.pem"
+> INT_CSR="$CA_DIR/intermediate-ca.csr"
+> openssl req -new -newkey rsa:4096 -sha256 -nodes \
+>   -subj "/CN=Build Pipeline Intermediate CA/O=SecureBuild/C=US" \
+>   -keyout "$INT_KEY" -out "$INT_CSR"
+> openssl x509 -req -in "$INT_CSR" -CA "$ROOT_CERT" -CAkey "$ROOT_KEY" -CAcreateserial \
+>   -days 1825 -sha256 \
+>   -addext "basicConstraints=critical,CA:TRUE,pathlen:0" \
+>   -addext "keyUsage=critical,keyCertSign,digitalSignature" \
+>   -out "$INT_CERT"
+>
+> # Clean up CSR and serial files
+> rm -f "$INT_CSR" "$CA_DIR/root-ca.srl"
+> EOS
+root@874732d32470:/app# chmod +x /app/setup_ca.sh
+root@874732d32470:/app# cat > /app/sign_artifact.sh <<'EOS'
+> #!/usr/bin/env bash
+> set -euo pipefail
+>
+> if [[ $# -ne 2 ]]; then
+>   echo "Usage: $0 <artifact-path> <build-id>"
+>   exit 1
+> fi
+>
+> ARTIFACT="$1"
+> BUILD_ID="$2"
+> BASE_NAME="$(basename "$ARTIFACT")"
+>
+> # Verify artifact exists
+> if [[ ! -f "$ARTIFACT" ]]; then
+>   echo "Artifact not found: $ARTIFACT"
+>   exit 1
+> fi
+>
+> # Compute checksum
+> CHECKSUM=$(sha256sum "$ARTIFACT" | awk '{print $1}')
+>
+> # Directories
+> SIGNING_DIR="/app/signing"
+> SIGNED_DIR="/app/signed"
+> CA_DIR="/app/ca"
+>
+> # Ephemeral EC key (P‑256)
+> EPHEMERAL_KEY="$SIGNING_DIR/key_${BUILD_ID}.pem"
+> openssl ecparam -name prime256v1 -genkey -noout -out "$EPHEMERAL_KEY"
+>
+> # CSR for signing certificate
+> CSR="$SIGNING_DIR/csr_${BUILD_ID}.pem"
+> openssl req -new -key "$EPHEMERAL_KEY" -subj "/CN=build-${BUILD_ID},O=SecureBuild,C=US" -out "$CSR"
+>
+> # Signing certificate (valid 1 day)
+> CERT="$SIGNING_DIR/cert_${BUILD_ID}.pem"
+> openssl x509 -req -in "$CSR" -CA "$CA_DIR/intermediate-ca.pem" -CAkey "$CA_DIR/intermediate-ca-key.pem" -CAcreateserial \
+>   -days 1 -sha256 \
+>   -addext "basicConstraints=critical,CA:FALSE" \
+>   -addext "keyUsage=critical,digitalSignature" \
+>   -out "$CERT"
+>
+> # Sign the artifact
+> SIG_FILE="$SIGNED_DIR/${BASE_NAME}.sig"
+> openssl dgst -sha256 -sign "$EPHEMERAL_KEY" -out "$SIG_FILE" "$ARTIFACT"
+>
+> # Create provenance JSON
+> TIMESTAMP=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+> PROV_JSON="$SIGNED_DIR/${BASE_NAME}.provenance.json"
+> cat > "$PROV_JSON" <<JSON
+> {
+>   "buildID": "${BUILD_ID}",
+>   "artifact": "${BASE_NAME}",
+>   "sha256": "${CHECKSUM}",
+>   "signedAt": "${TIMESTAMP}",
+>   "signer": "build-${BUILD_ID}",
+>   "certificateChain": ["intermediate-ca", "root-ca"]
+> }
+> JSON
+>
+> # Sign provenance JSON
+> PROV_SIG="$SIGNED_DIR/${BASE_NAME}.provenance.sig"
+> openssl dgst -sha256 -sign "$EPHEMERAL_KEY" -out "$PROV_SIG" "$PROV_JSON"
+>
+> # Assemble certificate chain (signing cert + intermediate + root)
+> CHAIN_FILE="$SIGNED_DIR/${BASE_NAME}.chain.pem"
+> cat "$CERT" "$CA_DIR/intermediate-ca.pem" "$CA_DIR/root-ca.pem" > "$CHAIN_FILE"
+>
+> # Cleanup: delete private key and CSR
+> rm -f "$EPHEMERAL_KEY" "$CSR"
+> EOS
+root@874732d32470:/app# chmod +x /app/sign_artifact.sh
+root@874732d32470:/app# cat > /app/verify_artifact.sh <<'EOS'
+> #!/usr/bin/env bash
+> set -euo pipefail
+>
+> if [[ $# -ne 1 ]]; then
+>   echo "Usage: $0 <artifact-path>"
+>   exit 1
+> fi
+>
+> ARTIFACT="$1"
+> BASE_NAME="$(basename "$ARTIFACT")"
+> SIGNED_DIR="/app/signed"
+> CA_DIR="/app/ca"
+>
+> # Expected files
+> SIG_FILE="$SIGNED_DIR/${BASE_NAME}.sig"
+> PROV_JSON="$SIGNED_DIR/${BASE_NAME}.provenance.json"
+> PROV_SIG="$SIGNED_DIR/${BASE_NAME}.provenance.sig"
+> CHAIN_FILE="$SIGNED_DIR/${BASE_NAME}.chain.pem"
+>
+> # Verify existence
+> for f in "$ARTIFACT" "$SIG_FILE" "$PROV_JSON" "$PROV_SIG" "$CHAIN_FILE"; do
+>   if [[ ! -f "$f" ]]; then
+>     echo "VERIFICATION_FAILED"
+>     exit 1
+>   fi
+> done
+>
+> # Extract signing certificate (first cert in chain)
+> SIGNING_CERT="/tmp/signing_cert_$$.pem"
+> awk 'BEGIN{c=0} /-----BEGIN CERTIFICATE-----/{c++} c==1' "$CHAIN_FILE" > "$SIGNING_CERT"
+>
+> # Verify chain: signing cert -> intermediate -> root
+> # intermediate is the second cert in chain
+> INTERMEDIATE_CERT="/tmp/intermediate_cert_$$.pem"
+> awk 'BEGIN{c=0} /-----BEGIN CERTIFICATE-----/{c++} c==2' "$CHAIN_FILE" > "$INTERMEDIATE_CERT"
+>
+> # Verify intermediate is signed by root and signing cert by intermediate
+> openssl verify -CAfile "$CA_DIR/root-ca.pem" -untrusted "$INTERMEDIATE_CERT" "$SIGNING_CERT" > /dev/null 2>&1 || {
+>   echo "VERIFICATION_FAILED"
+>   rm -f "$SIGNING_CERT" "$INTERMEDIATE_CERT"
+>   exit 1
+> }
+>
+> # Extract public key from signing certificate
+> PUBKEY="/tmp/pubkey_$$.pem"
+> openssl x509 -in "$SIGNING_CERT" -pubkey -noout > "$PUBKEY"
+>
+> # Verify artifact signature
+> openssl dgst -sha256 -verify "$PUBKEY" -signature "$SIG_FILE" "$ARTIFACT" > /dev/null 2>&1 || {
+>   echo "VERIFICATION_FAILED"
+>   rm -f "$SIGNING_CERT" "$INTERMEDIATE_CERT" "$PUBKEY"
+>   exit 1
+> }
+>
+> # Verify provenance signature
+> openssl dgst -sha256 -verify "$PUBKEY" -signature "$PROV_SIG" "$PROV_JSON" > /dev/null 2>&1 || {
+>   echo "VERIFICATION_FAILED"
+>   rm -f "$SIGNING_CERT" "$INTERMEDIATE_CERT" "$PUBKEY"
+>   exit 1
+> }
+>
+> # Validate provenance content
+> EXPECTED_CHECKSUM=$(sha256sum "$ARTIFACT" | awk '{print $1}')
+> # Use jq to parse fields (jq must be installed)
+> ART_NAME=$(jq -r '.artifact' "$PROV_JSON")
+> PROV_CHECKSUM=$(jq -r '.sha256' "$PROV_JSON")
+> BUILD_ID=$(jq -r '.buildID' "$PROV_JSON")
+> SIGNED_AT=$(jq -r '.signedAt' "$PROV_JSON")
+> SIGNER=$(jq -r '.signer' "$PROV_JSON")
+>
+> if [[ "$ART_NAME" != "$BASE_NAME" ]] || [[ "$PROV_CHECKSUM" != "$EXPECTED_CHECKSUM" ]] || [[ -z "$BUILD_ID" ]] || [[ -z "$SIGNED_AT" ]] || [[ -z "$SIGNER" ]];
+ then
+>   echo "VERIFICATION_FAILED"
+>   rm -f "$SIGNING_CERT" "$INTERMEDIATE_CERT" "$PUBKEY"
+>   exit 1
+> fi
+>
+> # Clean up temp files
+> rm -f "$SIGNING_CERT" "$INTERMEDIATE_CERT" "$PUBKEY"
+>
+> echo "VERIFICATION_PASSED"
+> exit 0
+> EOS
+root@874732d32470:/app# chmod +x /app/verify_artifact.sh
+root@874732d32470:/app#

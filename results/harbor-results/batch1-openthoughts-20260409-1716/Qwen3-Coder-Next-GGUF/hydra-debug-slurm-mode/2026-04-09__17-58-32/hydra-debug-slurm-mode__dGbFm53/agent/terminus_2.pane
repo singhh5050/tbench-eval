@@ -1,0 +1,1439 @@
+[?2004hroot@0683b4795d80:/app/src# asciinema rec --stdin /logs/agent/recording.cast
+[?2004l[0;32masciinema: recording asciicast to /logs/agent/recording.cast[0m
+[0;32masciinema: press <ctrl-d> or type "exit" when you're done[0m
+[?2004hroot@0683b4795d80:/app/src# clear
+[?2004l[H[J[3J[?2004hroot@0683b4795d80:/app/src# ls -la /app/
+[?2004ltotal 12
+drwxr-xr-x 1 root root 4096 Apr  9 23:58 .
+drwxr-xr-x 1 root root 4096 Apr  9 23:58 ..
+drwxr-xr-x 3 root root 4096 Apr  9 23:58 src
+[?2004hroot@0683b4795d80:/app/src# ls -la /app/src/
+[?2004ltotal 16
+drwxr-xr-x 3 root root 4096 Apr  9 23:58 .
+drwxr-xr-x 1 root root 4096 Apr  9 23:58 ..
+drwxr-xr-x 2 root root 4096 Apr  9 23:58 config
+-rw-r--r-- 1 root root  249 Apr  9 23:58 main.py
+[?2004hroot@0683b4795d80:/app/src# cat /app/src/main.py
+[?2004limport hydra
+from omegaconf import OmegaConf
+
+
+@hydra.main(config_path="config", config_name="config", version_base="1.3")
+def main(cfg):
+    print(OmegaConf.to_yaml(cfg, resolve=True, throw_on_missing=True))
+
+
+if __name__ == "__main__":
+    main()
+[?2004hroot@0683b4795d80:/app/src# ls -la /app/src/config/
+[?2004ltotal 12
+drwxr-xr-x 2 root root 4096 Apr  9 23:58 .
+drwxr-xr-x 3 root root 4096 Apr  9 23:58 ..
+-rw-r--r-- 1 root root  125 Apr  9 23:58 config.yaml
+[?2004hroot@0683b4795d80:/app/src# cat /app/src/config/config.yaml
+[?2004ldefaults:
+  - _self_
+
+notes: my-experiment
+
+debug: false
+train:
+  batch_size: 32
+  learning_rate: 1e-5
+  max_num_epochs: 100
+[?2004hroot@0683b4795d80:/app/src# pip install git+https://github.com/facebookresearch/hydra.git@v1.3.0#egg=hydra-submitit-launcher&subdirectory=plugins/hydra_submitit_launcher
+[?2004l[1] 588
+[?2004hroot@0683b4795d80:/app/src# Collecting hydra-submitit-launcher
+  Cloning https://github.com/facebookresearch/hydra.git (to revision v1.3.0) to /tmp/pip-install-ptuceuwv/hydra-submitit-launcher_5ecf10dc713d45cb875701ea014b0b6a
+  Running command git clone --filter=blob:none --quiet https://github.com/facebookresearch/hydra.git /tmp/pip-install-ptuceuwv/hydra-submitit-launcher_5ecf10dc713d45cb875701ea014b0b6a
+  Running command git checkout -q 273ce9c6e1bd54cfb0b594a4a924a4d3c9b5425f
+  Resolved https://github.com/facebookresearch/hydra.git to commit 273ce9c6e1bd54cfb0b594a4a924a4d3c9b5425f
+  Installing build dependencies ... [?25l- done
+[?25h  Getting requirements to build wheel ... [?25l- error
+  [1;31merror[0m: [1msubprocess-exited-with-error[0m
+  
+  [31m×[0m [32mGetting requirements to build wheel[0m did not run successfully.
+  [31m│[0m exit code: [1;36m1[0m
+  [31m╰─>[0m [31m[23 lines of output][0m
+  [31m   [0m Traceback (most recent call last):
+  [31m   [0m   File "/usr/local/lib/python3.13/site-packages/pip/_vendor/pyproject_hooks/_in_process/_in_process.py", line 389, in <module>
+  [31m   [0m     main()
+  [31m   [0m     ~~~~^^
+  [31m   [0m   File "/usr/local/lib/python3.13/site-packages/pip/_vendor/pyproject_hooks/_in_process/_in_process.py", line 373, in main
+  [31m   [0m     json_out["return_val"] = hook(**hook_input["kwargs"])
+  [31m   [0m                              ~~~~^^^^^^^^^^^^^^^^^^^^^^^^
+  [31m   [0m   File "/usr/local/lib/python3.13/site-packages/pip/_vendor/pyproject_hooks/_in_process/_in_process.py", line 143, in get_requires_for_build_wheel
+  [31m   [0m     return hook(config_settings)
+  [31m   [0m   File "/tmp/pip-build-env-ofy0m344/overlay/lib/python3.13/site-packages/setuptools/build_meta.py", line 333, in get_requires_for_build_wheel
+  [31m   [0m     return self._get_build_requires(config_settings, requirements=[])
+  [31m   [0m            ~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  [31m   [0m   File "/tmp/pip-build-env-ofy0m344/overlay/lib/python3.13/site-packages/setuptools/build_meta.py", line 301, in _get_build_requires
+  [31m   [0m     self.run_setup()
+  [31m   [0m     ~~~~~~~~~~~~~~^^
+  [31m   [0m   File "/tmp/pip-build-env-ofy0m344/overlay/lib/python3.13/site-packages/setuptools/build_meta.py", line 520, in run_setup
+  [31m   [0m     super().run_setup(setup_script=setup_script)
+  [31m   [0m     ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  [31m   [0m   File "/tmp/pip-build-env-ofy0m344/overlay/lib/python3.13/site-packages/setuptools/build_meta.py", line 317, in run_setup
+  [31m   [0m     exec(code, locals())
+  [31m   [0m     ~~~~^^^^^^^^^^^^^^^^
+  [31m   [0m   File "<string>", line 5, in <module>
+  [31m   [0m ModuleNotFoundError: No module named 'pkg_resources'
+  [31m   [0m [31m[end of output][0m
+  
+  [1;35mnote[0m: This error originates from a subprocess, and is likely not a problem with pip.
+[31mERROR: Failed to build 'hydra-submitit-launcher' when getting requirements to build wheel[0m[31m
+[0m[?25hpip install hydra-submitit-launcher==1.3.0
+[?2004l[31mERROR: Could not find a version that satisfies the requirement hydra-submitit-launcher==1.3.0 (from versions: 1.0.0rc1, 1.0.0rc2, 1.0.0rc3, 1.0.0rc4, 1.0.0rc5, 1.0.0, 1.0.1, 1.1.0, 1.1.1, 1.1.5.dev1, 1.1.5.dev2, 1.1.5, 1.1.6, 1.2.0)[0m[31m
+[0m[31mERROR: No matching distribution found for hydra-submitit-launcher==1.3.0[0m[31m
+[0m[1]+  Exit 1                  pip install git+https://github.com/facebookresearch/hydra.git@v1.3.0#egg=hydra-submitit-launcher
+[?2004hroot@0683b4795d80:/app/src# pip install hydra-submitit-launcher==1.2.0
+[?2004lCollecting hydra-submitit-launcher==1.2.0
+  Downloading hydra_submitit_launcher-1.2.0-py3-none-any.whl.metadata (1.1 kB)
+Requirement already satisfied: hydra-core>=1.1.0.dev7 in /usr/local/lib/python3.13/site-packages (from hydra-submitit-launcher==1.2.0) (1.3.0)
+Collecting submitit>=1.3.3 (from hydra-submitit-launcher==1.2.0)
+  Downloading submitit-1.5.4-py3-none-any.whl.metadata (7.4 kB)
+Requirement already satisfied: omegaconf~=2.2 in /usr/local/lib/python3.13/site-packages (from hydra-core>=1.1.0.dev7->hydra-submitit-launcher==1.2.0) (2.3.0)
+Requirement already satisfied: antlr4-python3-runtime==4.9.* in /usr/local/lib/python3.13/site-packages (from hydra-core>=1.1.0.dev7->hydra-submitit-launcher==1.2.0) (4.9.3)
+Requirement already satisfied: packaging in /usr/local/lib/python3.13/site-packages (from hydra-core>=1.1.0.dev7->hydra-submitit-launcher==1.2.0) (26.0)
+Requirement already satisfied: PyYAML>=5.1.0 in /usr/local/lib/python3.13/site-packages (from omegaconf~=2.2->hydra-core>=1.1.0.dev7->hydra-submitit-launcher==1.2.0) (6.0.3)
+Collecting cloudpickle>=1.2.1 (from submitit>=1.3.3->hydra-submitit-launcher==1.2.0)
+  Downloading cloudpickle-3.1.2-py3-none-any.whl.metadata (7.1 kB)
+Collecting typing_extensions>=3.7.4.2 (from submitit>=1.3.3->hydra-submitit-launcher==1.2.0)
+  Downloading typing_extensions-4.15.0-py3-none-any.whl.metadata (3.3 kB)
+Downloading hydra_submitit_launcher-1.2.0-py3-none-any.whl (5.2 kB)
+Downloading submitit-1.5.4-py3-none-any.whl (76 kB)
+Downloading cloudpickle-3.1.2-py3-none-any.whl (22 kB)
+Downloading typing_extensions-4.15.0-py3-none-any.whl (44 kB)
+Installing collected packages: typing_extensions, cloudpickle, submitit, hydra-submitit-launcher
+[?25l[2K   [38;5;70m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m [32m4/4[0m [hydra-submitit-launcher]
+[?25h[1A[2KSuccessfully installed cloudpickle-3.1.2 hydra-submitit-launcher-1.2.0 submitit-1.5.4 typing_extensions-4.15.0
+[33mWARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager, possibly rendering your system unusable. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv. Use the --root-user-action option if you know what you are doing and want to suppress this warning.[0m[33m
+[0m[?2004hroot@0683b4795d80:/app/src# mkdir -p /app/src/config/mode
+[?2004l[?2004hroot@0683b4795d80:/app/src# cat > /app/src/config/mode/debug.yaml << 'EOF'
+[?2004l[?2004h> debug: true
+[?2004l[?2004h> 
+[?2004l[?2004h> train:
+[?2004l[?2004h>   max_num_epochs: 1
+[?2004l[?2004h> EOF
+[?2004l[?2004hroot@0683b4795d80:/app/src# cat > /app/src/config/slurm.yaml << 'EOF'
+[?2004l[?2004h> # @package _global_
+[?2004l[?2004h> 
+[?2004l[?2004h> hydra:
+[?2004l[?2004h>   launcher:
+[?2004l[?2004h>     _target_: hydra_plugins.hydra_submitit_launcher.submitit_launcher.SlurmLauncher
+[?2004l[?2004h>     timeout_min: 60
+[?2004l[?2004h>     cpus_per_task: 4
+[?2004l[?2004h>     gpus_per_node: 0
+[?2004l[?2004h>     tasks_per_node: 1
+[?2004l[?2004h>     nodes: 1
+[?2004l[?2004h>     additional_parameters:
+[?2004l[?2004h>       wckey: ''
+[?2004l[?2004h>     srun_args:
+[?2004l[?2004h>       - '--cpu-bind=none'
+[?2004l[?2004h>     comment: ''
+[?2004l[?2004h> 
+[?2004l[?2004h> _debug: false
+[?2004l[?2004h> EOF
+[?2004l[?2004hroot@0683b4795d80:/app/src# cd /app/src && python main.py +mode=debug --cfg job
+[?2004lnotes: my-experiment
+debug: false
+train:
+  batch_size: 32
+  learning_rate: 1.0e-05
+  max_num_epochs: 100
+mode:
+  debug: true
+  train:
+    max_num_epochs: 1
+[?2004hroot@0683b4795d80:/app/src# cat /app/src/config/config.yaml
+[?2004ldefaults:
+  - _self_
+
+notes: my-experiment
+
+debug: false
+train:
+  batch_size: 32
+  learning_rate: 1e-5
+  max_num_epochs: 100
+[?2004hroot@0683b4795d80:/app/src# cat > /app/src/config/mode/debug.yaml << 'EOF'
+[?2004l[?2004h> debug: true
+[?2004l[?2004h> 
+[?2004l[?2004h> train:
+[?2004l[?2004h>   max_num_epochs: 1
+[?2004l[?2004h> EOF
+[?2004l[?2004hroot@0683b4795d80:/app/src# python /app/src/main.py +mode=debug --cfg job
+[?2004lnotes: my-experiment
+debug: false
+train:
+  batch_size: 32
+  learning_rate: 1.0e-05
+  max_num_epochs: 100
+mode:
+  debug: true
+  train:
+    max_num_epochs: 1
+[?2004hroot@0683b4795d80:/app/src# cat > /app/src/config/config.yaml << 'EOF'
+[?2004l[?2004h> defaults:
+[?2004l[?2004h>   - _self_
+[?2004l[?2004h>   - mode: null
+[?2004l[?2004h> 
+[?2004l[?2004h> notes: my-experiment
+[?2004l[?2004h> 
+[?2004l[?2004h> debug: false
+[?2004l[?2004h> train:
+[?2004l[?2004h>   batch_size: 32
+[?2004l[?2004h>   learning_rate: 1e-5
+[?2004l[?2004h>   max_num_epochs: 100
+[?2004l[?2004h> EOF
+[?2004l[?2004hroot@0683b4795d80:/app/src# python /app/src/main.py +mode=debug --cfg job
+[?2004lMultiple values for mode. To override a value use 'override mode: debug'
+
+Set the environment variable HYDRA_FULL_ERROR=1 for a complete stack trace.
+[?2004hroot@0683b4795d80:/app/src# python /app/src/main.py override mode=debug --cfg job
+[?2004lError parsing override 'override'
+missing EQUAL at '<EOF>'
+See https://hydra.cc/docs/1.2/advanced/override_grammar/basic for details
+
+Set the environment variable HYDRA_FULL_ERROR=1 for a complete stack trace.
+[?2004hroot@0683b4795d80:/app/src# python /app/src/main.py mode=debug --cfg job
+[?2004lnotes: my-experiment
+debug: false
+train:
+  batch_size: 32
+  learning_rate: 1.0e-05
+  max_num_epochs: 100
+mode:
+  debug: true
+  train:
+    max_num_epochs: 1
+[?2004hroot@0683b4795d80:/app/src# cat > /app/src/config/config.yaml << 'EOF'
+[?2004l[?2004h> defaults:
+[?2004l[?2004h>   - _self_
+[?2004l[?2004h> 
+[?2004l[?2004h> notes: my-experiment
+[?2004l[?2004h> 
+[?2004l[?2004h> debug: false
+[?2004l[?2004h> train:
+[?2004l[?2004h>   batch_size: 32
+[?2004l[?2004h>   learning_rate: 1e-5
+[?2004l[?2004h>   max_num_epochs: 100
+[?2004l[?2004h> EOF
+[?2004l[?2004hroot@0683b4795d80:/app/src# python /app/src/main.py +mode=debug --cfg job
+[?2004lnotes: my-experiment
+debug: false
+train:
+  batch_size: 32
+  learning_rate: 1.0e-05
+  max_num_epochs: 100
+mode:
+  debug: true
+  train:
+    max_num_epochs: 1
+[?2004hroot@0683b4795d80:/app/src# rm -rf /app/src/config/mode
+[?2004l[?2004hroot@0683b4795d80:/app/src# cat > /app/src/config/debug.yaml << 'EOF'
+[?2004l[?2004h> debug: true
+[?2004l[?2004h> 
+[?2004l[?2004h> train:
+[?2004l[?2004h>   max_num_epochs: 1
+[?2004l[?2004h> EOF
+[?2004l[?2004hroot@0683b4795d80:/app/src# python /app/src/main.py debug.yaml --cfg job
+[?2004lError parsing override 'debug.yaml'
+missing EQUAL at '<EOF>'
+See https://hydra.cc/docs/1.2/advanced/override_grammar/basic for details
+
+Set the environment variable HYDRA_FULL_ERROR=1 for a complete stack trace.
+[?2004hroot@0683b4795d80:/app/src# cat > /app/src/config/config.yaml << 'EOF'
+[?2004l[?2004h> defaults:
+[?2004l[?2004h>   - _self_
+[?2004l[?2004h>   - mode: null
+[?2004l[?2004h> 
+[?2004l[?2004h> notes: my-experiment
+[?2004l[?2004h> 
+[?2004l[?2004h> debug: false
+[?2004l[?2004h> train:
+[?2004l[?2004h>   batch_size: 32
+[?2004l[?2004h>   learning_rate: 1e-5
+[?2004l[?2004h>   max_num_epochs: 100
+[?2004l[?2004h> EOF
+[?2004l[?2004hroot@0683b4795d80:/app/src# mkdir -p /app/src/config/mode
+[?2004l[?2004hroot@0683b4795d80:/app/src# cat > /app/src/config/mode/debug.yaml << 'EOF'
+[?2004l[?2004h> debug: true
+[?2004l[?2004h> 
+[?2004l[?2004h> train:
+[?2004l[?2004h>   max_num_epochs: 1
+[?2004l[?2004h> EOF
+[?2004l[?2004hroot@0683b4795d80:/app/src# python /app/src/main.py mode=debug --cfg job
+[?2004lnotes: my-experiment
+debug: false
+train:
+  batch_size: 32
+  learning_rate: 1.0e-05
+  max_num_epochs: 100
+mode:
+  debug: true
+  train:
+    max_num_epochs: 1
+[?2004hroot@0683b4795d80:/app/src# cat > /app/src/config/config.yaml << 'EOF'
+[?2004l[?2004h> defaults:
+[?2004l[?2004h>   - _self_
+[?2004l[?2004h> 
+[?2004l[?2004h> notes: my-experiment
+[?2004l[?2004h> 
+[?2004l[?2004h> debug: false
+[?2004l[?2004h> train:
+[?2004l[?2004h>   batch_size: 32
+[?2004l[?2004h>   learning_rate: 1e-5
+[?2004l[?2004h>   max_num_epochs: 100
+[?2004l[?2004h> EOF
+[?2004l[?2004hroot@0683b4795d80:/app/src# cat > /app/src/config/debug.yaml << 'EOF'
+[?2004l[?2004h> debug: true
+[?2004l[?2004h> 
+[?2004l[?2004h> train:
+[?2004l[?2004h>   max_num_epochs: 1
+[?2004l[?2004h> EOF
+[?2004l[?2004hroot@0683b4795d80:/app/src# cat > /app/src/config/debug_config.yaml << 'EOF'
+[?2004l[?2004h> defaults:
+[?2004l[?2004h>   - config
+[?2004l[?2004h>   - debug
+[?2004l[?2004h> 
+[?2004l[?2004h> notes: my-experiment
+[?2004l[?2004h> EOF
+[?2004l[?2004hroot@0683b4795d80:/app/src# python /app/src/main.py --config-name=debug_config --cfg job
+[?2004l/usr/local/lib/python3.13/site-packages/hydra/_internal/defaults_list.py:251: UserWarning: In 'debug_config': Defaults list is missing `_self_`. See https://hydra.cc/docs/1.2/upgrades/1.0_to_1.1/default_composition_order for more information
+  warnings.warn(msg, UserWarning)
+notes: my-experiment
+debug: true
+train:
+  batch_size: 32
+  learning_rate: 1.0e-05
+  max_num_epochs: 1
+[?2004hroot@0683b4795d80:/app/src# cat > /app/src/config/config.yaml << 'EOF'
+[?2004l[?2004h> defaults:
+[?2004l[?2004h>   - _self_
+[?2004l[?2004h>   - mode: null
+[?2004l[?2004h> 
+[?2004l[?2004h> notes: my-experiment
+[?2004l[?2004h> 
+[?2004l[?2004h> debug: false
+[?2004l[?2004h> train:
+[?2004l[?2004h>   batch_size: 32
+[?2004l[?2004h>   learning_rate: 1e-5
+[?2004l[?2004h>   max_num_epochs: 100
+[?2004l[?2004h> EOF
+[?2004l[?2004hroot@0683b4795d80:/app/src# cat > /app/src/config/mode/debug.yaml << 'EOF'
+[?2004l[?2004h> debug: true
+[?2004l[?2004h> 
+[?2004l[?2004h> train:
+[?2004l[?2004h>   max_num_epochs: 1
+[?2004l[?2004h> EOF
+[?2004l[?2004hroot@0683b4795d80:/app/src# python /app/src/main.py 'mode=debug' --cfg job
+[?2004lnotes: my-experiment
+debug: false
+train:
+  batch_size: 32
+  learning_rate: 1.0e-05
+  max_num_epochs: 100
+mode:
+  debug: true
+  train:
+    max_num_epochs: 1
+[?2004hroot@0683b4795d80:/app/src# cat > /app/src/config/config.yaml << 'EOF'
+[?2004l[?2004h> defaults:
+[?2004l[?2004h>   - _self_
+[?2004l[?2004h>   - mode: debug
+[?2004l[?2004h> 
+[?2004l[?2004h> notes: my-experiment
+[?2004l[?2004h> 
+[?2004l[?2004h> debug: false
+[?2004l[?2004h> train:
+[?2004l[?2004h>   batch_size: 32
+[?2004l[?2004h>   learning_rate: 1e-5
+[?2004l[?2004h>   max_num_epochs: 100
+[?2004l[?2004h> EOF
+[?2004l[?2004hroot@0683b4795d80:/app/src# python /app/src/main.py --cfg job
+[?2004lnotes: my-experiment
+debug: false
+train:
+  batch_size: 32
+  learning_rate: 1.0e-05
+  max_num_epochs: 100
+mode:
+  debug: true
+  train:
+    max_num_epochs: 1
+[?2004hroot@0683b4795d80:/app/src# cat > /app/src/config/config.yaml << 'EOF'
+[?2004l[?2004h> defaults:
+[?2004l[?2004h>   - _self_
+[?2004l[?2004h> 
+[?2004l[?2004h> notes: my-experiment
+[?2004l[?2004h> 
+[?2004l[?2004h> debug: false
+[?2004l[?2004h> train:
+[?2004l[?2004h>   batch_size: 32
+[?2004l[?2004h>   learning_rate: 1e-5
+[?2004l[?2004h>   max_num_epochs: 100
+[?2004l[?2004h> EOF
+[?2004l[?2004hroot@0683b4795d80:/app/src# rm -rf /app/src/config/mode
+[?2004l[?2004hroot@0683b4795d80:/app/src# cat > /app/src/config/mode/debug.yaml << 'EOF'
+[?2004l[?2004h> # @package _global_
+[?2004l[?2004h> 
+[?2004l[?2004h> debug: true
+[?2004l[?2004h> 
+[?2004l[?2004h> train:
+[?2004l[?2004h>   max_num_epochs: 1
+[?2004l[?2004h> EOF
+[?2004lbash: /app/src/config/mode/debug.yaml: No such file or directory
+[?2004hroot@0683b4795d80:/app/src# python /app/src/main.py +mode=debug --cfg job
+[?2004lnotes: my-experiment
+debug: false
+train:
+  batch_size: 32
+  learning_rate: 1.0e-05
+  max_num_epochs: 100
+mode: debug
+[?2004hroot@0683b4795d80:/app/src# mkdir -p /app/src/config/mode
+[?2004l[?2004hroot@0683b4795d80:/app/src# cat > /app/src/config/mode/debug.yaml << 'EOF'
+[?2004l[?2004h> # @package _global_
+[?2004l[?2004h> 
+[?2004l[?2004h> debug: true
+[?2004l[?2004h> 
+[?2004l[?2004h> train:
+[?2004l[?2004h>   max_num_epochs: 1
+[?2004l[?2004h> EOF
+[?2004l[?2004hroot@0683b4795d80:/app/src# python /app/src/main.py +mode=debug --cfg job
+[?2004lnotes: my-experiment
+debug: true
+train:
+  batch_size: 32
+  learning_rate: 1.0e-05
+  max_num_epochs: 1
+[?2004hroot@0683b4795d80:/app/src# cat > /app/src/config/slurm.yaml << 'EOF'
+[?2004l[?2004h> # @package _global_
+[?2004l[?2004h> 
+[?2004l[?2004h> hydra:
+[?2004l[?2004h>   launcher:
+[?2004l[?2004h>     _target_: hydra_plugins.hydra_submitit_launcher.submitit_launcher.SlurmLauncher
+[?2004l[?2004h>     timeout_min: 60
+[?2004l[?2004h>     cpus_per_task: 4
+[?2004l[?2004h>     gpus_per_node: 0
+[?2004l[?2004h>     tasks_per_node: 1
+[?2004l[?2004h>     nodes: 1
+[?2004l[?2004h>     additional_parameters:
+[?2004l[?2004h>       wckey: ''
+[?2004l[?2004h>     srun_args:
+[?2004l[?2004h>       - '--cpu-bind=none'
+[?2004l[?2004h>     comment: ''
+[?2004l[?2004h> 
+[?2004l[?2004h> _debug: false
+[?2004l[?2004h> EOF
+[?2004l[?2004hroot@0683b4795d80:/app/src# python /app/src/main.py -cn=slurm --cfg job
+[?2004lIn 'slurm': ConfigKeyError raised while composing config:
+Key 'timeout_min' not in 'BasicLauncherConf'
+    full_key: hydra.launcher.timeout_min
+    object_type=BasicLauncherConf
+
+Set the environment variable HYDRA_FULL_ERROR=1 for a complete stack trace.
+[?2004hroot@0683b4795d80:/app/src# python /app/src/main.py -cn=slurm --cfg hydra 2>&1 | head -50
+[?2004lIn 'slurm': ConfigKeyError raised while composing config:
+Key 'timeout_min' not in 'BasicLauncherConf'
+    full_key: hydra.launcher.timeout_min
+    object_type=BasicLauncherConf
+
+Set the environment variable HYDRA_FULL_ERROR=1 for a complete stack trace.
+[?2004hroot@0683b4795d80:/app/src# cat > /app/src/config/slurm.yaml << 'EOF'
+[?2004l[?2004h> # @package _global_
+[?2004l[?2004h> 
+[?2004l[?2004h> hydra:
+[?2004l[?2004h>   launcher:
+[?2004l[?2004h>     _target_: hydra_plugins.hydra_submitit_launcher.submitit_launcher.SlurmLauncher
+[?2004l[?2004h>     folder: /tmp/${hydra:run.dir}/slurm
+[?2004l[?2004h>     submitit_folder: /tmp/${hydra:run.dir}/submitit
+[?2004l[?2004h>     max_num_timeout: 3
+[?2004l[?2004h>     cpus_per_task: 4
+[?2004l[?2004h>     gpus_per_node: 0
+[?2004l[?2004h>     tasks_per_node: 1
+[?2004l[?2004h>     nodes: 1
+[?2004l[?2004h>     mem_gb: 8
+[?2004l[?2004h>     partition: null
+[?2004l[?2004h>     additional_parameters:
+[?2004l[?2004h>       wckey: ''
+[?2004l[?2004h>     srun_args:
+[?2004l[?2004h>       - '--cpu-bind=none'
+[?2004l[?2004h>     comment: ''
+[?2004l[?2004h> 
+[?2004l[?2004h> _debug: false
+[?2004l[?2004h> EOF
+[?2004l[?2004hroot@0683b4795d80:/app/src# python /app/src/main.py -cn=slurm --cfg job
+[?2004lIn 'slurm': ConfigKeyError raised while composing config:
+Key 'folder' not in 'BasicLauncherConf'
+    full_key: hydra.launcher.folder
+    object_type=BasicLauncherConf
+
+Set the environment variable HYDRA_FULL_ERROR=1 for a complete stack trace.
+[?2004hroot@0683b4795d80:/app/src# cat > /app/src/config/slurm.yaml << 'EOF'
+[?2004l[?2004h> # @package _global_
+[?2004l[?2004h> 
+[?2004l[?2004h> hydra:
+[?2004l[?2004h>   launcher:
+[?2004l[?2004h>     _target_: hydra_plugins.hydra_submitit_launcher.submitit_launcher.SlurmLauncher
+[?2004l[?2004h> 
+[?2004l[?2004h> _debug: false
+[?2004l[?2004h> EOF
+[?2004l[?2004hroot@0683b4795d80:/app/src# python /app/src/main.py -cn=slurm --cfg job
+[?2004l_debug: false
+[?2004hroot@0683b4795d80:/app/src# cat > /app/src/config/slurm.yaml << 'EOF'
+[?2004l[?2004h> # @package _global_
+[?2004l[?2004h> 
+[?2004l[?2004h> hydra:
+[?2004l[?2004h>   launcher:
+[?2004l[?2004h>     _target_: hydra_plugins.hydra_submitit_launcher.submitit_launcher.SlurmLauncher
+[?2004l[?2004h>     _call_: null
+[?2004l[?2004h> 
+[?2004l[?2004h> _debug: false
+[?2004l[?2004h> EOF
+[?2004l[?2004hroot@0683b4795d80:/app/src# python /app/src/main.py -cn=slurm --cfg job
+[?2004lIn 'slurm': ConfigKeyError raised while composing config:
+Key '_call_' not in 'BasicLauncherConf'
+    full_key: hydra.launcher._call_
+    object_type=BasicLauncherConf
+
+Set the environment variable HYDRA_FULL_ERROR=1 for a complete stack trace.
+[?2004hroot@0683b4795d80:/app/src# cat > /app/src/config/slurm.yaml << 'EOF'
+[?2004l[?2004h> # @package _global_
+[?2004l[?2004h> 
+[?2004l[?2004h> hydra:
+[?2004l[?2004h>   launcher:
+[?2004l[?2004h>     _target_: hydra_plugins.hydra_submitit_launcher.submitit_launcher.SlurmLauncher
+[?2004l[?2004h>   config:
+[?2004l[?2004h>     hydra:
+[?2004l[?2004h>       launcher:
+[?2004l[?2004h>         _target_: hydra_plugins.hydra_submitit_launcher.submitit_launcher.SlurmLauncher
+[?2004l[?2004h>         additional_parameters:
+[?2004l[?2004h>           wckey: ''
+[?2004l[?2004h>         srun_args:
+[?2004l[?2004h>           - '--cpu-bind=none'
+[?2004l[?2004h> 
+[?2004l[?2004h> _debug: false
+[?2004l[?2004h> EOF
+[?2004l[?2004hroot@0683b4795d80:/app/src# python /app/src/main.py -cn=slurm --cfg job
+[?2004lIn 'slurm': ConfigKeyError raised while composing config:
+Key 'config' not in 'HydraConf'
+    full_key: hydra.config
+    object_type=HydraConf
+
+Set the environment variable HYDRA_FULL_ERROR=1 for a complete stack trace.
+[?2004hroot@0683b4795d80:/app/src# cat > /app/src/config/slurm.yaml << 'EOF'
+[?2004l[?2004h> # @package _global_
+[?2004l[?2004h> 
+[?2004l[?2004h> hydra:
+[?2004l[?2004h>   launcher:
+[?2004l[?2004h>     _target_: hydra_plugins.hydra_submitit_launcher.submitit_launcher.SlurmLauncher
+[?2004l[?2004h>   job:
+[?2004l[?2004h>     config:
+[?2004l[?2004h>       hydra:
+[?2004l[?2004h>         launcher:
+[?2004l[?2004h>           _target_: hydra_plugins.hydra_submitit_launcher.submitit_launcher.SlurmLauncher
+[?2004l[?2004h>           additional_parameters:
+[?2004l[?2004h>             wckey: ''
+[?2004l[?2004h>           srun_args:
+[?2004l[?2004h>             - '--cpu-bind=none'
+[?2004l[?2004h> 
+[?2004l[?2004h> _debug: false
+[?2004l[?2004h> EOF
+[?2004l[?2004hroot@0683b4795d80:/app/src# python /app/src/main.py -cn=slurm --cfg job
+[?2004lIn 'slurm': ConfigKeyError raised while composing config:
+Key 'hydra' not in 'JobConfig'
+    full_key: hydra.job.config.hydra
+    reference_type=JobConfig
+    object_type=JobConfig
+
+Set the environment variable HYDRA_FULL_ERROR=1 for a complete stack trace.
+[?2004hroot@0683b4795d80:/app/src# python -c "from hydra_plugins.hydra_submitit_launcher.submitit_launcher import SlurmLauncher; import inspect; print(inspect.signature(SlurmLauncher.__init__))"
+[?2004l(self, **params: Any) -> None
+[?2004hroot@0683b4795d80:/app/src# cat > /app/src/config/slurm.yaml << 'EOF'
+[?2004l[?2004h> # @package _global_
+[?2004l[?2004h> 
+[?2004l[?2004h> hydra:
+[?2004l[?2004h>   launcher:
+[?2004l[?2004h>     _target_: hydra_plugins.hydra_submitit_launcher.submitit_launcher.SlurmLauncher
+[?2004l[?2004h>     _convert_: none
+[?2004l[?2004h>     additional_parameters:
+[?2004l[?2004h>       wckey: ''
+[?2004l[?2004h>     srun_args:
+[?2004l[?2004h>       - '--cpu-bind=none'
+[?2004l[?2004h> 
+[?2004l[?2004h> _debug: false
+[?2004l[?2004h> EOF
+[?2004l[?2004hroot@0683b4795d80:/app/src# python /app/src/main.py -cn=slurm --cfg job
+[?2004lIn 'slurm': ConfigKeyError raised while composing config:
+Key '_convert_' not in 'BasicLauncherConf'
+    full_key: hydra.launcher._convert_
+    object_type=BasicLauncherConf
+
+Set the environment variable HYDRA_FULL_ERROR=1 for a complete stack trace.
+[?2004hroot@0683b4795d80:/app/src# python -c "from hydra.conf import HydraConf; from omegaconf import OmegaConf; print(OmegaConf.structured(HydraConf))" 2>&1 | head -100
+[?2004l{'defaults': [{'output': 'default'}, {'launcher': 'basic'}, {'sweeper': 'basic'}, {'help': 'default'}, {'hydra_help': 'default'}, {'hydra_logging': 'default'}, {'job_logging': 'default'}, {'callbacks': None}, {'env': 'default'}], 'mode': None, 'searchpath': [], 'run': {'dir': '???'}, 'sweep': {'dir': '???', 'subdir': '???'}, 'hydra_logging': '???', 'job_logging': '???', 'sweeper': '???', 'launcher': '???', 'callbacks': {}, 'help': {'app_name': '???', 'header': '???', 'footer': '???', 'template': '???'}, 'hydra_help': {'hydra_help': '???', 'template': '???'}, 'output_subdir': '.hydra', 'overrides': {'hydra': [], 'task': []}, 'job': {'name': '???', 'chdir': None, 'override_dirname': '???', 'id': '???', 'num': '???', 'config_name': '???', 'env_set': {}, 'env_copy': [], 'config': {'override_dirname': {'kv_sep': '=', 'item_sep': ',', 'exclude_keys': []}}}, 'runtime': {'version': '???', 'version_base': '???', 'cwd': '???', 'config_sources': '???', 'output_dir': '???', 'choices': {}}, 'verbose': False}
+[?2004hroot@0683b4795d80:/app/src# cat > /app/src/config/slurm.yaml << 'EOF'
+[?2004l[?2004h> # @package _global_
+[?2004l[?2004h> 
+[?2004l[?2004h> hydra:
+[?2004l[?2004h>   launcher: null
+[?2004l[?2004h>   launcher:
+[?2004l[?2004h>     _target_: hydra_plugins.hydra_submitit_launcher.submitit_launcher.SlurmLauncher
+[?2004l[?2004h>     additional_parameters:
+[?2004l[?2004h>       wckey: ''
+[?2004l[?2004h>     srun_args:
+[?2004l[?2004h>       - '--cpu-bind=none'
+[?2004l[?2004h> 
+[?2004l[?2004h> _debug: false
+[?2004l[?2004h> EOF
+[?2004l[?2004hroot@0683b4795d80:/app/src# python /app/src/main.py -cn=slurm --cfg job
+[?2004lTraceback (most recent call last):
+  File "/usr/local/lib/python3.13/site-packages/hydra/_internal/utils.py", line 219, in run_and_report
+    return func()
+  File "/usr/local/lib/python3.13/site-packages/hydra/_internal/utils.py", line 405, in <lambda>
+    lambda: hydra.show_cfg(
+            ~~~~~~~~~~~~~~^
+        config_name=config_name,
+        ^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<3 lines>...
+        resolve=args.resolve,
+        ^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/usr/local/lib/python3.13/site-packages/hydra/_internal/hydra.py", line 195, in show_cfg
+    cfg = self.compose_config(
+        config_name=config_name,
+    ...<2 lines>...
+        with_log_configuration=False,
+    )
+  File "/usr/local/lib/python3.13/site-packages/hydra/_internal/hydra.py", line 594, in compose_config
+    cfg = self.config_loader.load_configuration(
+        config_name=config_name,
+    ...<3 lines>...
+        validate_sweep_overrides=validate_sweep_overrides,
+    )
+  File "/usr/local/lib/python3.13/site-packages/hydra/_internal/config_loader_impl.py", line 142, in load_configuration
+    return self._load_configuration_impl(
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        config_name=config_name,
+        ^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<3 lines>...
+        validate_sweep_overrides=validate_sweep_overrides,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/usr/local/lib/python3.13/site-packages/hydra/_internal/config_loader_impl.py", line 244, in _load_configuration_impl
+    parsed_overrides, caching_repo = self._parse_overrides_and_create_caching_repo(
+                                     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        config_name, overrides
+        ^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/usr/local/lib/python3.13/site-packages/hydra/_internal/config_loader_impl.py", line 230, in _parse_overrides_and_create_caching_repo
+    self._process_config_searchpath(config_name, parsed_overrides, caching_repo)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.13/site-packages/hydra/_internal/config_loader_impl.py", line 159, in _process_config_searchpath
+    loaded = repo.load_config(config_path=config_name)
+  File "/usr/local/lib/python3.13/site-packages/hydra/_internal/config_repository.py", line 349, in load_config
+    ret = self.delegate.load_config(config_path=config_path)
+  File "/usr/local/lib/python3.13/site-packages/hydra/_internal/config_repository.py", line 92, in load_config
+    ret = source.load_config(config_path=config_path)
+  File "/usr/local/lib/python3.13/site-packages/hydra/_internal/core_plugins/file_config_source.py", line 31, in load_config
+    cfg = OmegaConf.load(f)
+  File "/usr/local/lib/python3.13/site-packages/omegaconf/omegaconf.py", line 192, in load
+    obj = yaml.load(file_, Loader=get_yaml_loader())
+  File "/usr/local/lib/python3.13/site-packages/yaml/__init__.py", line 81, in load
+    return loader.get_single_data()
+           ~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/usr/local/lib/python3.13/site-packages/yaml/constructor.py", line 51, in get_single_data
+    return self.construct_document(node)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/usr/local/lib/python3.13/site-packages/yaml/constructor.py", line 60, in construct_document
+    for dummy in generator:
+                 ^^^^^^^^^
+  File "/usr/local/lib/python3.13/site-packages/yaml/constructor.py", line 413, in construct_yaml_map
+    value = self.construct_mapping(node)
+  File "/usr/local/lib/python3.13/site-packages/omegaconf/_utils.py", line 144, in construct_mapping
+    raise yaml.constructor.ConstructorError(
+    ...<4 lines>...
+    )
+yaml.constructor.ConstructorError: while constructing a mapping
+  in "/app/src/config/slurm.yaml", line 4, column 3
+found duplicate key launcher
+  in "/app/src/config/slurm.yaml", line 5, column 3
+[?2004hroot@0683b4795d80:/app/src# cat > /app/src/config/slurm.yaml << 'EOF'
+[?2004l[?2004h> # @package _global_
+[?2004l[?2004h> 
+[?2004l[?2004h> hydra:
+[?2004l[?2004h>   launcher:
+[?2004l[?2004h>     _target_: hydra_plugins.hydra_submitit_launcher.submitit_launcher.SlurmLauncher
+[?2004l[?2004h> 
+[?2004l[?2004h> _debug: false
+[?2004l[?2004h> EOF
+[?2004l[?2004hroot@0683b4795d80:/app/src# python /app/src/main.py -cn=slurm --cfg job
+[?2004l_debug: false
+[?2004hroot@0683b4795d80:/app/src# python -c "from hydra.conf import HydraConf; from omegaconf import OmegaConf; h = OmegaConf.structured(HydraConf); print(OmegaConf.to_yaml(h.launcher))"
+[?2004lTraceback (most recent call last):
+  File [35m"<string>"[0m, line [35m1[0m, in [35m<module>[0m
+    from hydra.conf import HydraConf; from omegaconf import OmegaConf; h = OmegaConf.structured(HydraConf); print(OmegaConf.to_yaml([1;31mh.launcher[0m))
+                                                                                                                                    [1;31m^^^^^^^^^^[0m
+  File [35m"/usr/local/lib/python3.13/site-packages/omegaconf/dictconfig.py"[0m, line [35m359[0m, in [35m__getattr__[0m
+    [31mself._format_and_raise[0m[1;31m(key=key, value=None, cause=e)[0m
+    [31m~~~~~~~~~~~~~~~~~~~~~~[0m[1;31m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  File [35m"/usr/local/lib/python3.13/site-packages/omegaconf/base.py"[0m, line [35m231[0m, in [35m_format_and_raise[0m
+    [31mformat_and_raise[0m[1;31m([0m
+    [31m~~~~~~~~~~~~~~~~[0m[1;31m^[0m
+        [1;31mnode=self,[0m
+        [1;31m^^^^^^^^^^[0m
+    ...<4 lines>...
+        [1;31mtype_override=type_override,[0m
+        [1;31m^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+    [1;31m)[0m
+    [1;31m^[0m
+  File [35m"/usr/local/lib/python3.13/site-packages/omegaconf/_utils.py"[0m, line [35m899[0m, in [35mformat_and_raise[0m
+    [31m_raise[0m[1;31m(ex, cause)[0m
+    [31m~~~~~~[0m[1;31m^^^^^^^^^^^[0m
+  File [35m"/usr/local/lib/python3.13/site-packages/omegaconf/_utils.py"[0m, line [35m797[0m, in [35m_raise[0m
+    [1;31mraise ex.with_traceback(sys.exc_info()[2])[0m  # set env var OC_CAUSE=1 for full trace
+    [1;31m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  File [35m"/usr/local/lib/python3.13/site-packages/omegaconf/dictconfig.py"[0m, line [35m351[0m, in [35m__getattr__[0m
+    return [31mself._get_impl[0m[1;31m([0m
+           [31m~~~~~~~~~~~~~~[0m[1;31m^[0m
+        [1;31mkey=key, default_value=_DEFAULT_MARKER_, validate_key=False[0m
+        [1;31m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+    [1;31m)[0m
+    [1;31m^[0m
+  File [35m"/usr/local/lib/python3.13/site-packages/omegaconf/dictconfig.py"[0m, line [35m451[0m, in [35m_get_impl[0m
+    return [31mself._resolve_with_default[0m[1;31m([0m
+           [31m~~~~~~~~~~~~~~~~~~~~~~~~~~[0m[1;31m^[0m
+        [1;31mkey=key, value=node, default_value=default_value[0m
+        [1;31m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+    [1;31m)[0m
+    [1;31m^[0m
+  File [35m"/usr/local/lib/python3.13/site-packages/omegaconf/basecontainer.py"[0m, line [35m96[0m, in [35m_resolve_with_default[0m
+    raise MissingMandatoryValue("Missing mandatory value: $FULL_KEY")
+[1;35momegaconf.errors.MissingMandatoryValue[0m: [35mMissing mandatory value: launcher
+    full_key: launcher
+    object_type=HydraConf[0m
+[?2004hroot@0683b4795d80:/app/src# python -c "
+[?2004l[?2004h> from hydra.conf import HydraConf
+[?2004l[?2004h> from omegaconf import OmegaConf
+[?2004l[?2004h> from hydra.core.plugins import Plugins
+[?2004l[?2004h> from hydra.plugins.launcher import Launcher
+[?2004l[?2004h> 
+[?2004l[?2004h> # Check available launchers
+[?2004l[?2004h> Plugins.instance().discover()
+[?2004l[?2004h> print('Available launchers:', [p.name for p in Plugins.instance().get_launchers()])
+[?2004l[?2004h> "
+[?2004lTraceback (most recent call last):
+  File [35m"<string>"[0m, line [35m9[0m, in [35m<module>[0m
+    print('Available launchers:', [p.name for p in [1;31mPlugins.instance().get_launchers[0m()])
+                                                   [1;31m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+[1;35mAttributeError[0m: [35m'Plugins' object has no attribute 'get_launchers'[0m
+[?2004hroot@0683b4795d80:/app/src# python -c "
+[?2004l[?2004h> from hydra.core.plugins import Plugins
+[?2004l[?2004h> Plugins.instance().discover()
+[?2004l[?2004h> print(dir(Plugins.instance()))
+[?2004l[?2004h> "
+[?2004l['__class__', '__delattr__', '__dict__', '__dir__', '__doc__', '__eq__', '__firstlineno__', '__format__', '__ge__', '__getattribute__', '__getstate__', '__gt__', '__hash__', '__init__', '__init_subclass__', '__le__', '__lt__', '__module__', '__ne__', '__new__', '__reduce__', '__reduce_ex__', '__repr__', '__setattr__', '__sizeof__', '__static_attributes__', '__str__', '__subclasshook__', '__weakref__', '_initialize', '_instantiate', '_register', '_scan_all_plugins', 'check_usage', 'class_name_to_class', 'discover', 'get_stats', 'instance', 'instantiate_launcher', 'instantiate_sweeper', 'is_in_toplevel_plugins_module', 'plugin_type_to_subclass_list', 'register', 'stats']
+[?2004hroot@0683b4795d80:/app/src# python -c "
+[?2004l[?2004h> from hydra.core.plugins import Plugins
+[?2004l[?2004h> Plugins.instance().discover()
+[?2004l[?2004h> print('Launcher types:', Plugins.instance().plugin_type_to_subclass_list['hydra.plugins.launcher.Launcher'])
+[?2004l[?2004h> "
+[?2004lLauncher types: []
+[?2004hroot@0683b4795d80:/app/src# python -c "
+[?2004l[?2004h> from hydra_plugins.hydra_submitit_launcher.submitit_launcher import SlurmLauncher
+[?2004l[?2004h> from hydra.conf import HydraConf
+[?2004l[?2004h> print('SlurmLauncher:', SlurmLauncher)
+[?2004l[?2004h> print('HydraConf launcher:', HydraConf.launcher)
+[?2004l[?2004h> "
+[?2004lSlurmLauncher: <class 'hydra_plugins.hydra_submitit_launcher.submitit_launcher.SlurmLauncher'>
+HydraConf launcher: ???
+[?2004hroot@0683b4795d80:/app/src# python -c "
+[?2004l[?2004h> from hydra.core.config_loader import ConfigLoader
+[?2004l[?2004h> from hydra.core.global_hydra import GlobalHydra
+[?2004l[?2004h> from omegaconf import OmegaConf
+[?2004l[?2004h> 
+[?2004l[?2004h> # Get the default config
+[?2004l[?2004h> GlobalHydra.instance().clear()
+[?2004l[?2004h> config_loader = ConfigLoader(
+[?2004l[?2004h>     config_search_path={
+[?2004l[?2004h>         'path': '/app/src/config',
+[?2004l[?2004h>         'provider': 'app',
+[?2004l[?2004h>     },
+[?2004l[?2004h> )
+[?2004l[?2004h> 
+[?2004l[?2004h> # Try to load the slurm config
+[?2004l[?2004h> try:
+[?2004l[?2004h>     cfg = config_loader.load_configuration(
+[?2004l[?2004h>         config_name='slurm',
+[?2004l[?2004h>         overrides=[],
+[?2004l[?2004h>         run_mode=None,
+[?2004l[?2004h>     )
+[?2004l[?2004h>     print('Config:', OmegaConf.to_yaml(cfg))
+[?2004l[?2004h> except Exception as e:
+[?2004l[?2004h>     print('Error:', e)
+[?2004l[?2004h>     import traceback
+[?2004l[?2004h>     traceback.print_exc()
+[?2004l[?2004h> "
+[?2004lTraceback (most recent call last):
+  File [35m"<string>"[0m, line [35m8[0m, in [35m<module>[0m
+    config_loader = ConfigLoader(
+        config_search_path={
+    ...<2 lines>...
+        },
+    )
+[1;35mTypeError[0m: [35mConfigLoader() takes no arguments[0m
+[?2004hroot@0683b4795d80:/app/src# cat > /app/src/config/slurm.yaml << 'EOF'
+[?2004l[?2004h> # @package _global_
+[?2004l[?2004h> 
+[?2004l[?2004h> hydra:
+[?2004l[?2004h>   launcher:
+[?2004l[?2004h>     _target_: hydra_plugins.hydra_submitit_launcher.submitit_launcher.SlurmLauncher
+[?2004l[?2004h>     # Use only parameters that are in the BasicLauncherConf schema
+[?2004l[?2004h>     max_num_timeout: 3
+[?2004l[?2004h> 
+[?2004l[?2004h> _debug: false
+[?2004l[?2004h> EOF
+[?2004l[?2004hroot@0683b4795d80:/app/src# python /app/src/main.py -cn=slurm --cfg job
+[?2004lIn 'slurm': ConfigKeyError raised while composing config:
+Key 'max_num_timeout' not in 'BasicLauncherConf'
+    full_key: hydra.launcher.max_num_timeout
+    object_type=BasicLauncherConf
+
+Set the environment variable HYDRA_FULL_ERROR=1 for a complete stack trace.
+[?2004hroot@0683b4795d80:/app/src# python -c "
+[?2004l[?2004h> from hydra.conf import BasicLauncherConf
+[?2004l[?2004h> from omegaconf import OmegaConf
+[?2004l[?2004h> print(OmegaConf.to_yaml(OmegaConf.structured(BasicLauncherConf)))
+[?2004l[?2004h> "
+[?2004lTraceback (most recent call last):
+  File [35m"<string>"[0m, line [35m2[0m, in [35m<module>[0m
+    from hydra.conf import BasicLauncherConf
+[1;35mImportError[0m: [35mcannot import name 'BasicLauncherConf' from 'hydra.conf' (/usr/local/lib/python3.13/site-packages/hydra/conf/__init__.py)[0m
+[?2004hroot@0683b4795d80:/app/src# python -c "
+[?2004l[?2004h> import hydra
+[?2004l[?2004h> import hydra._internal.config_loader_impl as cli
+[?2004l[?2004h> print(dir(cli))
+[?2004l[?2004h> "
+[?2004l['Any', 'CachingConfigRepository', 'ConfigAttributeError', 'ConfigCompositionException', 'ConfigKeyError', 'ConfigLoadError', 'ConfigLoader', 'ConfigLoaderImpl', 'ConfigRepository', 'ConfigResult', 'ConfigSearchPath', 'ConfigSource', 'ConfigSourceInfo', 'Container', 'DefaultsList', 'DictConfig', 'IConfigRepository', 'JobRuntime', 'List', 'MissingConfigException', 'MutableSequence', 'ObjectType', 'OmegaConf', 'OmegaConfBaseException', 'Optional', 'Override', 'OverridesParser', 'ResultDefault', 'RunMode', 'Tuple', 'ValueType', '__builtins__', '__cached__', '__doc__', '__file__', '__loader__', '__name__', '__package__', '__spec__', 'copy', 'create_defaults_list', 'dedent', 'deprecation_warning', 'flag_override', 'get_overrides_dirname', 'open_dict', 'os', 're', 'sys', 'warnings']
+[?2004hroot@0683b4795d80:/app/src# grep -r "BasicLauncherConf" /usr/local/lib/python3.13/site-packages/hydra/ 2>/dev/null | head -20
+[?2004l/usr/local/lib/python3.13/site-packages/hydra/_internal/core_plugins/basic_launcher.py:class BasicLauncherConf:
+/usr/local/lib/python3.13/site-packages/hydra/_internal/core_plugins/basic_launcher.py:    group="hydra/launcher", name="basic", node=BasicLauncherConf, provider="hydra"
+[?2004hroot@0683b4795d80:/app/src# cat /usr/local/lib/python3.13/site-packages/hydra/_internal/core_plugins/basic_launcher.py
+[?2004l# Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved
+import logging
+from dataclasses import dataclass
+from pathlib import Path
+from typing import List, Optional, Sequence
+
+from omegaconf import DictConfig, open_dict
+
+from hydra.core.config_store import ConfigStore
+from hydra.core.utils import (
+    JobReturn,
+    configure_log,
+    filter_overrides,
+    run_job,
+    setup_globals,
+)
+from hydra.plugins.launcher import Launcher
+from hydra.types import HydraContext, TaskFunction
+
+log = logging.getLogger(__name__)
+
+
+@dataclass
+class BasicLauncherConf:
+    _target_: str = "hydra._internal.core_plugins.basic_launcher.BasicLauncher"
+
+
+ConfigStore.instance().store(
+    group="hydra/launcher", name="basic", node=BasicLauncherConf, provider="hydra"
+)
+
+
+class BasicLauncher(Launcher):
+    def __init__(self) -> None:
+        super().__init__()
+        self.config: Optional[DictConfig] = None
+        self.task_function: Optional[TaskFunction] = None
+        self.hydra_context: Optional[HydraContext] = None
+
+    def setup(
+        self,
+        *,
+        hydra_context: HydraContext,
+        task_function: TaskFunction,
+        config: DictConfig,
+    ) -> None:
+        self.config = config
+        self.hydra_context = hydra_context
+        self.task_function = task_function
+
+    def launch(
+        self, job_overrides: Sequence[Sequence[str]], initial_job_idx: int
+    ) -> Sequence[JobReturn]:
+        setup_globals()
+        assert self.hydra_context is not None
+        assert self.config is not None
+        assert self.task_function is not None
+
+        configure_log(self.config.hydra.hydra_logging, self.config.hydra.verbose)
+        sweep_dir = self.config.hydra.sweep.dir
+        Path(str(sweep_dir)).mkdir(parents=True, exist_ok=True)
+        log.info(f"Launching {len(job_overrides)} jobs locally")
+        runs: List[JobReturn] = []
+        for idx, overrides in enumerate(job_overrides):
+            idx = initial_job_idx + idx
+            lst = " ".join(filter_overrides(overrides))
+            log.info(f"\t#{idx} : {lst}")
+            sweep_config = self.hydra_context.config_loader.load_sweep_config(
+                self.config, list(overrides)
+            )
+            with open_dict(sweep_config):
+                sweep_config.hydra.job.id = idx
+                sweep_config.hydra.job.num = idx
+            ret = run_job(
+                hydra_context=self.hydra_context,
+                task_function=self.task_function,
+                config=sweep_config,
+                job_dir_key="hydra.sweep.dir",
+                job_subdir_key="hydra.sweep.subdir",
+            )
+            runs.append(ret)
+            configure_log(self.config.hydra.hydra_logging, self.config.hydra.verbose)
+        return runs
+[?2004hroot@0683b4795d80:/app/src# grep -r "SlurmConf\|SlurmLauncherConf" /usr/local/lib/python3.13/site-packages/hydra_plugins/ 2>/dev/null | head -20
+[?2004l[?2004hroot@0683b4795d80:/app/src# cat /usr/local/lib/python3.13/site-packages/hydra_plugins/hydra_submitit_launcher/submitit_launcher.py
+[?2004l# Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved
+import logging
+import os
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Sequence
+
+from hydra.core.singleton import Singleton
+from hydra.core.utils import JobReturn, filter_overrides, run_job, setup_globals
+from hydra.plugins.launcher import Launcher
+from hydra.types import HydraContext, TaskFunction
+from omegaconf import DictConfig, OmegaConf, open_dict
+
+from .config import BaseQueueConf
+
+log = logging.getLogger(__name__)
+
+
+class BaseSubmititLauncher(Launcher):
+
+    _EXECUTOR = "abstract"
+
+    def __init__(self, **params: Any) -> None:
+        self.params = {}
+        for k, v in params.items():
+            if OmegaConf.is_config(v):
+                v = OmegaConf.to_container(v, resolve=True)
+            self.params[k] = v
+
+        self.config: Optional[DictConfig] = None
+        self.task_function: Optional[TaskFunction] = None
+        self.sweep_configs: Optional[TaskFunction] = None
+        self.hydra_context: Optional[HydraContext] = None
+
+    def setup(
+        self,
+        *,
+        hydra_context: HydraContext,
+        task_function: TaskFunction,
+        config: DictConfig,
+    ) -> None:
+        self.config = config
+        self.hydra_context = hydra_context
+        self.task_function = task_function
+
+    def __call__(
+        self,
+        sweep_overrides: List[str],
+        job_dir_key: str,
+        job_num: int,
+        job_id: str,
+        singleton_state: Dict[type, Singleton],
+    ) -> JobReturn:
+        # lazy import to ensure plugin discovery remains fast
+        import submitit
+
+        assert self.hydra_context is not None
+        assert self.config is not None
+        assert self.task_function is not None
+
+        Singleton.set_state(singleton_state)
+        setup_globals()
+        sweep_config = self.hydra_context.config_loader.load_sweep_config(
+            self.config, sweep_overrides
+        )
+
+        with open_dict(sweep_config.hydra.job) as job:
+            # Populate new job variables
+            job.id = submitit.JobEnvironment().job_id  # type: ignore
+            sweep_config.hydra.job.num = job_num
+
+        return run_job(
+            hydra_context=self.hydra_context,
+            task_function=self.task_function,
+            config=sweep_config,
+            job_dir_key=job_dir_key,
+            job_subdir_key="hydra.sweep.subdir",
+        )
+
+    def checkpoint(self, *args: Any, **kwargs: Any) -> Any:
+        """Resubmit the current callable at its current state with the same initial arguments."""
+        # lazy import to ensure plugin discovery remains fast
+        import submitit
+
+        return submitit.helpers.DelayedSubmission(self, *args, **kwargs)
+
+    def launch(
+        self, job_overrides: Sequence[Sequence[str]], initial_job_idx: int
+    ) -> Sequence[JobReturn]:
+        # lazy import to ensure plugin discovery remains fast
+        import submitit
+
+        assert self.config is not None
+
+        num_jobs = len(job_overrides)
+        assert num_jobs > 0
+        params = self.params
+        # build executor
+        init_params = {"folder": self.params["submitit_folder"]}
+        specific_init_keys = {"max_num_timeout"}
+
+        init_params.update(
+            **{
+                f"{self._EXECUTOR}_{x}": y
+                for x, y in params.items()
+                if x in specific_init_keys
+            }
+        )
+        init_keys = specific_init_keys | {"submitit_folder"}
+        executor = submitit.AutoExecutor(cluster=self._EXECUTOR, **init_params)
+
+        # specify resources/parameters
+        baseparams = set(OmegaConf.structured(BaseQueueConf).keys())
+        params = {
+            x if x in baseparams else f"{self._EXECUTOR}_{x}": y
+            for x, y in params.items()
+            if x not in init_keys
+        }
+        executor.update_parameters(**params)
+
+        log.info(
+            f"Submitit '{self._EXECUTOR}' sweep output dir : "
+            f"{self.config.hydra.sweep.dir}"
+        )
+        sweep_dir = Path(str(self.config.hydra.sweep.dir))
+        sweep_dir.mkdir(parents=True, exist_ok=True)
+        if "mode" in self.config.hydra.sweep:
+            mode = int(str(self.config.hydra.sweep.mode), 8)
+            os.chmod(sweep_dir, mode=mode)
+
+        job_params: List[Any] = []
+        for idx, overrides in enumerate(job_overrides):
+            idx = initial_job_idx + idx
+            lst = " ".join(filter_overrides(overrides))
+            log.info(f"\t#{idx} : {lst}")
+            job_params.append(
+                (
+                    list(overrides),
+                    "hydra.sweep.dir",
+                    idx,
+                    f"job_id_for_{idx}",
+                    Singleton.get_state(),
+                )
+            )
+
+        jobs = executor.map_array(self, *zip(*job_params))
+        return [j.results()[0] for j in jobs]
+
+
+class LocalLauncher(BaseSubmititLauncher):
+    _EXECUTOR = "local"
+
+
+class SlurmLauncher(BaseSubmititLauncher):
+    _EXECUTOR = "slurm"
+[?2004hroot@0683b4795d80:/app/src# cat > /app/src/config/slurm.yaml << 'EOF'
+[?2004l[?2004h> # @package _global_
+[?2004l[?2004h> 
+[?2004l[?2004h> hydra:
+[?2004l[?2004h>   launcher:
+[?2004l[?2004h>     _target_: hydra_plugins.hydra_submitit_launcher.submitit_launcher.SlurmLauncher
+[?2004l[?2004h>     folder: /tmp/${hydra:run.dir}/slurm
+[?2004l[?2004h>     submitit_folder: /tmp/${hydra:run.dir}/submitit
+[?2004l[?2004h>     max_num_timeout: 3
+[?2004l[?2004h>     cpus_per_task: 4
+[?2004l[?2004h>     gpus_per_node: 0
+[?2004l[?2004h>     tasks_per_node: 1
+[?2004l[?2004h>     nodes: 1
+[?2004l[?2004h>     mem_gb: 8
+[?2004l[?2004h>     partition: null
+[?2004l[?2004h>     additional_parameters:
+[?2004l[?2004h>       wckey: ''
+[?2004l[?2004h>     srun_args:
+[?2004l[?2004h>       - '--cpu-bind=none'
+[?2004l[?2004h>     comment: ''
+[?2004l[?2004h> 
+[?2004l[?2004h> _debug: false
+[?2004l[?2004h> EOF
+[?2004l[?2004hroot@0683b4795d80:/app/src# python /app/src/main.py -cn=slurm --cfg job 2>&1
+[?2004lIn 'slurm': ConfigKeyError raised while composing config:
+Key 'folder' not in 'BasicLauncherConf'
+    full_key: hydra.launcher.folder
+    object_type=BasicLauncherConf
+
+Set the environment variable HYDRA_FULL_ERROR=1 for a complete stack trace.
+[?2004hroot@0683b4795d80:/app/src# cat > /app/src/config/slurm.yaml << 'EOF'
+[?2004l[?2004h> # @package _global_
+[?2004l[?2004h> 
+[?2004l[?2004h> hydra:
+[?2004l[?2004h>   launcher:
+[?2004l[?2004h>     _target_: hydra_plugins.hydra_submitit_launcher.submitit_launcher.SlurmLauncher
+[?2004l[?2004h>     folder: /tmp/${hydra:run.dir}/slurm
+[?2004l[?2004h>     submitit_folder: /tmp/${hydra:run.dir}/submitit
+[?2004l[?2004h>     max_num_timeout: 3
+[?2004l[?2004h>     cpus_per_task: 4
+[?2004l[?2004h>     gpus_per_node: 0
+[?2004l[?2004h>     tasks_per_node: 1
+[?2004l[?2004h>     nodes: 1
+[?2004l[?2004h>     mem_gb: 8
+[?2004l[?2004h>     partition: null
+[?2004l[?2004h>     additional_parameters:
+[?2004l[?2004h>       wckey: ''
+[?2004l[?2004h>     srun_args:
+[?2004l[?2004h>       - '--cpu-bind=none'
+[?2004l[?2004h>     comment: ''
+[?2004l[?2004h> 
+[?2004l[?2004h> _debug: false
+[?2004l[?2004h> 
+[?2004l[?2004h> hydra:
+[?2004l[?2004h>   launcher:
+[?2004l[?2004h>     _target_: hydra_plugins.hydra_submitit_launcher.submitit_launcher.SlurmLauncher
+[?2004l[?2004h>     folder: /tmp/${hydra:run.dir}/slurm
+[?2004l[?2004h>     submitit_folder: /tmp/${hydra:run.dir}/submitit
+[?2004l[?2004h>     max_num_timeout: 3
+[?2004l[?2004h>     cpus_per_task: 4
+[?2004l[?2004h>     gpus_per_node: 0
+[?2004l[?2004h>     tasks_per_node: 1
+[?2004l[?2004h>     nodes: 1
+[?2004l[?2004h>     mem_gb: 8
+[?2004l[?2004h>     partition: null
+[?2004l[?2004h>     additional_parameters:
+[?2004l[?2004h>       wckey: ''
+[?2004l[?2004h>     srun_args:
+[?2004l[?2004h>       - '--cpu-bind=none'
+[?2004l[?2004h>     comment: ''
+[?2004l[?2004h> EOF
+[?2004l[?2004hroot@0683b4795d80:/app/src# python /app/src/main.py -cn=slurm --cfg job 2>&1
+[?2004lTraceback (most recent call last):
+  File "/usr/local/lib/python3.13/site-packages/hydra/_internal/utils.py", line 219, in run_and_report
+    return func()
+  File "/usr/local/lib/python3.13/site-packages/hydra/_internal/utils.py", line 405, in <lambda>
+    lambda: hydra.show_cfg(
+            ~~~~~~~~~~~~~~^
+        config_name=config_name,
+        ^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<3 lines>...
+        resolve=args.resolve,
+        ^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/usr/local/lib/python3.13/site-packages/hydra/_internal/hydra.py", line 195, in show_cfg
+    cfg = self.compose_config(
+        config_name=config_name,
+    ...<2 lines>...
+        with_log_configuration=False,
+    )
+  File "/usr/local/lib/python3.13/site-packages/hydra/_internal/hydra.py", line 594, in compose_config
+    cfg = self.config_loader.load_configuration(
+        config_name=config_name,
+    ...<3 lines>...
+        validate_sweep_overrides=validate_sweep_overrides,
+    )
+  File "/usr/local/lib/python3.13/site-packages/hydra/_internal/config_loader_impl.py", line 142, in load_configuration
+    return self._load_configuration_impl(
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        config_name=config_name,
+        ^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<3 lines>...
+        validate_sweep_overrides=validate_sweep_overrides,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/usr/local/lib/python3.13/site-packages/hydra/_internal/config_loader_impl.py", line 244, in _load_configuration_impl
+    parsed_overrides, caching_repo = self._parse_overrides_and_create_caching_repo(
+                                     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        config_name, overrides
+        ^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/usr/local/lib/python3.13/site-packages/hydra/_internal/config_loader_impl.py", line 230, in _parse_overrides_and_create_caching_repo
+    self._process_config_searchpath(config_name, parsed_overrides, caching_repo)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.13/site-packages/hydra/_internal/config_loader_impl.py", line 159, in _process_config_searchpath
+    loaded = repo.load_config(config_path=config_name)
+  File "/usr/local/lib/python3.13/site-packages/hydra/_internal/config_repository.py", line 349, in load_config
+    ret = self.delegate.load_config(config_path=config_path)
+  File "/usr/local/lib/python3.13/site-packages/hydra/_internal/config_repository.py", line 92, in load_config
+    ret = source.load_config(config_path=config_path)
+  File "/usr/local/lib/python3.13/site-packages/hydra/_internal/core_plugins/file_config_source.py", line 31, in load_config
+    cfg = OmegaConf.load(f)
+  File "/usr/local/lib/python3.13/site-packages/omegaconf/omegaconf.py", line 192, in load
+    obj = yaml.load(file_, Loader=get_yaml_loader())
+  File "/usr/local/lib/python3.13/site-packages/yaml/__init__.py", line 81, in load
+    return loader.get_single_data()
+           ~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/usr/local/lib/python3.13/site-packages/yaml/constructor.py", line 51, in get_single_data
+    return self.construct_document(node)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/usr/local/lib/python3.13/site-packages/yaml/constructor.py", line 60, in construct_document
+    for dummy in generator:
+                 ^^^^^^^^^
+  File "/usr/local/lib/python3.13/site-packages/yaml/constructor.py", line 413, in construct_yaml_map
+    value = self.construct_mapping(node)
+  File "/usr/local/lib/python3.13/site-packages/omegaconf/_utils.py", line 144, in construct_mapping
+    raise yaml.constructor.ConstructorError(
+    ...<4 lines>...
+    )
+yaml.constructor.ConstructorError: while constructing a mapping
+  in "/app/src/config/slurm.yaml", line 3, column 1
+found duplicate key hydra
+  in "/app/src/config/slurm.yaml", line 23, column 1
+[?2004hroot@0683b4795d80:/app/src# cat > /app/src/config/slurm.yaml << 'EOF'
+[?2004l[?2004h> # @package _global_
+[?2004l[?2004h> 
+[?2004l[?2004h> hydra:
+[?2004l[?2004h>   launcher:
+[?2004l[?2004h>     _target_: hydra_plugins.hydra_submitit_launcher.submitit_launcher.SlurmLauncher
+[?2004l[?2004h>     _call_: false
+[?2004l[?2004h>     folder: /tmp/${hydra:run.dir}/slurm
+[?2004l[?2004h>     submitit_folder: /tmp/${hydra:run.dir}/submitit
+[?2004l[?2004h>     max_num_timeout: 3
+[?2004l[?2004h>     cpus_per_task: 4
+[?2004l[?2004h>     gpus_per_node: 0
+[?2004l[?2004h>     tasks_per_node: 1
+[?2004l[?2004h>     nodes: 1
+[?2004l[?2004h>     mem_gb: 8
+[?2004l[?2004h>     partition: null
+[?2004l[?2004h>     additional_parameters:
+[?2004l[?2004h>       wckey: ''
+[?2004l[?2004h>     srun_args:
+[?2004l[?2004h>       - '--cpu-bind=none'
+[?2004l[?2004h>     comment: ''
+[?2004l[?2004h> 
+[?2004l[?2004h> _debug: false
+[?2004l[?2004h> EOF
+[?2004l[?2004hroot@0683b4795d80:/app/src# python /app/src/main.py -cn=slurm --cfg job 2>&1
+[?2004lIn 'slurm': ConfigKeyError raised while composing config:
+Key '_call_' not in 'BasicLauncherConf'
+    full_key: hydra.launcher._call_
+    object_type=BasicLauncherConf
+
+Set the environment variable HYDRA_FULL_ERROR=1 for a complete stack trace.
+[?2004hroot@0683b4795d80:/app/src# cat > /app/src/config/hydra/launcher/slurm.yaml << 'EOF'
+[?2004l[?2004h> _target_: hydra_plugins.hydra_submitit_launcher.submitit_launcher.SlurmLauncher
+[?2004l[?2004h> folder: /tmp/${hydra:run.dir}/slurm
+[?2004l[?2004h> submitit_folder: /tmp/${hydra:run.dir}/submitit
+[?2004l[?2004h> max_num_timeout: 3
+[?2004l[?2004h> cpus_per_task: 4
+[?2004l[?2004h> gpus_per_node: 0
+[?2004l[?2004h> tasks_per_node: 1
+[?2004l[?2004h> nodes: 1
+[?2004l[?2004h> mem_gb: 8
+[?2004l[?2004h> partition: null
+[?2004l[?2004h> additional_parameters:
+[?2004l[?2004h>   wckey: ''
+[?2004l[?2004h> srun_args:
+[?2004l[?2004h>   - '--cpu-bind=none'
+[?2004l[?2004h> comment: ''
+[?2004l[?2004h> EOF
+[?2004lbash: /app/src/config/hydra/launcher/slurm.yaml: No such file or directory
+[?2004hroot@0683b4795d80:/app/src# python /app/src/main.py -cn=slurm --cfg job 2>&1
+[?2004lIn 'slurm': ConfigKeyError raised while composing config:
+Key '_call_' not in 'BasicLauncherConf'
+    full_key: hydra.launcher._call_
+    object_type=BasicLauncherConf
+
+Set the environment variable HYDRA_FULL_ERROR=1 for a complete stack trace.
+[?2004hroot@0683b4795d80:/app/src# mkdir -p /app/src/config/hydra/launcher
+[?2004l[?2004hroot@0683b4795d80:/app/src# cat > /app/src/config/hydra/launcher/slurm.yaml << 'EOF'
+[?2004l[?2004h> _target_: hydra_plugins.hydra_submitit_launcher.submitit_launcher.SlurmLauncher
+[?2004l[?2004h> folder: /tmp/${hydra:run.dir}/slurm
+[?2004l[?2004h> submitit_folder: /tmp/${hydra:run.dir}/submitit
+[?2004l[?2004h> max_num_timeout: 3
+[?2004l[?2004h> cpus_per_task: 4
+[?2004l[?2004h> gpus_per_node: 0
+[?2004l[?2004h> tasks_per_node: 1
+[?2004l[?2004h> nodes: 1
+[?2004l[?2004h> mem_gb: 8
+[?2004l[?2004h> partition: null
+[?2004l[?2004h> additional_parameters:
+[?2004l[?2004h>   wckey: ''
+[?2004l[?2004h> srun_args:
+[?2004l[?2004h>   - '--cpu-bind=none'
+[?2004l[?2004h> comment: ''
+[?2004l[?2004h> EOF
+[?2004l[?2004hroot@0683b4795d80:/app/src# cat > /app/src/config/slurm.yaml << 'EOF'
+[?2004l[?2004h> # @package _global_
+[?2004l[?2004h> 
+[?2004l[?2004h> hydra:
+[?2004l[?2004h>   launcher: slurm
+[?2004l[?2004h> 
+[?2004l[?2004h> _debug: false
+[?2004l[?2004h> EOF
+[?2004l[?2004hroot@0683b4795d80:/app/src# python /app/src/main.py -cn=slurm --cfg job 2>&1
+[?2004lIn 'slurm': ValidationError raised while composing config:
+Merge error: str is not a subclass of BasicLauncherConf. value: slurm
+    full_key: 
+    object_type=dict
+
+Set the environment variable HYDRA_FULL_ERROR=1 for a complete stack trace.
+[?2004hroot@0683b4795d80:/app/src# cat > /app/src/config/slurm.yaml << 'EOF'
+[?2004l[?2004h> # @package _global_
+[?2004l[?2004h> 
+[?2004l[?2004h> defaults:
+[?2004l[?2004h>   - hydra/launcher: slurm
+[?2004l[?2004h> 
+[?2004l[?2004h> _debug: false
+[?2004l[?2004h> EOF
+[?2004l[?2004hroot@0683b4795d80:/app/src# python /app/src/main.py -cn=slurm --cfg job 2>&1
+[?2004l/usr/local/lib/python3.13/site-packages/hydra/_internal/defaults_list.py:251: UserWarning: In 'slurm': Defaults list is missing `_self_`. See https://hydra.cc/docs/1.2/upgrades/1.0_to_1.1/default_composition_order for more information
+  warnings.warn(msg, UserWarning)
+Multiple values for hydra/launcher. To override a value use 'override hydra/launcher: slurm'
+
+Set the environment variable HYDRA_FULL_ERROR=1 for a complete stack trace.
+[?2004hroot@0683b4795d80:/app/src# cat > /app/src/config/slurm.yaml << 'EOF'
+[?2004l[?2004h> # @package _global_
+[?2004l[?2004h> 
+[?2004l[?2004h> defaults:
+[?2004l[?2004h>   - _self_
+[?2004l[?2004h>   - override hydra/launcher: slurm
+[?2004l[?2004h> 
+[?2004l[?2004h> _debug: false
+[?2004l[?2004h> EOF
+[?2004l[?2004hroot@0683b4795d80:/app/src# python /app/src/main.py -cn=slurm --cfg job 2>&1
+[?2004l_debug: false
+[?2004hroot@0683b4795d80:/app/src# python /app/src/main.py -cn=slurm --cfg hydra 2>&1
+[?2004lhydra:
+  run:
+    dir: outputs/${now:%Y-%m-%d}/${now:%H-%M-%S}
+  sweep:
+    dir: multirun/${now:%Y-%m-%d}/${now:%H-%M-%S}
+    subdir: ${hydra.job.num}
+  launcher:
+    _target_: hydra_plugins.hydra_submitit_launcher.submitit_launcher.SlurmLauncher
+    folder: /tmp/${hydra:run.dir}/slurm
+    submitit_folder: /tmp/${hydra:run.dir}/submitit
+    max_num_timeout: 3
+    cpus_per_task: 4
+    gpus_per_node: 0
+    tasks_per_node: 1
+    nodes: 1
+    mem_gb: 8
+    partition: null
+    additional_parameters:
+      wckey: ''
+    srun_args:
+    - --cpu-bind=none
+    comment: ''
+  sweeper:
+    _target_: hydra._internal.core_plugins.basic_sweeper.BasicSweeper
+    max_batch_size: null
+    params: null
+  hydra_logging:
+    version: 1
+    formatters:
+      simple:
+        format: '[%(asctime)s][HYDRA] %(message)s'
+    handlers:
+      console:
+        class: logging.StreamHandler
+        formatter: simple
+        stream: ext://sys.stdout
+    root:
+      level: INFO
+      handlers:
+      - console
+    loggers:
+      logging_example:
+        level: DEBUG
+    disable_existing_loggers: false
+  job_logging:
+    version: 1
+    formatters:
+      simple:
+        format: '[%(asctime)s][%(name)s][%(levelname)s] - %(message)s'
+    handlers:
+      console:
+        class: logging.StreamHandler
+        formatter: simple
+        stream: ext://sys.stdout
+      file:
+        class: logging.FileHandler
+        formatter: simple
+        filename: ${hydra.runtime.output_dir}/${hydra.job.name}.log
+    root:
+      level: INFO
+      handlers:
+      - console
+      - file
+    disable_existing_loggers: false
+  env: {}
+  mode: null
+  searchpath: []
+  callbacks: {}
+  output_subdir: .hydra
+  overrides:
+    hydra: []
+    task: []
+  job:
+    name: main
+    chdir: null
+    override_dirname: ''
+    id: ???
+    num: ???
+    config_name: slurm
+    env_set: {}
+    env_copy: []
+    config:
+      override_dirname:
+        kv_sep: '='
+        item_sep: ','
+        exclude_keys: []
+  runtime:
+    version: 1.3.0
+    version_base: '1.3'
+    cwd: /app/src
+    config_sources:
+    - path: hydra.conf
+      schema: pkg
+      provider: hydra
+    - path: /app/src/config
+      schema: file
+      provider: main
+    - path: ''
+      schema: structured
+      provider: schema
+    output_dir: ???
+    choices:
+      hydra/env: default
+      hydra/callbacks: null
+      hydra/job_logging: default
+      hydra/hydra_logging: default
+      hydra/hydra_help: default
+      hydra/help: default
+      hydra/sweeper: basic
+      hydra/launcher: slurm
+      hydra/output: default
+  verbose: false
+[?2004hroot@0683b4795d80:/app/src# 

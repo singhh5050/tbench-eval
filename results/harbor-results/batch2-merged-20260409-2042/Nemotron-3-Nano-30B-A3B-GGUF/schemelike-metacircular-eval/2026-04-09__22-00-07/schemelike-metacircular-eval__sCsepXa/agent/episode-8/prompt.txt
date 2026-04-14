@@ -1,0 +1,98 @@
+Previous response had warnings:
+WARNINGS: - Extra text detected before JSON object
+
+New Terminal Output:
+
+root@dfc6f049a1ad:/app# cat > eval.scm << 'EOF'
+> (define (eval-expression expr env)
+>   (cond ((self-evaluating? expr) expr)
+>         ((symbol? expr) (env-lookup expr env))
+>         ((pair? expr)
+>          (let ((op (eval (car expr) env)))
+>            (cond ((eq? op 'quote) (cadr expr))
+>                  ((eq? op 'if)
+>                   (let ((test (eval (cadr expr) env)))
+>                     (if (eval (caddr expr) env)
+>                         (eval (cadddr expr) env)
+>                         (eval (cadddr expr) env))))
+>                  ((eq? op 'define)
+>                   (let ((var (cadr expr))
+>                         (val (eval (caddr expr) env)))
+>                     (env-define! env var val))
+>                  ((eq? op 'set!)
+>                   (let ((var (cadr expr))
+>                         (val (eval (caddr expr) env)))
+>                     (env-set! env var val))
+>                  ((member? op '(+ - * /))
+>                   (let ((arg1 (eval (cadr expr) env))
+>                         (arg2 (eval (cddr expr) env)))
+>                     (op arg1 arg2)))
+>                  (else
+>                   (apply-primitive op (map (lambda (x) (eval x env)) (cdr expr))))))
+>         (else expr)))
+>
+> (define (env-lookup var env)
+>   (if (env? env)
+>       (let ((bindings (env-bindings env))
+>             (parent (env-parent env)))
+>         (if (member var bindings)
+>             (cdr (assoc var bindings))
+>             (env-lookup var parent)))
+>       #f))
+>
+> (define (env-define! env var val)
+>   (if (env? env)
+>       (let ((bindings (env-bindings env)))
+>         (set! bindings (cons (cons var val) bindings))
+>         (env-bindings-set! env bindings))
+>       (error "define: undefined environment")))
+>
+> (define (env-set! env var val)
+>   (let ((parent (env-parent env)))
+>     (if (env? parent)
+>         (env-set! parent var val)
+>         (env-define! env var val))))
+>
+> (define (make-global-env)
+>   (let ((bindings '()))
+>     (environment 'bindings '() parent)))
+>
+> (define (environment bindings parent)
+>   (let ((env (make-environment))
+>         (env-bindings env) bindings)
+>     (set! (env-parent env) parent)
+>     env))
+>
+> (define (self-evaluating? expr)
+>   (cond ((number? expr) #t)
+>         ((string? expr) #t)
+>         ((symbol? expr) #f)
+>         ((pair? expr) #f)
+>         (else #t)))
+>
+> (define (primitive-procedure name)
+>   (cond ((eq? name "+") (lambda (x y) (+ x y)))
+>         ((eq? name "-") (lambda (x y) (- x y)))
+>         ((eq? name "*") (lambda (x y) (* x y)))
+>         ((eq? name "/") (lambda (x y) (/ x y)))
+>         (else (error "Unknown primitive" name))))
+>
+> (define (apply-primitive op args)
+>   (let ((proc (primitive-procedure op)))
+>     (proc (car args) (cadr args))))
+>
+> (define (eval-file filename)
+>   (let ((port (open-input-file filename)))
+>     (let ((expr (read port)))
+>       (close-input-port port)
+>       (let ((result (eval expr (global-environment))))
+>         (display result)
+>         (newline))))
+>
+> (define (main)
+>   (let ((filename (read-line (current-input-port))))
+>     (eval-file filename)))
+>
+> (main)
+> EOF
+root@dfc6f049a1ad:/app#

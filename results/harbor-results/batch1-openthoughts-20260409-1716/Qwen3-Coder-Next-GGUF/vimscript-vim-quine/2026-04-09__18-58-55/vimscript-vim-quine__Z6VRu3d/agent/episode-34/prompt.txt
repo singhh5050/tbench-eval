@@ -1,0 +1,64 @@
+New Terminal Output:
+
+root@8d526f641b03:/app# cat >> /app/plugin/layout_quine.vim << 'ENDOFPLUGIN'
+>
+> function! s:GenerateLayoutScript(layout, indent)
+>     let script = []
+>     let ind = repeat('    ', a:indent)
+>     let ind1 = repeat('    ', a:indent + 1)
+>
+>     call add(script, ind . '" Recreate tabs and windows')
+>     call add(script, ind . '" Active tab was: ' . a:layout.active_tab)
+>     call add(script, '')
+>
+>     let tab_count = len(a:layout.tabs)
+>
+>     for tab_idx in range(0, tab_count - 1)
+>         let tab = a:layout.tabs[tab_idx]
+>
+>         if tab_idx > 0
+>             call add(script, ind . '" Tab ' . (tab_idx + 1))
+>             call add(script, ind . 'tabnew')
+>             call add(script, '')
+>         endif
+>
+>         let win_count = len(tab.windows)
+>         let first_window = 1
+>
+>         for win_idx in range(0, win_count - 1)
+>             let win = tab.windows[win_idx]
+>
+>             if first_window
+>                 let first_window = 0
+>
+>                 if win.bufname != ''
+>                     call add(script, ind . '" Window ' . (win_idx + 1) . ' - buffer: ' . win.bufname)
+>                     call add(script, ind . 'edit ' . fnameescape(win.bufname))
+>                 endif
+>             else
+>                 call add(script, ind . '" Window ' . (win_idx + 1) . ' - buffer: ' . win.bufname)
+>
+>                 if win.split_type == 'vsplit'
+>                     call add(script, ind . 'vsplit')
+>                 elseif win.split_type == 'split'
+>                     call add(script, ind . 'split')
+>                 endif
+>
+>                 if win.bufname != ''
+>                     call add(script, ind . 'edit ' . fnameescape(win.bufname))
+>                 endif
+>             endif
+>
+>             call add(script, '')
+>         endfor
+>     endfor
+>
+>     call add(script, ind . '" Restore active tab')
+>     call add(script, ind . 'if ' . tab_count . ' > 1')
+>     call add(script, ind1 . 'tabnext ' . a:layout.active_tab)
+>     call add(script, ind . 'endif')
+>
+>     return script
+> endfunction
+> ENDOFPLUGIN
+root@8d526f641b03:/app#

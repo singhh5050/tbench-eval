@@ -1,0 +1,174 @@
+New Terminal Output:
+
+root@b05171444938:/app# python3 << 'EOF'
+> import numpy as np
+>
+> # Calculate output size for stride=2, kernel=3, input=4, padding=0
+> # Formula: (input + 2*padding - dilation*(kernel-1) - 1) // stride + 1
+> # = (4 + 0 - 1*2 - 1) // 2 + 1 = (4 - 2 - 1) // 2 + 1 = 1 // 2 + 1 = 0 + 1 = 1
+>
+> # But let's think about it differently:
+> # With stride=2, we place kernel at positions 0, 2, 4, ...
+> # Kernel size is 3, so at position 0 it covers 0,1,2
+> # At position 2 it would cover 2,3,4 but 4 is out of bounds (max index is 3)
+> # So only position 0 is valid.
+>
+> # However, many frameworks (like PyTorch) use floor division which gives:
+> # (input - kernel) // stride + 1 = (4 - 3) // 2 + 1 = 1 // 2 + 1 = 0 + 1 = 1
+>
+> # So the output of (1, 1, 1, 1) is actually correct!
+> # The test expectation was wrong.
+>
+> print("The Conv2D output is mathematically correct.")
+> print("With stride=2, kernel=3, input=4, padding=0:")
+> print("Only 1 output position is valid (position 0 covers 0,1,2)")
+> print("Position 1 would cover 2,3,4 but index 4 is out of bounds")
+> print("")
+> print("Let me verify with a case where we know the answer:")
+> print("stride=2, kernel=3, input=5, padding=0:")
+> print("Position 0: covers 0,1,2")
+> print("Position 1: covers 2,3,4")
+> print("Position 2: would cover 4,5,6 but 5,6 are out of bounds")
+> print("So we should get 2 outputs")
+> print("")
+> print("Formula: (5 + 0 - 1*2 - 1) // 2 + 1 = (5 - 2 - 1) // 2 + 1 = 2 // 2 + 1 = 1 + 1 = 2")
+> print("Correct!")
+> EOF
+The Conv2D output is mathematically correct.
+With stride=2, kernel=3, input=4, padding=0:
+Only 1 output position is valid (position 0 covers 0,1,2)
+Position 1 would cover 2,3,4 but index 4 is out of bounds
+
+Let me verify with a case where we know the answer:
+stride=2, kernel=3, input=5, padding=0:
+Position 0: covers 0,1,2
+Position 1: covers 2,3,4
+Position 2: would cover 4,5,6 but 5,6 are out of bounds
+So we should get 2 outputs
+
+Formula: (5 + 0 - 1*2 - 1) // 2 + 1 = (5 - 2 - 1) // 2 + 1 = 2 // 2 + 1 = 1 + 1 = 2
+Correct!
+root@b05171444938:/app# python3 << 'EOF'
+ut.shape == (1, 4, 4, 1), f"Expected (1, 4, 4, 1), got {out.shape}"
+print("OK\n")
+
+# Test 3: stride=2, kernel=3, input=4, padding=0 -> should give 1 output
+conv = Conv2D(1, 1, 3, stride=2, padding=0, dilation=1)
+conv.weights = np.ones((1, 1, 3, 3), dtype=np.float64)
+conv.bias = np.zeros(1, dtype=np.float64)
+
+x = np.ones((1, 4, 4, 1), dtype=np.float64)
+out = conv.forward(x)
+print(f"Test 3: Input (1, 4, 4, 1), stride=2, padding=0")
+print(f"Output shape: {out.shape}")
+assert out.shape == (1, 1, 1, 1), f"Expected (1, 1, 1, 1), got {out.shape}"
+print("OK\n")
+
+# Test 4: Verify output values
+print("Test 4: Verifying convolution output values")
+conv = Conv2D(1, 1, 2, stride=1, padding=0, dilation=1)
+conv.weights = np.ones((1, 1, 2, 2), dtype=np.float64) * 0.5  # All weights = 0.5
+conv.bias = np.zeros(1, dtype=np.float64)
+
+x = np.ones((1, 2, 2, 1), dtype=np.float64)  # All ones
+out = conv.forward(x)
+print(f"Input: {x.flatten()}")
+print(f"Weights: {conv.weights.flatten()}")
+print(f"Output: {out.flatten()}")
+# With 2x2 kernel of 0.5s on 2x2 input of 1s:
+# Output = sum(0.5 * 1) = 4 * 0.5 = 2
+assert np.allclose(out, [[[2.0]]]), f"Expected 2.0, got {out}"
+print("OK\n")
+
+print("="*50)
+print("ALL CONV2D TESTS PASSED!")
+print("="*50)
+EOF
+> import numpy as np
+> import sys
+> sys.path.insert(0, '/app')
+>
+> from src import *
+>
+> print("Testing Conv2D with correct expectations...\n")
+>
+> # Test 1: stride=2, kernel=3, input=5, padding=0 -> should give 2 outputs
+> conv = Conv2D(1, 1, 3, stride=2, padding=0, dilation=1)
+> conv.weights = np.ones((1, 1, 3, 3), dtype=np.float64)
+> conv.bias = np.zeros(1, dtype=np.float64)
+>
+> x = np.ones((1, 5, 5, 1), dtype=np.float64)
+> out = conv.forward(x)
+> print(f"Test 1: Input (1, 5, 5, 1), stride=2, kernel=3")
+> print(f"Output shape: {out.shape}")
+> assert out.shape == (1, 2, 2, 1), f"Expected (1, 2, 2, 1), got {out.shape}"
+> print("OK\n")
+>
+> # Test 2: stride=1, kernel=3, input=4, padding=1 -> should give 4 outputs
+> conv = Conv2D(1, 1, 3, stride=1, padding=1, dilation=1)
+> conv.weights = np.ones((1, 1, 3, 3), dtype=np.float64)
+> conv.bias = np.zeros(1, dtype=np.float64)
+>
+> x = np.ones((1, 4, 4, 1), dtype=np.float64)
+> out = conv.forward(x)
+> print(f"Test 2: Input (1, 4, 4, 1), stride=1, padding=1")
+> print(f"Output shape: {out.shape}")
+> assert out.shape == (1, 4, 4, 1), f"Expected (1, 4, 4, 1), got {out.shape}"
+> print("OK\n")
+>
+> # Test 3: stride=2, kernel=3, input=4, padding=0 -> should give 1 output
+> conv = Conv2D(1, 1, 3, stride=2, padding=0, dilation=1)
+> conv.weights = np.ones((1, 1, 3, 3), dtype=np.float64)
+> conv.bias = np.zeros(1, dtype=np.float64)
+>
+> x = np.ones((1, 4, 4, 1), dtype=np.float64)
+> out = conv.forward(x)
+> print(f"Test 3: Input (1, 4, 4, 1), stride=2, padding=0")
+> print(f"Output shape: {out.shape}")
+> assert out.shape == (1, 1, 1, 1), f"Expected (1, 1, 1, 1), got {out.shape}"
+> print("OK\n")
+>
+> # Test 4: Verify output values
+> print("Test 4: Verifying convolution output values")
+> conv = Conv2D(1, 1, 2, stride=1, padding=0, dilation=1)
+> conv.weights = np.ones((1, 1, 2, 2), dtype=np.float64) * 0.5  # All weights = 0.5
+> conv.bias = np.zeros(1, dtype=np.float64)
+>
+> x = np.ones((1, 2, 2, 1), dtype=np.float64)  # All ones
+> out = conv.forward(x)
+> print(f"Input: {x.flatten()}")
+> print(f"Weights: {conv.weights.flatten()}")
+> print(f"Output: {out.flatten()}")
+> # With 2x2 kernel of 0.5s on 2x2 input of 1s:
+> # Output = sum(0.5 * 1) = 4 * 0.5 = 2
+> assert np.allclose(out, [[[2.0]]]), f"Expected 2.0, got {out}"
+> print("OK\n")
+>
+> print("="*50)
+> print("ALL CONV2D TESTS PASSED!")
+> print("="*50)
+> EOF
+Testing Conv2D with correct expectations...
+
+Test 1: Input (1, 5, 5, 1), stride=2, kernel=3
+Output shape: (1, 2, 2, 1)
+OK
+
+Test 2: Input (1, 4, 4, 1), stride=1, padding=1
+Output shape: (1, 4, 4, 1)
+OK
+
+Test 3: Input (1, 4, 4, 1), stride=2, padding=0
+Output shape: (1, 1, 1, 1)
+OK
+
+Test 4: Verifying convolution output values
+Input: [1. 1. 1. 1.]
+Weights: [0.5 0.5 0.5 0.5]
+Output: [2.]
+OK
+
+==================================================
+ALL CONV2D TESTS PASSED!
+==================================================
+root@b05171444938:/app#

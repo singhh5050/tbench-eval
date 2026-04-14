@@ -1,0 +1,68 @@
+New Terminal Output:
+
+root@ac4d5de4c098:/opt/myapp# cat > /etc/logrotate.d/myapp << 'EOF'
+> /var/log/app_events.log /var/log/app_errors.log {
+>     daily
+>     rotate 7
+>     compress
+>     delaycompress
+>     missingok
+>     notifempty
+>     create 644 myapp myapp
+>     postrotate
+>         /usr/bin/systemctl reload rsyslog > /dev/null 2>&1 || true
+>     endscript
+> }
+> EOF
+root@ac4d5de4c098:/opt/myapp# cat /etc/logrotate.d/myapp
+/var/log/app_events.log /var/log/app_errors.log {
+    daily
+    rotate 7
+    compress
+    delaycompress
+    missingok
+    notifempty
+    create 644 myapp myapp
+    postrotate
+        /usr/bin/systemctl reload rsyslog > /dev/null 2>&1 || true
+    endscript
+}
+root@ac4d5de4c098:/opt/myapp# cat > /usr/local/bin/check_service_health.sh << 'SCRIPT'
+> #!/bin/bash
+>
+> SERVICE="myapp"
+> TIME_WINDOW="5 minutes"
+>
+> # Get logs from last 5 minutes in JSON format
+> LOGS=$(journalctl -u $SERVICE --since "5 minutes ago" --json 2>/dev/null)
+>
+> # Count restart events (Started messages)
+> RESTARTS=$(echo "$LOGS" | grep -c '"MESSAGE":".*Started"' 2>/dev/null || echo 0)
+>
+> # Count error events
+> ERRORS=$(echo "$LOGS" | grep -c '"level":"ERROR"' 2>/dev/null || echo 0)
+>
+> # Detect restart loop: more than 3 restarts in 5 minutes
+> if [ "$RESTARTS" -gt 3 ]; then
+>     RESTART_LOOP="true"
+> else
+>     RESTART_LOOP="false"
+> fi
+>
+> # Generate timestamp
+> TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+>
+> # Output JSON report
+> cat << EOF
+> {
+>   "service": "$SERVICE",
+>   "time_window": "$TIME_WINDOW",
+>   "restarts": $RESTARTS,
+>   "errors": $ERRORS,
+>   "restart_loop_detected": $RESTART_LOOP,
+>   "timestamp": "$TIMESTAMP"
+> }
+> EOF
+> SCRIPT
+root@ac4d5de4c098:/opt/myapp# chmod +x /usr/local/bin/check_service_health.sh
+root@ac4d5de4c098:/opt/myapp#

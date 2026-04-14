@@ -1,0 +1,119 @@
+New Terminal Output:
+
+root@0683b4795d80:/app/src# cat > /app/src/config/slurm.yaml << 'EOF'
+> # @package _global_
+>
+> hydra:
+>   launcher:
+>     _target_: hydra_plugins.hydra_submitit_launcher.submitit_launcher.SlurmLauncher
+>     folder: /tmp/${hydra:run.dir}/slurm
+>     submitit_folder: /tmp/${hydra:run.dir}/submitit
+>     max_num_timeout: 3
+>     cpus_per_task: 4
+>     gpus_per_node: 0
+>     tasks_per_node: 1
+>     nodes: 1
+>     mem_gb: 8
+>     partition: null
+>     additional_parameters:
+>       wckey: ''
+>     srun_args:
+>       - '--cpu-bind=none'
+>     comment: ''
+>
+> _debug: false
+>
+> hydra:
+>   launcher:
+>     _target_: hydra_plugins.hydra_submitit_launcher.submitit_launcher.SlurmLauncher
+>     folder: /tmp/${hydra:run.dir}/slurm
+>     submitit_folder: /tmp/${hydra:run.dir}/submitit
+>     max_num_timeout: 3
+>     cpus_per_task: 4
+>     gpus_per_node: 0
+>     tasks_per_node: 1
+>     nodes: 1
+>     mem_gb: 8
+>     partition: null
+>     additional_parameters:
+>       wckey: ''
+>     srun_args:
+>       - '--cpu-bind=none'
+>     comment: ''
+> EOF
+root@0683b4795d80:/app/src# python /app/src/main.py -cn=slurm --cfg job 2>&1
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.13/site-packages/hydra/_internal/utils.py", line 219, in run_and_report
+    return func()
+  File "/usr/local/lib/python3.13/site-packages/hydra/_internal/utils.py", line 405, in <lambda>
+    lambda: hydra.show_cfg(
+            ~~~~~~~~~~~~~~^
+        config_name=config_name,
+        ^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<3 lines>...
+        resolve=args.resolve,
+        ^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/usr/local/lib/python3.13/site-packages/hydra/_internal/hydra.py", line 195, in show_cfg
+    cfg = self.compose_config(
+        config_name=config_name,
+    ...<2 lines>...
+        with_log_configuration=False,
+    )
+  File "/usr/local/lib/python3.13/site-packages/hydra/_internal/hydra.py", line 594, in compose_config
+    cfg = self.config_loader.load_configuration(
+        config_name=config_name,
+    ...<3 lines>...
+        validate_sweep_overrides=validate_sweep_overrides,
+    )
+  File "/usr/local/lib/python3.13/site-packages/hydra/_internal/config_loader_impl.py", line 142, in load_configuration
+    return self._load_configuration_impl(
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        config_name=config_name,
+        ^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<3 lines>...
+        validate_sweep_overrides=validate_sweep_overrides,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/usr/local/lib/python3.13/site-packages/hydra/_internal/config_loader_impl.py", line 244, in _load_configuration_impl
+    parsed_overrides, caching_repo = self._parse_overrides_and_create_caching_repo(
+                                     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        config_name, overrides
+        ^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/usr/local/lib/python3.13/site-packages/hydra/_internal/config_loader_impl.py", line 230, in _parse_overrides_and_create_caching_repo
+    self._process_config_searchpath(config_name, parsed_overrides, caching_repo)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.13/site-packages/hydra/_internal/config_loader_impl.py", line 159, in _process_config_searchpath
+    loaded = repo.load_config(config_path=config_name)
+  File "/usr/local/lib/python3.13/site-packages/hydra/_internal/config_repository.py", line 349, in load_config
+    ret = self.delegate.load_config(config_path=config_path)
+  File "/usr/local/lib/python3.13/site-packages/hydra/_internal/config_repository.py", line 92, in load_config
+    ret = source.load_config(config_path=config_path)
+  File "/usr/local/lib/python3.13/site-packages/hydra/_internal/core_plugins/file_config_source.py", line 31, in load_config
+    cfg = OmegaConf.load(f)
+  File "/usr/local/lib/python3.13/site-packages/omegaconf/omegaconf.py", line 192, in load
+    obj = yaml.load(file_, Loader=get_yaml_loader())
+  File "/usr/local/lib/python3.13/site-packages/yaml/__init__.py", line 81, in load
+    return loader.get_single_data()
+           ~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/usr/local/lib/python3.13/site-packages/yaml/constructor.py", line 51, in get_single_data
+    return self.construct_document(node)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/usr/local/lib/python3.13/site-packages/yaml/constructor.py", line 60, in construct_document
+    for dummy in generator:
+                 ^^^^^^^^^
+  File "/usr/local/lib/python3.13/site-packages/yaml/constructor.py", line 413, in construct_yaml_map
+    value = self.construct_mapping(node)
+  File "/usr/local/lib/python3.13/site-packages/omegaconf/_utils.py", line 144, in construct_mapping
+    raise yaml.constructor.ConstructorError(
+    ...<4 lines>...
+    )
+yaml.constructor.ConstructorError: while constructing a mapping
+  in "/app/src/config/slurm.yaml", line 3, column 1
+found duplicate key hydra
+  in "/app/src/config/slurm.yaml", line 23, column 1
+root@0683b4795d80:/app/src#

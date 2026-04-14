@@ -1,0 +1,224 @@
+[?2004hroot@11410891255b:/app# asciinema rec --stdin /logs/agent/recording.cast
+[?2004l[0;32masciinema: recording asciicast to /logs/agent/recording.cast[0m
+[0;32masciinema: press <ctrl-d> or type "exit" when you're done[0m
+[?2004hroot@11410891255b:/app# clear
+[?2004l[H[J[3J[?2004hroot@11410891255b:/app# ls -R /app
+[?2004l/app:
+data  output
+
+/app/data:
+ground_motion.csv
+
+/app/output:
+[?2004hroot@11410891255b:/app# cat > /app/run_simulation.py << 'PY'
+[?2004l[?2004h> #!/usr/bin/env python3
+[?2004l[?2004h> import numpy as np, pandas as pd, os, sys
+[?2004l
+beta_nb = 0.25
+
+# Integration constants
+a0 = 1.0 / (beta_nb * dt ** 2)
+a1 = gamma / (beta_nb * dt)
+a2 = 1.0 / (beta_nb * dt)
+a3 = 1.0 / (2.0 * beta_nb) - 1.0
+# Additional constants used in effective load vector
+a4 = gamma / beta_nb - 1.0
+a5 = dt * (gamma / (2.0 * beta_nb) - 1.0)
+
+# Effective stiffness matrix (constant for linear system)
+K_hat = K + a0 * M + a1 * C
+
+# Influence vector (all floors move with ground)
+I = np.ones(3, dtype=np.float64)
+
+# Initial conditions (zero displacement and velocity)
+u_prev = np.zeros(3, dtype=np.float64)
+v_prev = np.zeros(3, dtype=np.float64)
+# Initial acceleration from equation of motion: M*a0 = -M*I*ug0
+ug0 = ug[0]
+a_prev = -I * ug0  # because M cancels out
+
+# Containers for results
+u_hist = np.empty((len(time), 3), dtype=np.float64)
+# Store initial state
+u_hist[0, :] = u_prev
+
+# Time stepping loop
+for i in range(1, len(time)):
+    ug_i = ug[i]
+    # Effective load vector
+    term1 = -M @ (I * ug_i)
+    term2 = M @ (a0 * u_prev + a2 * v_prev + a3 * a_prev)
+    term3 = C @ (a1 * u_prev + a4 * v_prev + a5 * a_prev)
+    P_hat = term1 + term2 + term3
+    # Solve for new displacement
+    u_new = np.linalg.solve(K_hat, P_hat)
+    # Update acceleration and velocity (exact Newmark formulas)
+    a_new = a0 * (u_new - u_prev) - a2 * v_prev - a3 * a_prev
+    v_new = v_prev + dt * ((1.0 - gamma) * a_prev + gamma * a_new)
+    # Store
+    u_hist[i, :] = u_new
+    # Prepare for next step
+    u_prev, v_prev, a_prev = u_new, v_new, a_new
+
+# ----- Write results -----
+output_path = '/app/output/response.csv'
+# Prepare DataFrame with required formatting
+out_df = pd.DataFrame({
+    'time': np.round(time, 3),
+    'u1': np.round(u_hist[:, 0], 6),
+    'u2': np.round(u_hist[:, 1], 6),
+    'u3': np.round(u_hist[:, 2], 6)
+})
+# Ensure three decimal places for time and six for displacements in the CSV
+out_df.to_csv(output_path, index=False, float_format='%.6f')
+print(f"Simulation completed. Results written to {output_path}")
+PY
+[?2004h> from scipy.linalg import eigh
+[?2004l[?2004h> 
+[?2004l[?2004h> # ----- Parameters -----
+[?2004l[?2004h> mass_val = 2000.0  # kg per floor
+[?2004l[?2004h> stiff_val = 400000.0  # N/m per story
+[?2004l[?2004h> zeta = 0.02  # target damping ratio
+[?2004l[?2004h> 
+[?2004l[?2004h> g = 9.81  # m/s^2 per G
+[?2004l[?2004h> 
+[?2004l[?2004h> # ----- Load ground motion -----
+[?2004l[?2004h> input_path = '/app/data/ground_motion.csv'
+[?2004l[?2004h> if not os.path.isfile(input_path):
+[?2004l[?2004h>     sys.stderr.write(f"Input file {input_path} not found\n")
+[?2004l[?2004h>     sys.exit(1)
+[?2004l[?2004h> 
+[?2004l[?2004h> data = pd.read_csv(input_path)
+[?2004l[?2004h> # Expect columns: time, accel_g
+[?2004l[?2004h> if not {'time', 'accel_g'}.issubset(data.columns):
+[?2004l[?2004h>     sys.stderr.write("CSV must contain 'time' and 'accel_g' columns\n")
+[?2004l[?2004h>     sys.exit(1)
+[?2004l[?2004h> 
+[?2004l[?2004h> time = data['time'].to_numpy(dtype=np.float64)
+[?2004l[?2004h> accel_g = data['accel_g'].to_numpy(dtype=np.float64)
+[?2004l[?2004h> # Convert ground acceleration to m/s^2
+[?2004l[?2004h> ug = accel_g * g
+[?2004l[?2004h> 
+[?2004l[?2004h> # Time step (assumed constant)
+[?2004l[?2004h> if len(time) < 2:
+[?2004l[?2004h>     sys.stderr.write("Not enough time steps in input data\n")
+[?2004l[?2004h>     sys.exit(1)
+[?2004l[?2004h> 
+[?2004l[?2004h> dt = time[1] - time[0]
+[?2004l[?2004h> # Simple safety check for uniform step
+[?2004l[?2004h> if not np.allclose(np.diff(time), dt, atol=1e-9):
+[?2004l[?2004h>     sys.stderr.write("Time step is not constant; aborting\n")
+[?2004l[?2004h>     sys.exit(1)
+[?2004l[?2004h> 
+[?2004l[?2004h> # ----- Build system matrices -----
+[?2004l[?2004h> M = np.diag([mass_val, mass_val, mass_val])
+[?2004l[?2004h> # Stiffness matrix for 3‑story shear building
+[?2004l[?2004h> k1 = k2 = k3 = stiff_val
+[?2004l[?2004h> K = np.array([
+[?2004l[?2004h>     [k1 + k2, -k2,      0.0],
+[?2004l[?2004h>     [-k2,      k2 + k3, -k3],
+[?2004l[?2004h>     [0.0,     -k3,       k3]
+[?2004l[?2004h> ], dtype=np.float64)
+[?2004l[?2004h> 
+[?2004l[?2004h> # ----- Rayleigh damping coefficients (alpha, beta) -----
+[?2004l[?2004h> # Solve generalized eigenproblem K*phi = omega^2 * M * phi
+[?2004l[?2004h> omega2, _ = eigh(K, M)
+[?2004l[?2004h> # Ensure sorting (eigh returns ascending order)
+[?2004l[?2004h> omega = np.sqrt(np.maximum(omega2, 0.0))
+[?2004l[?2004h> # First and third modes (indices 0 and 2)
+[?2004l[?2004h> omega1 = omega[0]
+[?2004l[?2004h> omega3 = omega[2]
+[?2004l[?2004h> # Linear system: [1/omega_i, omega_i] * [alpha, beta]^T = 2*zeta
+[?2004l[?2004h> A = np.array([[1.0/omega1, omega1],
+[?2004l[?2004h>               [1.0/omega3, omega3]])
+[?2004l[?2004h> B = np.full(2, 2.0 * zeta)
+[?2004l[?2004h> alpha, beta = np.linalg.solve(A, B)
+[?2004l[?2004h> C = alpha * M + beta * K
+[?2004l[?2004h> 
+[?2004l[?2004h> # ----- Newmark‑Beta integration (average acceleration) -----
+[?2004l[?2004h> gamma = 0.5
+[?2004l[?2004h> beta_nb = 0.25
+[?2004l[?2004h> 
+[?2004l[?2004h> # Integration constants
+[?2004l[?2004h> a0 = 1.0 / (beta_nb * dt ** 2)
+[?2004l[?2004h> a1 = gamma / (beta_nb * dt)
+[?2004l[?2004h> a2 = 1.0 / (beta_nb * dt)
+[?2004l[?2004h> a3 = 1.0 / (2.0 * beta_nb) - 1.0
+[?2004l[?2004h> # Additional constants used in effective load vector
+[?2004l[?2004h> a4 = gamma / beta_nb - 1.0
+[?2004l[?2004h> a5 = dt * (gamma / (2.0 * beta_nb) - 1.0)
+[?2004l[?2004h> 
+[?2004l[?2004h> # Effective stiffness matrix (constant for linear system)
+[?2004l[?2004h> K_hat = K + a0 * M + a1 * C
+[?2004l[?2004h> 
+[?2004l[?2004h> # Influence vector (all floors move with ground)
+[?2004l[?2004h> I = np.ones(3, dtype=np.float64)
+[?2004l[?2004h> 
+[?2004l[?2004h> # Initial conditions (zero displacement and velocity)
+[?2004l[?2004h> u_prev = np.zeros(3, dtype=np.float64)
+[?2004l[?2004h> v_prev = np.zeros(3, dtype=np.float64)
+[?2004l[?2004h> # Initial acceleration from equation of motion: M*a0 = -M*I*ug0
+[?2004l[?2004h> ug0 = ug[0]
+[?2004l[?2004h> a_prev = -I * ug0  # because M cancels out
+[?2004l[?2004h> 
+[?2004l[?2004h> # Containers for results
+[?2004l[?2004h> u_hist = np.empty((len(time), 3), dtype=np.float64)
+[?2004l[?2004h> # Store initial state
+[?2004l[?2004h> u_hist[0, :] = u_prev
+[?2004l[?2004h> 
+[?2004l[?2004h> # Time stepping loop
+[?2004l[?2004h> for i in range(1, len(time)):
+[?2004l[?2004h>     ug_i = ug[i]
+[?2004l[?2004h>     # Effective load vector
+[?2004l[?2004h>     term1 = -M @ (I * ug_i)
+[?2004l[?2004h>     term2 = M @ (a0 * u_prev + a2 * v_prev + a3 * a_prev)
+[?2004l[?2004h>     term3 = C @ (a1 * u_prev + a4 * v_prev + a5 * a_prev)
+[?2004l[?2004h>     P_hat = term1 + term2 + term3
+[?2004l[?2004h>     # Solve for new displacement
+[?2004l[?2004h>     u_new = np.linalg.solve(K_hat, P_hat)
+[?2004l[?2004h>     # Update acceleration and velocity (exact Newmark formulas)
+[?2004l[?2004h>     a_new = a0 * (u_new - u_prev) - a2 * v_prev - a3 * a_prev
+[?2004l[?2004h>     v_new = v_prev + dt * ((1.0 - gamma) * a_prev + gamma * a_new)
+[?2004l[?2004h>     # Store
+[?2004l[?2004h>     u_hist[i, :] = u_new
+[?2004l[?2004h>     # Prepare for next step
+[?2004l[?2004h>     u_prev, v_prev, a_prev = u_new, v_new, a_new
+[?2004l[?2004h> 
+[?2004l[?2004h> # ----- Write results -----
+[?2004l[?2004h> output_path = '/app/output/response.csv'
+[?2004l[?2004h> # Prepare DataFrame with required formatting
+[?2004l[?2004h> out_df = pd.DataFrame({
+[?2004l[?2004h>     'time': np.round(time, 3),
+[?2004l[?2004h>     'u1': np.round(u_hist[:, 0], 6),
+[?2004l[?2004h>     'u2': np.round(u_hist[:, 1], 6),
+[?2004l[?2004h>     'u3': np.round(u_hist[:, 2], 6)
+[?2004l[?2004h> })
+[?2004l[?2004h> # Ensure three decimal places for time and six for displacements in the CSV
+[?2004l[?2004h> out_df.to_csv(output_path, index=False, float_format='%.6f')
+[?2004l[?2004h> print(f"Simulation completed. Results written to {output_path}")
+[?2004l[?2004h> PY
+[?2004l[?2004hroot@11410891255b:/app# chmod +x /app/run_simulation.py
+[?2004l[?2004hroot@11410891255b:/app# python3 /app/run_simulation.py
+[?2004lTraceback (most recent call last):
+  File [35m"/app/run_simulation.py"[0m, line [35m2[0m, in [35m<module>[0m
+    import numpy as np, pandas as pd, os, sys
+[1;35mModuleNotFoundError[0m: [35mNo module named 'pandas'[0m
+[?2004hroot@11410891255b:/app# ls -l /app/output
+[?2004ltotal 0
+[?2004hroot@11410891255b:/app# head -n 5 /app/output/response.csv
+[?2004lhead: cannot open '/app/output/response.csv' for reading: No such file or directory
+[?2004hroot@11410891255b:/app# pip install --quiet pandas scipy numpy
+[?2004l[33mWARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager, possibly rendering your system unusable. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv. Use the --root-user-action option if you know what you are doing and want to suppress this warning.[0m[33m
+[0m[?2004hroot@11410891255b:/app# python3 /app/run_simulation.py
+[?2004lSimulation completed. Results written to /app/output/response.csv
+[?2004hroot@11410891255b:/app# ls -l /app/output
+[?2004ltotal 40
+-rw-r--r-- 1 root root 38037 Apr 10 01:46 response.csv
+[?2004hroot@11410891255b:/app# head -n 5 /app/output/response.csv
+[?2004ltime,u1,u2,u3
+0.000000,0.000000,0.000000,0.000000
+0.020000,-0.000011,-0.000011,-0.000012
+0.040000,-0.000031,-0.000032,-0.000032
+0.060000,-0.000025,-0.000030,-0.000030
+[?2004hroot@11410891255b:/app# 

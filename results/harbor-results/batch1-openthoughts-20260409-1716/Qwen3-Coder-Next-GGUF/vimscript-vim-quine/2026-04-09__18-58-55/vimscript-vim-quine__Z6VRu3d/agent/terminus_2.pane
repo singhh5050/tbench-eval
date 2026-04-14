@@ -1,0 +1,1616 @@
+[?2004hroot@8d526f641b03:/app# asciinema rec --stdin /logs/agent/recording.cast
+[?2004l[0;32masciinema: recording asciicast to /logs/agent/recording.cast[0m
+[0;32masciinema: press <ctrl-d> or type "exit" when you're done[0m
+[?2004hroot@8d526f641b03:/app# clear
+[?2004l[H[J[3J[?2004hroot@8d526f641b03:/app# mkdir -p /app/plugin
+[?2004l[?2004hroot@8d526f641b03:/app# cat > /app/plugin/layout_quine.vim << 'ENDOFFILE'
+[?2004l[?2004h> " LayoutQuine Plugin
+[?2004l[?2004h> " A Vimscript plugin that can replicate a Vim layout
+[?2004l[?2004h> 
+[?2004l[?2004h> if exists('g:layout_quine_loaded')
+[?2004l[?2004h>     finish
+[?2004l[?2004h> endif
+[?2004l[?2004h> let g:layout_quine_loaded = 1
+[?2004l[?2004h> 
+[?2004l[?2004h> time function! s:CaptureLayout()
+[?2004l[?2004h>     let layout = {
+[?2004l[?2004h>         \ 'active_tab': tabpagenr(),
+[?2004l[?2004h>         \ 'tabs': []
+[?2004l[?2004h>         \ }
+[?2004l[?2004h>     
+[?2004l[?2004h>     let tab_count = tabpagenr('$')
+[?2004l[?2004h>     
+[?2004l[?2004h>     for tab_num in range(1, tab_count)
+[?2004l[?2004h>         let tab_info = {
+[?2004l[?2004h>             \ 'windows': [],
+[?2004l[?2004h>             \ 'window_count': 0
+[?2004l[?2004h>             \ }
+[?2004l[?2004h>         
+[?2004l[?2004h>         execute 'tabnext' tab_num
+[?2004l[?2004h>         
+[?2004l[?2004h>         let win_count = winnr('$')
+[?2004l[?2004h>         let tab_info.window_count = win_count
+[?2004l[?2004h>         
+[?2004l[?2004h>         for win_num in range(1, win_count)
+[?2004l[?2004h>             let win_info = {
+[?2004l[?2004h>                 \ 'bufnr': winbufnr(win_num),
+[?2004l[?2004h>                 \ 'bufname': bufname(winbufnr(win_num)),
+[?2004l[?2004h>                 \ 'width': winwidth(win_num),
+[?2004l[?2004h>                 \ 'height': winheight(win_num)
+[?2004l[?2004h>                 \ }
+[?2004l[?2004h>             
+[?2004l[?2004h>             if win_num > 1
+[?2004l[?2004h>                 let prev_win = win_num - 1
+[?2004l[?2004h>                 let prev_right = win_screenpos(prev_win)[0] + winwidth(prev_win)
+[?2004l[?2004h>                 let curr_left = win_screenpos(win_num)[0]
+[?2004l[?2004h>                 
+[?2004l[?2004h>                 if prev_right == curr_left
+[?2004l[?2004h>                     let win_info.split_type = 'vsplit'
+[?2004l[?2004h>                 else
+[?2004l[?2004h>                     let win_info.split_type = 'split'
+[?2004l[?2004h>                 endif
+[?2004l[?2004h>             else
+[?2004l[?2004h>                 let win_info.split_type = 'first'
+[?2004l[?2004h>             endif
+[?2004l[?2004h>             
+[?2004l[?2004h>             call add(tab_info.windows, win_info)
+[?2004l[?2004h>         endfor
+[?2004l[?2004h>         
+[?2004l[?2004h>         call add(layout.tabs, tab_info)
+[?2004l[?2004h>     endfor
+[?2004l[?2004h>     
+[?2004l[?2004h>     execute 'tabnext' layout.active_tab
+[?2004l[?2004h>     
+[?2004l[?2004h>     return layout
+[?2004l[?2004h> endfunction
+[?2004l[?2004h> 
+[?2004l[?2004h> time function! s:GenerateLayoutScript(layout, indent)
+[?2004l[?2004h>     let script = ''
+[?2004l[?2004h>     let ind = repeat('    ', a:indent)
+[?2004l[?2004h>     let ind1 = repeat('    ', a:indent + 1)
+[?2004l[?2004h>     
+[?2004l[?2004h>     script .= ind . '" Recreate tabs and windows\n'
+[?2004l[?2004h>     script .= ind . '" Active tab was: ' . a:layout.active_tab . '\n'
+[?2004l[?2004h>     script .= ind . '\n'
+[?2004l[?2004h>     
+[?2004l[?2004h>     let tab_count = len(a:layout.tabs)
+[?2004l[?2004h>     
+[?2004l[?2004h>     for tab_idx in range(0, tab_count - 1)
+[?2004l[?2004h>         let tab = a:layout.tabs[tab_idx]
+[?2004l[?2004h>         
+[?2004l[?2004h>         if tab_idx > 0
+[?2004l[?2004h>             script .= ind . '" Tab ' . (tab_idx + 1) . '\n'
+[?2004l[?2004h>             script .= ind . 'tabnew\n'
+[?2004l[?2004h>             script .= ind . '\n'
+[?2004l[?2004h>         endif
+[?2004l[?2004h>         
+[?2004l[?2004h>         let win_count = len(tab.windows)
+[?2004l[?2004h>         let first_window = 1
+[?2004l[?2004h>         
+[?2004l[?2004h>         for win_idx in range(0, win_count - 1)
+[?2004l[?2004h>             let win = tab.windows[win_idx]
+[?2004l[?2004h>             
+[?2004l[?2004h>             if first_window
+[?2004l[?2004h>                 let first_window = 0
+[?2004l[?2004h>                 
+[?2004l[?2004h>                 if win.bufname != ''
+[?2004l[?2004h>                     script .= ind . '" Window ' . (win_idx + 1) . ' - buffer: ' . win.bufname . '\n'
+[?2004l[?2004h>                     script .= ind . 'edit ' . fnameescape(win.bufname) . '\n'
+[?2004l[?2004h>                 endif
+[?2004l[?2004h>             else
+[?2004l[?2004h>                 script .= ind . '" Window ' . (win_idx + 1) . ' - buffer: ' . win.bufname . '\n'
+[?2004l[?2004h>                 
+[?2004l[?2004h>                 if win.split_type == 'vsplit'
+[?2004l[?2004h>                     script .= ind . 'vsplit\n'
+[?2004l[?2004h>                 elseif win.split_type == 'split'
+[?2004l[?2004h>                     script .= ind . 'split\n'
+[?2004l[?2004h>                 endif
+[?2004l[?2004h>                 
+[?2004l[?2004h>                 if win.bufname != ''
+[?2004l[?2004h>                     script .= ind . 'edit ' . fnameescape(win.bufname) . '\n'
+[?2004l[?2004h>                 endif
+[?2004l[?2004h>             endif
+[?2004l[?2004h>             
+[?2004l[?2004h>             script .= ind . '\n'
+[?2004l[?2004h>         endfor
+[?2004l[?2004h>     endfor
+[?2004l[?2004h>     
+[?2004l[?2004h>     script .= ind . '" Restore active tab\n'
+[?2004l[?2004h>     script .= ind . 'if ' . tab_count . ' > 1\n'
+[?2004l[?2004h>     script .= ind1 . 'tabnext ' . a:layout.active_tab . '\n'
+[?2004l[?2004h>     script .= ind . 'endif\n'
+[?2004l[?2004h>     
+[?2004l[?2004h>     return script
+[?2004l[?2004h> endfunction
+[?2004l[?2004h> 
+[?2004l[?2004h> time function! s:LayoutQuineImpl(path)
+[?2004l[?2004h>     let layout = s:CaptureLayout()
+[?2004l[?2004h>     let script = s:GenerateLayoutScript(layout, 0)
+[?2004l[?2004h>     
+[?2004l[?2004h>     call writefile(split(script, '\n'), a:path)
+[?2004l[?2004h>     
+[?2004l[?2004h>     echo 'Layout saved to: ' . a:path
+[?2004l[?2004h> endfunction
+[?2004l[?2004h> 
+[?2004l[?2004h> time command! -nargs=1 LayoutQuine call s:LayoutQuineImpl(<f-args>)
+[?2004l[?2004h> ENDOFFILE
+[?2004l[?2004hroot@8d526f641b03:/app# cat /app/plugin/layout_quine.vim
+[?2004l" LayoutQuine Plugin
+" A Vimscript plugin that can replicate a Vim layout
+
+if exists('g:layout_quine_loaded')
+    finish
+endif
+let g:layout_quine_loaded = 1
+
+time function! s:CaptureLayout()
+    let layout = {
+        \ 'active_tab': tabpagenr(),
+        \ 'tabs': []
+        \ }
+    
+    let tab_count = tabpagenr('$')
+    
+    for tab_num in range(1, tab_count)
+        let tab_info = {
+            \ 'windows': [],
+            \ 'window_count': 0
+            \ }
+        
+        execute 'tabnext' tab_num
+        
+        let win_count = winnr('$')
+        let tab_info.window_count = win_count
+        
+        for win_num in range(1, win_count)
+            let win_info = {
+                \ 'bufnr': winbufnr(win_num),
+                \ 'bufname': bufname(winbufnr(win_num)),
+                \ 'width': winwidth(win_num),
+                \ 'height': winheight(win_num)
+                \ }
+            
+            if win_num > 1
+                let prev_win = win_num - 1
+                let prev_right = win_screenpos(prev_win)[0] + winwidth(prev_win)
+                let curr_left = win_screenpos(win_num)[0]
+                
+                if prev_right == curr_left
+                    let win_info.split_type = 'vsplit'
+                else
+                    let win_info.split_type = 'split'
+                endif
+            else
+                let win_info.split_type = 'first'
+            endif
+            
+            call add(tab_info.windows, win_info)
+        endfor
+        
+        call add(layout.tabs, tab_info)
+    endfor
+    
+    execute 'tabnext' layout.active_tab
+    
+    return layout
+endfunction
+
+time function! s:GenerateLayoutScript(layout, indent)
+    let script = ''
+    let ind = repeat('    ', a:indent)
+    let ind1 = repeat('    ', a:indent + 1)
+    
+    script .= ind . '" Recreate tabs and windows\n'
+    script .= ind . '" Active tab was: ' . a:layout.active_tab . '\n'
+    script .= ind . '\n'
+    
+    let tab_count = len(a:layout.tabs)
+    
+    for tab_idx in range(0, tab_count - 1)
+        let tab = a:layout.tabs[tab_idx]
+        
+        if tab_idx > 0
+            script .= ind . '" Tab ' . (tab_idx + 1) . '\n'
+            script .= ind . 'tabnew\n'
+            script .= ind . '\n'
+        endif
+        
+        let win_count = len(tab.windows)
+        let first_window = 1
+        
+        for win_idx in range(0, win_count - 1)
+            let win = tab.windows[win_idx]
+            
+            if first_window
+                let first_window = 0
+                
+                if win.bufname != ''
+                    script .= ind . '" Window ' . (win_idx + 1) . ' - buffer: ' . win.bufname . '\n'
+                    script .= ind . 'edit ' . fnameescape(win.bufname) . '\n'
+                endif
+            else
+                script .= ind . '" Window ' . (win_idx + 1) . ' - buffer: ' . win.bufname . '\n'
+                
+                if win.split_type == 'vsplit'
+                    script .= ind . 'vsplit\n'
+                elseif win.split_type == 'split'
+                    script .= ind . 'split\n'
+                endif
+                
+                if win.bufname != ''
+                    script .= ind . 'edit ' . fnameescape(win.bufname) . '\n'
+                endif
+            endif
+            
+            script .= ind . '\n'
+        endfor
+    endfor
+    
+    script .= ind . '" Restore active tab\n'
+    script .= ind . 'if ' . tab_count . ' > 1\n'
+    script .= ind1 . 'tabnext ' . a:layout.active_tab . '\n'
+    script .= ind . 'endif\n'
+    
+    return script
+endfunction
+
+time function! s:LayoutQuineImpl(path)
+    let layout = s:CaptureLayout()
+    let script = s:GenerateLayoutScript(layout, 0)
+    
+    call writefile(split(script, '\n'), a:path)
+    
+    echo 'Layout saved to: ' . a:path
+endfunction
+
+time command! -nargs=1 LayoutQuine call s:LayoutQuineImpl(<f-args>)
+[?2004hroot@8d526f641b03:/app# vim -u /app/plugin/layout_quine.vim -c 'LayoutQuine /tmp/test_layout.vim' -c 'q'
+[?2004lError detected while processing /app/plugin/layout_quine.vim:[?25l[J
+line    9:[J
+E492: Not an editor command: time function! s:CaptureLayout()[J
+line   10:[J
+E723: Missing end of Dictionary '}': [J
+line   11:[J
+E10: \ should be followed by /, ? or &[J
+line   12:[J
+E10: \ should be followed by /, ? or &[J
+line   13:[J
+E10: \ should be followed by /, ? or &[J
+line   18:[J
+E723: Missing end of Dictionary '}': [J
+line   19:[J
+E10: \ should be followed by /, ? or &[J
+line   20:[J
+E10: \ should be followed by /, ? or &[J
+line   21:[J
+E10: \ should be followed by /, ? or &[J
+line   30:[J
+E10: \ should be followed by /, ? or &[J
+line   31:[J
+E10: \ should be followed by /, ? or &[J
+line   32:[J
+E10: \ should be followed by /, ? or &[J
+line   33:[J
+E10: \ should be followed by /, ? or &[J
+line   34:[J
+E10: \ should be followed by /, ? or &[J
+line   56:[J
+E121: Undefined variable: layout[J
+line   58:[J
+E133: :return not inside a function[J
+line   59:[J
+E193: :endfunction not inside a function[J
+line   61:[J
+E492: Not an editor command: time function! s:GenerateLayoutScript(layout, indent)[J
+line   63:[J
+E121: Undefined variable: a:indent[J
+E116: Invalid arguments for function repeat('    ', a:indent)[J
+line   64:[J
+E121: Undefined variable: a:indent[J
+E116: Invalid arguments for function repeat('    ', a:indent + 1)[J
+".= ind . '" [New File][J
+".= ind . '" [New File][J
+".= ind . '\n'" [New File][J
+line   70:[J
+E121: Undefined variable: a:layout[J
+E116: Invalid arguments for function len(a:layout.tabs)[J
+line   73:[J
+E121: Undefined variable: a:layout[J
+".= ind . '" [New File][J
+".= ind . 'if ' . tab_count . ' > 1\n'" [New File][J
+".= ind1 . 'tabnext ' . a:layout.active_tab . '\n'" [New File][J
+".= ind . 'endif\n'" [New File][J
+line  117:[J
+E133: :return not inside a function[J
+line  118:[J
+E193: :endfunction not inside a function[J
+line  120:[J
+E492: Not an editor command: time function! s:LayoutQuineImpl(path)[J
+line  121:[J
+E117: Unknown function: s:CaptureLayout[J
+line  122:[J
+E121: Undefined variable: layout[J
+E116: Invalid arguments for function s:GenerateLayoutScript(layout, 0)[J
+line  124:[J
+E121: Undefined variable: a:path[J
+E116: Invalid arguments for function writefile[J
+line  126:[J[J
+E121: Undefined variable: a:path[J[J
+line  127:[J
+E193: :endfunction not inside a function[J
+line  129:[J
+E492: Not an editor command: time command! -nargs=1 LayoutQuine call s:LayoutQuineImpl(<f-args>)[J
+Press ENTER or type command to continue[34h[?25h[?1049h[?1h=[?2004h[1;40r[27m[24m[23m[0m[H[J[?25l[40;1HError detected while processing command line:
+E492: Not an editor command: LayoutQuine /tmp/test_layout.vim[?2004l[?2004l[?1l>[?1049l[34h[?25h
+   script .= ind . '" Tab ' . (tab_idx + 1) . '\n'
+            script .= ind . 'tabnew\n'
+            script .= ind . '\n'
+        endif
+
+        let win_count = len(tab.windows)
+        let first_window = 1
+
+        for win_idx in range(0, win_count - 1)
+            let win = tab.windows[win_idx]
+
+            if first_window
+                let first_window = 0
+
+                if win.bufname != ''
+                    script .= ind . '" Window ' . (win_idx + 1) . ' - buffer: ' . win.bufname . '\n'
+                    script .= ind . 'edit ' . fnameescape(win.bufname) . '\n'
+                endif
+            else
+                script .= ind . '" Window ' . (win_idx + 1) . ' - buffer: ' . win.bufname . '\n'
+
+                if win.split_type == 'vsplit'
+                    script .= ind . 'vsplit\n'
+                elseif win.split_type == 'split'
+                    script .= ind . 'split\n'
+                endif
+
+                if win.bufname != ''
+                    script .= ind . 'edit ' . fnameescape(win.bufname) . '\n'
+                endif
+            endif
+
+            script .= ind . '\n'
+        endfor
+    endfor
+
+    script .= ind . '" Restore active tab\n'
+    script .= ind . 'if ' . tab_count . ' > 1\n'
+    script .= ind1 . 'tabnext ' . a:layout.active_tab . '\n'
+    script .= ind . 'endif\n'
+
+    return script
+endfunction
+
+function! s:LayoutQuineImpl(path)
+    let layout = s:CaptureLayout()
+    let script = s:GenerateLayoutScript(layout, 0)
+
+    call writefile(split(script, '\n'), a:path)
+
+    echo 'Layout saved to: ' . a:path
+endfunction
+
+command! -nargs=1 LayoutQuine call s:LayoutQuineImpl(<f-args>)
+ENDOFFILE
+[?2004hroot@8d526f641b03:/app# os(prev_win)[0] + winwidth(prev_win)
+[?2004lbash: syntax error near unexpected token `prev_win'
+[?2004hroot@8d526f641b03:/app#                 let curr_left = win_screenpos(win_num)[0]
+[?2004lbash: syntax error near unexpected token `('
+[?2004hroot@8d526f641b03:/app# 
+[?2004l[?2004hroot@8d526f641b03:/app#                 if prev_right == curr_left
+[?2004l[?2004h>                     let win_info.split_type = 'vsplit'
+[?2004l[?2004h>                 else
+[?2004lbash: syntax error near unexpected token `else'
+[?2004hroot@8d526f641b03:/app#                     let win_info.split_type = 'split'
+[?2004lbash: let: win_info.split_type: syntax error: invalid arithmetic operator (error token is ".split_type")
+[?2004hroot@8d526f641b03:/app#                 endif
+[?2004lbash: endif: command not found
+[?2004hroot@8d526f641b03:/app#             else
+[?2004lbash: syntax error near unexpected token `else'
+[?2004hroot@8d526f641b03:/app#                 let win_info.split_type = 'first'
+[?2004lbash: let: win_info.split_type: syntax error: invalid arithmetic operator (error token is ".split_type")
+[?2004hroot@8d526f641b03:/app#             endif
+[?2004lbash: endif: command not found
+[?2004hroot@8d526f641b03:/app# 
+[?2004l[?2004hroot@8d526f641b03:/app#             call add(tab_info.windows, win_info)
+[?2004lbash: syntax error near unexpected token `('
+[?2004hroot@8d526f641b03:/app#         endfor
+[?2004lbash: endfor: command not found
+[?2004hroot@8d526f641b03:/app# 
+[?2004l[?2004hroot@8d526f641b03:/app#         call add(layout.tabs, tab_info)
+[?2004lbash: syntax error near unexpected token `('
+[?2004hroot@8d526f641b03:/app#     endfor
+[?2004lbash: endfor: command not found
+[?2004hroot@8d526f641b03:/app# 
+[?2004l[?2004hroot@8d526f641b03:/app#     execute 'tabnext' layout.active_tab
+[?2004lbash: execute: command not found
+[?2004hroot@8d526f641b03:/app# 
+[?2004l[?2004hroot@8d526f641b03:/app#     return layout
+[?2004lbash: return: layout: numeric argument required
+bash: return: can only `return' from a function or sourced script
+[?2004hroot@8d526f641b03:/app# endfunction
+[?2004lbash: endfunction: command not found
+[?2004hroot@8d526f641b03:/app# 
+[?2004l[?2004hroot@8d526f641b03:/app# function! s:GenerateLayoutScript(layout, indent)
+[?2004lbash: syntax error near unexpected token `('
+[?2004hroot@8d526f641b03:/app#     let script = ''
+[?2004lbash: let: =: syntax error: operand expected (error token is "=")
+[?2004hroot@8d526f641b03:/app#     let ind = repeat('    ', a:indent)
+[?2004lbash: syntax error near unexpected token `('
+[?2004hroot@8d526f641b03:/app#     let ind1 = repeat('    ', a:indent + 1)
+[?2004lbash: syntax error near unexpected token `('
+[?2004hroot@8d526f641b03:/app# 
+[?2004l[?2004hroot@8d526f641b03:/app#     script .= ind . '" Recreate tabs and windows\n'
+[?2004lscript: unexpected number of arguments
+Try 'script --help' for more information.
+[?2004hroot@8d526f641b03:/app#     script .= ind . '" Active tab was: ' . a:layout.active_tab . '\n'
+[?2004lscript: unexpected number of arguments
+Try 'script --help' for more information.
+[?2004hroot@8d526f641b03:/app#     script .= ind . '\n'
+[?2004lscript: unexpected number of arguments
+Try 'script --help' for more information.
+[?2004hroot@8d526f641b03:/app# 
+[?2004l[?2004hroot@8d526f641b03:/app#     let tab_count = len(a:layout.tabs)
+[?2004lbash: syntax error near unexpected token `('
+[?2004hroot@8d526f641b03:/app# 
+[?2004l[?2004hroot@8d526f641b03:/app#     for tab_idx in range(0, tab_count - 1)
+[?2004lbash: syntax error near unexpected token `('
+[?2004hroot@8d526f641b03:/app#         let tab = a:layout.tabs[tab_idx]
+[?2004lbash: let: =: syntax error: operand expected (error token is "=")
+[?2004hroot@8d526f641b03:/app# 
+[?2004l[?2004hroot@8d526f641b03:/app#         if tab_idx > 0
+[?2004l[?2004h>             script .= ind . '" Tab ' . (tab_idx + 1) . '\n'
+[?2004lbash: syntax error near unexpected token `('
+[?2004hroot@8d526f641b03:/app#             script .= ind . 'tabnew\n'
+[?2004lscript: unexpected number of arguments
+Try 'script --help' for more information.
+[?2004hroot@8d526f641b03:/app#             script .= ind . '\n'
+[?2004lscript: unexpected number of arguments
+Try 'script --help' for more information.
+[?2004hroot@8d526f641b03:/app#         endif
+[?2004lbash: endif: command not found
+[?2004hroot@8d526f641b03:/app# 
+[?2004l[?2004hroot@8d526f641b03:/app#         let win_count = len(tab.windows)
+[?2004lbash: syntax error near unexpected token `('
+[?2004hroot@8d526f641b03:/app#         let first_window = 1
+[?2004lbash: let: =: syntax error: operand expected (error token is "=")
+[?2004hroot@8d526f641b03:/app# 
+[?2004l[?2004hroot@8d526f641b03:/app#         for win_idx in range(0, win_count - 1)
+[?2004lbash: syntax error near unexpected token `('
+[?2004hroot@8d526f641b03:/app#             let win = tab.windows[win_idx]
+[?2004lbash: let: =: syntax error: operand expected (error token is "=")
+[?2004hroot@8d526f641b03:/app# 
+[?2004l[?2004hroot@8d526f641b03:/app#             if first_window
+[?2004l[?2004h>                 let first_window = 0
+[?2004l[?2004h> 
+[?2004l[?2004h>                 if win.bufname != ''
+[?2004l[?2004h>                     script .= ind . '" Window ' . (win_idx + 1) . ' - buffer: ' . win.bufname . '\n'
+[?2004lbash: syntax error near unexpected token `('
+[?2004hroot@8d526f641b03:/app#                     script .= ind . 'edit ' . fnameescape(win.bufname) . '\n'
+[?2004lbash: syntax error near unexpected token `('
+[?2004hroot@8d526f641b03:/app#                 endif
+[?2004lbash: endif: command not found
+[?2004hroot@8d526f641b03:/app#             else
+[?2004lbash: syntax error near unexpected token `else'
+[?2004hroot@8d526f641b03:/app#                 script .= ind . '" Window ' . (win_idx + 1) . ' - buffer: ' . win.bufname . '\n'
+[?2004lbash: syntax error near unexpected token `('
+[?2004hroot@8d526f641b03:/app# 
+[?2004l[?2004hroot@8d526f641b03:/app#                 if win.split_type == 'vsplit'
+[?2004l[?2004h>                     script .= ind . 'vsplit\n'
+[?2004l[?2004h>                 elseif win.split_type == 'split'
+[?2004l[?2004h>                     script .= ind . 'split\n'
+[?2004l[?2004h>                 endif
+[?2004l[?2004h> 
+[?2004l[?2004h>                 if win.bufname != ''
+[?2004l[?2004h>                     script .= ind . 'edit ' . fnameescape(win.bufname) . '\n'
+[?2004lbash: syntax error near unexpected token `('
+[?2004hroot@8d526f641b03:/app#                 endif
+[?2004lbash: endif: command not found
+[?2004hroot@8d526f641b03:/app#             endif
+[?2004lbash: endif: command not found
+[?2004hroot@8d526f641b03:/app# 
+[?2004l[?2004hroot@8d526f641b03:/app#             script .= ind . '\n'
+[?2004lscript: unexpected number of arguments
+Try 'script --help' for more information.
+[?2004hroot@8d526f641b03:/app#         endfor
+[?2004lbash: endfor: command not found
+[?2004hroot@8d526f641b03:/app#     endfor
+[?2004lbash: endfor: command not found
+[?2004hroot@8d526f641b03:/app# 
+[?2004l[?2004hroot@8d526f641b03:/app#     script .= ind . '" Restore active tab\n'
+[?2004lscript: unexpected number of arguments
+Try 'script --help' for more information.
+[?2004hroot@8d526f641b03:/app#     script .= ind . 'if ' . tab_count . ' > 1\n'
+[?2004lscript: unexpected number of arguments
+Try 'script --help' for more information.
+[?2004hroot@8d526f641b03:/app#     script .= ind1 . 'tabnext ' . a:layout.active_tab . '\n'
+[?2004lscript: unexpected number of arguments
+Try 'script --help' for more information.
+[?2004hroot@8d526f641b03:/app#     script .= ind . 'endif\n'
+[?2004lscript: unexpected number of arguments
+Try 'script --help' for more information.
+[?2004hroot@8d526f641b03:/app# 
+[?2004l[?2004hroot@8d526f641b03:/app#     return script
+[?2004lbash: return: script: numeric argument required
+bash: return: can only `return' from a function or sourced script
+[?2004hroot@8d526f641b03:/app# endfunction
+[?2004lbash: endfunction: command not found
+[?2004hroot@8d526f641b03:/app# 
+[?2004l[?2004hroot@8d526f641b03:/app# function! s:LayoutQuineImpl(path)
+[?2004lbash: syntax error near unexpected token `('
+[?2004hroot@8d526f641b03:/app#     let layout = s:CaptureLayout()
+[?2004lbash: syntax error near unexpected token `('
+[?2004hroot@8d526f641b03:/app#     let script = s:GenerateLayoutScript(layout, 0)
+[?2004lbash: syntax error near unexpected token `('
+[?2004hroot@8d526f641b03:/app# 
+[?2004l[?2004hroot@8d526f641b03:/app#     call writefile(split(script, '\n'), a:path)
+[?2004lbash: syntax error near unexpected token `('
+[?2004hroot@8d526f641b03:/app# 
+[?2004l[?2004hroot@8d526f641b03:/app#     echo 'Layout saved to: ' . a:path
+[?2004lLayout saved to:  . a:path
+[?2004hroot@8d526f641b03:/app# endfunction
+[?2004lbash: endfunction: command not found
+[?2004hroot@8d526f641b03:/app# 
+[?2004l[?2004hroot@8d526f641b03:/app# command! -nargs=1 LayoutQuine call s:LayoutQuineImpl(<f-args>)
+[?2004lbash: syntax error near unexpected token `('
+[?2004hroot@8d526f641b03:/app# ENDOFFILE
+[?2004lbash: ENDOFFILE: command not found
+[?2004hroot@8d526f641b03:/app# ^C[?2004l[?2004h[?2004l
+[?2004hroot@8d526f641b03:/app# rm -f /app/plugin/layout_quine.vim
+[?2004l[?2004hroot@8d526f641b03:/app# cat > /app/plugin/layout_quine.vim << 'ENDOFFILE'
+[?2004l[?2004h> " LayoutQuine Plugin
+[?2004l[?2004h> " A Vimscript plugin that can replicate a Vim layout
+[?2004l[?2004h> 
+[?2004l[?2004h> if exists('g:layout_quine_loaded')
+[?2004l[?2004h>     finish
+[?2004l[?2004h> endif
+[?2004l[?2004h> let g:layout_quine_loaded = 1
+[?2004l[?2004h> 
+[?2004l[?2004h> function! s:CaptureLayout()
+[?2004l[?2004h>     let layout = {
+[?2004l[?2004h>         \ 'active_tab': tabpagenr(),
+[?2004l[?2004h>         \ 'tabs': []
+[?2004l[?2004h>         \ }
+[?2004l[?2004h> 
+[?2004l[?2004h>     let tab_count = tabpagenr('$')
+[?2004l[?2004h> 
+[?2004l[?2004h>     for tab_num in range(1, tab_count)
+[?2004l[?2004h>         let tab_info = {
+[?2004l[?2004h>             \ 'windows': [],
+[?2004l[?2004h>             \ 'window_count': 0
+[?2004l[?2004h>             \ }
+[?2004l[?2004h> 
+[?2004l[?2004h>         execute 'tabnext' tab_num
+[?2004l[?2004h> 
+[?2004l[?2004h>         let win_count = winnr('$')
+[?2004l[?2004h>         let tab_info.window_count = win_count
+[?2004l[?2004h> 
+[?2004l[?2004h>         for win_num in range(1, win_count)
+[?2004l[?2004h>             let win_info = {
+[?2004l[?2004h>                 \ 'bufnr': winbufnr(win_num),
+[?2004l[?2004h>                 \ 'bufname': bufname(winbufnr(win_num)),
+[?2004l[?2004h>                 \ 'width': winwidth(win_num),
+[?2004l[?2004h>                 \ 'height': winheight(win_num)
+[?2004l[?2004h>                 \ }
+[?2004l[?2004h> 
+[?2004l[?2004h>             if win_num > 1
+[?2004l[?2004h>                 let prev_win = win_num - 1
+[?2004l[?2004h>                 let prev_right = win_screenpos(prev_win)[0] + winwidth(prev_win)
+[?2004l[?2004h>                 let curr_left = win_screenpos(win_num)[0]
+[?2004l[?2004h> 
+[?2004l[?2004h>                 if prev_right == curr_left
+[?2004l[?2004h>                     let win_info.split_type = 'vsplit'
+[?2004l[?2004h>                 else
+[?2004l[?2004h>                     let win_info.split_type = 'split'
+[?2004l[?2004h>                 endif
+[?2004l[?2004h>             else
+[?2004l[?2004h>                 let win_info.split_type = 'first'
+[?2004l[?2004h>             endif
+[?2004l[?2004h> 
+[?2004l[?2004h>             call add(tab_info.windows, win_info)
+[?2004l[?2004h>         endfor
+[?2004l[?2004h> 
+[?2004l[?2004h>         call add(layout.tabs, tab_info)
+[?2004l[?2004h>     endfor
+[?2004l[?2004h> 
+[?2004l[?2004h>     execute 'tabnext' layout.active_tab
+[?2004l[?2004h> 
+[?2004l[?2004h>     return layout
+[?2004l[?2004h> endfunction
+[?2004l[?2004h> 
+[?2004l[?2004h> function! s:GenerateLayoutScript(layout, indent)
+[?2004l[?2004h>     let script = ''
+[?2004l[?2004h>     let ind = repeat('    ', a:indent)
+[?2004l[?2004h>     let ind1 = repeat('    ', a:indent + 1)
+[?2004l[?2004h> 
+[?2004l[?2004h>     let script = script . ind . '" Recreate tabs and windows\n'
+[?2004l[?2004h>     let script = script . ind . '" Active tab was: ' . a:layout.active_tab . '\n'
+[?2004l[?2004h>     let script = script . ind . '\n'
+[?2004l[?2004h> 
+[?2004l[?2004h>     let tab_count = len(a:layout.tabs)
+[?2004l[?2004h> 
+[?2004l[?2004h>     for tab_idx in range(0, tab_count - 1)
+[?2004l[?2004h>         let tab = a:layout.tabs[tab_idx]
+[?2004l[?2004h> 
+[?2004l[?2004h>         if tab_idx > 0
+[?2004l[?2004h>             let script = script . ind . '" Tab ' . (tab_idx + 1) . '\n'
+[?2004l[?2004h>             let script = script . ind . 'tabnew\n'
+[?2004l[?2004h>             let script = script . ind . '\n'
+[?2004l[?2004h>         endif
+[?2004l[?2004h> 
+[?2004l[?2004h>         let win_count = len(tab.windows)
+[?2004l[?2004h>         let first_window = 1
+[?2004l[?2004h> 
+[?2004l[?2004h>         for win_idx in range(0, win_count - 1)
+[?2004l[?2004h>             let win = tab.windows[win_idx]
+[?2004l[?2004h> 
+[?2004l[?2004h>             if first_window
+[?2004l[?2004h>                 let first_window = 0
+[?2004l[?2004h> 
+[?2004l[?2004h>                 if win.bufname != ''
+[?2004l[?2004h>                     let script = script . ind . '" Window ' . (win_idx + 1) . ' - buffer: ' . win.bufname . '\n'
+[?2004l[?2004h>                     let script = script . ind . 'edit ' . fnameescape(win.bufname) . '\n'
+[?2004l[?2004h>                 endif
+[?2004l[?2004h>             else
+[?2004l[?2004h>                 let script = script . ind . '" Window ' . (win_idx + 1) . ' - buffer: ' . win.bufname . '\n'
+[?2004l[?2004h> 
+[?2004l[?2004h>                 if win.split_type == 'vsplit'
+[?2004l[?2004h>                     let script = script . ind . 'vsplit\n'
+[?2004l[?2004h>                 elseif win.split_type == 'split'
+[?2004l[?2004h>                     let script = script . ind . 'split\n'
+[?2004l[?2004h>                 endif
+[?2004l[?2004h> 
+[?2004l[?2004h>                 if win.bufname != ''
+[?2004l[?2004h>                     let script = script . ind . 'edit ' . fnameescape(win.bufname) . '\n'
+[?2004l[?2004h>                 endif
+[?2004l[?2004h>             endif
+[?2004l[?2004h> 
+[?2004l[?2004h>             let script = script . ind . '\n'
+[?2004l[?2004h>         endfor
+[?2004l[?2004h>     endfor
+[?2004l[?2004h> 
+[?2004l[?2004h>     let script = script . ind . '" Restore active tab\n'
+[?2004l[?2004h>     let script = script . ind . 'if ' . tab_count . ' > 1\n'
+[?2004l[?2004h>     let script = script . ind1 . 'tabnext ' . a:layout.active_tab . '\n'
+[?2004l[?2004h>     let script = script . ind . 'endif\n'
+[?2004l[?2004h> 
+[?2004l[?2004h>     return script
+[?2004l[?2004h> endfunction
+[?2004l[?2004h> 
+[?2004l[?2004h> function! s:LayoutQuineImpl(path)
+[?2004l[?2004h>     let layout = s:CaptureLayout()
+[?2004l[?2004h>     let script = s:GenerateLayoutScript(layout, 0)
+[?2004l[?2004h> 
+[?2004l[?2004h>     call writefile(split(script, '\n'), a:path)
+[?2004l[?2004h> 
+[?2004l[?2004h>     echo 'Layout saved to: ' . a:path
+[?2004l[?2004h> endfunction
+[?2004l[?2004h> 
+[?2004l[?2004h> command! -nargs=1 LayoutQuine call s:LayoutQuineImpl(<f-args>)
+[?2004l[?2004h> ENDOFFILE
+[?2004l[?2004hroot@8d526f641b03:/app# head -20 /app/plugin/layout_quine.vim
+[?2004l" LayoutQuine Plugin
+" A Vimscript plugin that can replicate a Vim layout
+
+if exists('g:layout_quine_loaded')
+    finish
+endif
+let g:layout_quine_loaded = 1
+
+function! s:CaptureLayout()
+    let layout = {
+        \ 'active_tab': tabpagenr(),
+        \ 'tabs': []
+        \ }
+
+    let tab_count = tabpagenr('$')
+
+    for tab_num in range(1, tab_count)
+        let tab_info = {
+            \ 'windows': [],
+            \ 'window_count': 0
+[?2004hroot@8d526f641b03:/app# tail -20 /app/plugin/layout_quine.vim
+[?2004l    endfor
+
+    let script = script . ind . '" Restore active tab\n'
+    let script = script . ind . 'if ' . tab_count . ' > 1\n'
+    let script = script . ind1 . 'tabnext ' . a:layout.active_tab . '\n'
+    let script = script . ind . 'endif\n'
+
+    return script
+endfunction
+
+function! s:LayoutQuineImpl(path)
+    let layout = s:CaptureLayout()
+    let script = s:GenerateLayoutScript(layout, 0)
+
+    call writefile(split(script, '\n'), a:path)
+
+    echo 'Layout saved to: ' . a:path
+endfunction
+
+command! -nargs=1 LayoutQuine call s:LayoutQuineImpl(<f-args>)
+[?2004hroot@8d526f641b03:/app# vim -u /app/plugin/layout_quine.vim -c 'LayoutQuine /tmp/test_layout.vim' -c 'q'
+[?2004l[?1049h[?1h=[?2004h[1;40r[27m[24m[23m[0m[H[J[?25l[40;1HError detected while processing command line..function <SNR>1_LayoutQuineImpl[1]..<SNR>1_CaptureLayout:
+line    1:
+E723: Missing end of Dictionary '}':
+line    2:
+E10: \ should be followed by /, ? or &
+line    3:
+E10: \ should be followed by /, ? or &
+line    4:
+E10: \ should be followed by /, ? or &
+line    9:
+E723: Missing end of Dictionary '}':
+line   10:
+E10: \ should be followed by /, ? or &
+line   11:
+E10: \ should be followed by /, ? or &
+line   12:
+E10: \ should be followed by /, ? or &
+line   17:
+E121: Undefined variable: tab_info
+line   20:
+E723: Missing end of Dictionary '}':
+line   21:
+E10: \ should be followed by /, ? or &
+line   22:
+E10: \ should be followed by /, ? or &
+line   23:
+E10: \ should be followed by /, ? or &
+line   24:
+E10: \ should be followed by /, ? or &
+line   25:
+E10: \ should be followed by /, ? or &
+line   38:
+E121: Undefined variable: win_info
+line   41:
+E121: Undefined variable: tab_info
+E116: Invalid arguments for function add
+line   21:
+E10: \ should be followed by /, ? or &
+line   22:
+E10: \ should be followed by /, ? or &
+line   23:
+E10: \ should be followed by /, ? or &
+line   24:
+E10: \ should be followed by /, ? or &
+line   25:
+E10: \ should be followed by /, ? or &
+line   44:
+E121: Undefined variable: layout
+E116: Invalid arguments for function add
+line   10:
+E10: \ should be followed by /, ? or &
+line   11:
+E10: \ should be followed by /, ? or &
+line   12:
+E10: \ should be followed by /, ? or &
+line   21:
+E10: \ should be followed by /, ? or &
+line   22:
+E10: \ should be followed by /, ? or &
+line   23:
+E10: \ should be followed by /, ? or &
+line   24:
+E10: \ should be followed by /, ? or &
+line   25:
+E10: \ should be followed by /, ? or &
+line   47:
+E121: Undefined variable: layout
+line   49:
+E121: Undefined variable: layout
+Error detected while processing command line..function <SNR>1_LayoutQuineImpl[2]..<SNR>1_GenerateLayoutScript:
+line    6:
+E121: Undefined variable: active_tab
+line    9:
+E121: Undefined variable: tabs
+E116: Invalid arguments for function len(a:layout.tabs)
+line   11:
+E121: Undefined variable: tab_count
+E116: Invalid arguments for function range(0, tab_count - 1)
+line   52:
+E121: Undefined variable: tab_count
+line   53:
+E121: Undefined variable: active_tab
+Layout saved to: /tmp/test_layout.vim[?2004l
+[?2004l[?1l>[?1049l[34h[?25h[?2004hroot@8d526f641b03:/app# cat /tmp/test_layout.vim
+[?2004l" Recreate tabs and windows\n\n" Restore active tab\nendif\n
+[?2004hroot@8d526f641b03:/app# vim -u /app/plugin/layout_quine.vim -c 'vsplit' -c 'split' -c 'tabnew' -c 'vsplit' -c 'LayoutQuine /tmp/test_layout.vim' -c 'q'
+[?2004l[?1049h[?1h=[?2004h[1;40r[27m[24m[23m[0m[H[J[?25l[40;1HError detected while processing command line..function <SNR>1_LayoutQuineImpl[1]..<SNR>1_CaptureLayout:
+line    1:
+E723: Missing end of Dictionary '}':
+line    2:
+E10: \ should be followed by /, ? or &
+line    3:
+E10: \ should be followed by /, ? or &
+line    4:
+E10: \ should be followed by /, ? or &
+line    9:
+E723: Missing end of Dictionary '}':
+line   10:
+E10: \ should be followed by /, ? or &
+line   11:
+E10: \ should be followed by /, ? or &
+line   12:
+E10: \ should be followed by /, ? or &
+line   17:
+E121: Undefined variable: tab_info
+line   20:
+E723: Missing end of Dictionary '}':
+line   21:
+E10: \ should be followed by /, ? or &
+line   22:
+E10: \ should be followed by /, ? or &
+line   23:
+E10: \ should be followed by /, ? or &
+line   24:
+E10: \ should be followed by /, ? or &
+line   25:
+E10: \ should be followed by /, ? or &
+line   38:
+E121: Undefined variable: win_info
+line   41:
+E121: Undefined variable: tab_info
+E116: Invalid arguments for function add
+line   20:
+E723: Missing end of Dictionary '}':
+line   21:
+E10: \ should be followed by /, ? or &
+line   22:
+E10: \ should be followed by /, ? or &
+line   23:
+E10: \ should be followed by /, ? or &
+line   24:
+E10: \ should be followed by /, ? or &
+line   25:
+E10: \ should be followed by /, ? or &
+line   35:
+E121: Undefined variable: win_info
+line   41:
+E121: Undefined variable: tab_info
+E116: Invalid arguments for function add
+line   20:
+E723: Missing end of Dictionary '}':
+line   21:
+E10: \ should be followed by /, ? or &
+line   22:
+E10: \ should be followed by /, ? or &
+line   23:
+E10: \ should be followed by /, ? or &
+line   24:
+E10: \ should be followed by /, ? or &
+line   25:
+E10: \ should be followed by /, ? or &
+line   35:
+E121: Undefined variable: win_info
+line   41:
+E121: Undefined variable: tab_info
+E116: Invalid arguments for function add
+line   21:
+E10: \ should be followed by /, ? or &
+line   22:
+E10: \ should be followed by /, ? or &
+line   23:
+E10: \ should be followed by /, ? or &
+line   24:
+E10: \ should be followed by /, ? or &
+line   25:
+E10: \ should be followed by /, ? or &
+line   44:
+E121: Undefined variable: layout
+E116: Invalid arguments for function add
+line    9:
+E723: Missing end of Dictionary '}':
+line   10:
+E10: \ should be followed by /, ? or &
+line   11:
+E10: \ should be followed by /, ? or &
+line   12:
+E10: \ should be followed by /, ? or &
+line   17:
+E121: Undefined variable: tab_info
+line   20:
+E723: Missing end of Dictionary '}':
+line   21:
+E10: \ should be followed by /, ? or &
+line   22:
+E10: \ should be followed by /, ? or &
+line   23:
+E10: \ should be followed by /, ? or &
+line   24:
+E10: \ should be followed by /, ? or &
+line   25:
+E10: \ should be followed by /, ? or &
+line   38:
+E121: Undefined variable: win_info
+line   41:
+E121: Undefined variable: tab_info
+E116: Invalid arguments for function add
+line   20:
+E723: Missing end of Dictionary '}':
+line   21:
+E10: \ should be followed by /, ? or &
+line   22:
+E10: \ should be followed by /, ? or &
+line   23:
+E10: \ should be followed by /, ? or &
+line   24:
+E10: \ should be followed by /, ? or &
+line   25:
+E10: \ should be followed by /, ? or &
+line   35:
+E121: Undefined variable: win_info
+line   41:
+E121: Undefined variable: tab_info
+E116: Invalid arguments for function add
+line   21:
+E10: \ should be followed by /, ? or &
+line   22:
+E10: \ should be followed by /, ? or &
+line   23:
+E10: \ should be followed by /, ? or &
+line   24:
+E10: \ should be followed by /, ? or &
+line   25:
+E10: \ should be followed by /, ? or &
+line   44:
+E121: Undefined variable: layout
+E116: Invalid arguments for function add
+line   10:
+E10: \ should be followed by /, ? or &
+line   11:
+E10: \ should be followed by /, ? or &
+line   12:
+E10: \ should be followed by /, ? or &
+line   21:
+E10: \ should be followed by /, ? or &
+line   22:
+E10: \ should be followed by /, ? or &
+line   23:
+E10: \ should be followed by /, ? or &
+line   24:
+E10: \ should be followed by /, ? or &
+line   25:
+E10: \ should be followed by /, ? or &
+line   47:
+E121: Undefined variable: layout
+line   49:
+E121: Undefined variable: layout
+Error detected while processing command line..function <SNR>1_LayoutQuineImpl[2]..<SNR>1_GenerateLayoutScript:
+line    6:
+E121: Undefined variable: active_tab
+line    9:
+E121: Undefined variable: tabs
+E116: Invalid arguments for function len(a:layout.tabs)
+line   11:
+E121: Undefined variable: tab_count
+E116: Invalid arguments for function range(0, tab_count - 1)
+line   52:
+E121: Undefined variable: tab_count
+line   53:
+E121: Undefined variable: active_tab
+Layout saved to: /tmp/test_layout.vim
+Press ENTER or type command to continue[34h[?25h[27m[24m[23m[0m[1;1H[4m[30m[47m [24m[0m[4m[35m[47m3[24m[0m[4m[30m[47m [No Name] [24m[0m[1m [No Name] [0m[7m                                                                                                                                        [0m[1;160H[4m[30m[47mX[?25l[24m[0m[2;1H[K[3;1H[94m~                                                                                                                                                               [4;1H~                                                                                                                                                               [5;1H~                                                                                                                                                               [6;1H~                                                                                                                                                               [7;1H~                                                                                                                                                               [8;1H~                                                                                                                                                               [9;1H~                                                                                                                                                               [10;1H~                                                                                                                                                               [11;1H~                                                                                                                                                               [12;1H~                                                                                                                                                               [13;1H~                                                                                                                                                               [14;1H~                                                                                                                                                               [15;1H~                                                                                                                                                               [16;1H~                                                                                                                                                               [17;1H~                                                                                                                                                               [18;1H~                                                                                                                                                               [19;1H~                                                                                                                                                               [20;1H~                                                                                                                                                               [21;1H~                                                                                                                                                               [22;1H~                                                                                                                                                               [23;1H~                                                                                                                                                               [24;1H~                                                                                                                                                               [25;1H~                                                                                                                                                               [26;1H~                                                                                                                                                               [27;1H~                                                                                                                                                               [28;1H~                                                                                                                                                               [29;1H~                                                                                                                                                               [30;1H~                                                                                                                                                               [31;1H~                                                                                                                                                               [32;1H~                                                                                                                                                               [33;1H~                                                                                                                                                               [34;1H~                                                                                                                                                               [35;1H~                                                                                                                                                               [36;1H~                                                                                                                                                               [37;1H~                                                                                                                                                               [38;1H~                                                                                                                                                               [39;1H~                                                                                                                                                               [0m[40;1H[K[12;72HVIM - Vi IMproved[14;73Hversion 9.0.2142[15;69Hby Bram Moolenaar et al.[16;61HModified by team+vim@tracker.debian.org[17;59HVim is open source and freely distributable[19;66HBecome a registered Vim user![20;58Htype  :help register[34m<Enter>[0m   for information [22;58Htype  :q[34m<Enter>[0m               to exit         [23;58Htype  :help[34m<Enter>[0m  or  [34m<F1>[0m  for on-line help[24;58Htype  :help version9[34m<Enter>[0m   for version info[26;66HRunning in Vi compatible mode[27;58Htype  :set nocp[34m<Enter>[0m        for Vim defaults[28;58Htype  :help cp-default[34m<Enter>[0m for info on this[2;1H[34h[?25h[?2004l[?2004h[?25l[40;1H/app/plugin/layout_quine.vim/app [40;6H[K[40;1H[31msearch hit BOTTOM, continuing at TOP[0m[97m[41mE486: Pattern not found: app[0m[40;29H[K[2;1H[34h[?25h[1;15H[1m+ [No Name] [0m[133C[7m [0m[1;160H[4m[30m[47mX[?25l[24m[0m[12;72H[94m                 [14;73H                [15;69H                        [16;61H                                       [17;59H                                           [19;66H                             [20;58H                                              [22;58H                                              [23;58H                                              [24;58H                                              [26;66H                             [27;58H                                              [28;58H                                              [2;1H[34h[?25h[?25l[0m[40;1H[K[40;1H/app/plugin/layout_quine.vim << 'EOF'/app [40;6H[K[40;1H[31msearch hit BOTTOM, continuing at TOP[0m[97m[41mE486: Pattern not found: app[0m[40;29H[K[2;1H[34h[?25h[?2004l[?25l[8Cexecute 'tabnext' tab_num[3;1H[K[4;1H        let win_count = winnr('$')[4;35H[K[5;1H        let tab_info.window_count = win_count[5;46H[K[6;1H[K[7;1H        for win_num in range(1, win_count)[7;43H[K[8;1H            let win_info = {}[8;30H[K[9;1H            let win_info.bufnr = winbufnr(win_num)[9;51H[K[10;1H            let win_info.bufname = bufname(winbufnr(win_num))[10;62H[K[11;1H            let win_info.width = winwidth(win_num)[11;51H[K[12;1H            let win_info.height = winheight(win_num)[12;53H[K[13;1H[K[14;1H            if win_num > 1[14;27H[K[15;1H                let prev_win = win_num - 1[15;43H[K[16;1H                let prev_right = win_screenpos(prev_win)[0] + winwidth(prev_win)[16;81H[K[17;1H                let curr_left = win_screenpos(win_num)[0][17;58H[K[18;1H[K[19;1H                if prev_right == curr_left[19;43H[K[20;1H                    let win_info.split_type = 'vsplit'[20;55H[K[21;1H                else[21;21H[K[22;1H                    let win_info.split_type = 'split'[22;54H[K[23;1H                endif[23;22H[K[24;1H            else[24;17H[K[25;1H                let win_info.split_type = 'first'[25;50H[K[26;1H            endif[26;18H[K[27;1H[K[28;1H            call add(tab_info.windows, win_info)[28;49H[K[29;1H        endfor[29;15H[K[30;1H[K[31;1H        call add(layout.tabs, tab_info)[31;40H[K[32;1H    endfor[32;11H[K[33;1H[K[34;1H    execute 'tabnext' layout.active_tab[34;40H[K[35;1H[K[36;1H    return layout[36;18H[K[37;1Hendfunction[37;12H[K[38;1HEOF[38;4H[K[39;1H[K[39;1H[34h[?25h[?2004h[?25l[40;1H[K[40;1H:q![1;1H                                                                                [7m|[2;81H|[3;81H|[4;81H|[5;81H|[6;81H|[7;81H|[8;81H|[9;81H|[10;81H|[11;81H|[12;81H|[13;81H|[14;81H|[15;81H|[16;81H|[17;81H|[18;81H|[19;81H|[0m[2;1H[94m~                                                                               
+~                                                                               
+~                                                                               
+~                                                                               
+~                                                                               
+~                                                                               
+~                                                                               
+~                                                                               
+~                                                                               
+~                                                                               
+~                                                                               
+~                                                                               
+~                                                                               
+~                                                                               
+~                                                                               
+~                                                                               
+~                                                                               
+~                                                                               [0m
+[1m[7m[No Name]                                                                       [0m[7m|[0m[21;17H    [60C[7m|[22;81H|[23;81H|[24;81H|[25;81H|[26;81H|[27;81H|[28;81H|[29;81H|[30;81H|[31;81H|[32;81H|[33;81H|[34;81H|[35;81H|[36;81H|[37;81H|[38;81H|[0m[22;1H[94m~                                                                               
+~                                                                               
+~                                                                               
+~                                                                               
+~                                                                               
+~                                                                               
+~                                                                               
+~                                                                               
+~                                                                               
+~                                                                               
+~                                                                               
+~                                                                               
+~                                                                               
+~                                                                               
+~                                                                               
+~                                                                               
+~                                                                               [0m
+[7m[No Name]                                                                        [0m[1;82H[K[2;82H[94m~                                                                              [3;82H~                                                                              [4;82H~                                                                              [5;82H~                                                                              [6;82H~                                                                              [7;82H~                                                                              [8;82H~                                                                              [9;82H~                                                                              [10;82H~                                                                              [11;82H~                                                                              [12;82H~                                                                              [13;82H~                                                                              [14;82H~                                                                              [15;82H~                                                                              [16;82H~                                                                              [17;82H~                                                                              [18;82H~                                                                              [19;82H~                                                                              [20;82H~                                                                              [21;82H~                                                                              [22;82H~                                                                              [23;82H~                                                                              [24;82H~                                                                              [25;82H~                                                                              [26;82H~                                                                              [27;82H~                                                                              [28;82H~                                                                              [29;82H~                                                                              [30;82H~                                                                              [31;82H~                                                                              [32;82H~                                                                              [33;82H~                                                                              [34;82H~                                                                              [35;82H~                                                                              [36;82H~                                                                              [37;82H~                                                                              [38;82H~                                                                              [0m[39;82H[7m[No Name]                                                                      [1;1H[34h[?25h[?25l[0m[40;1HType  :qa  and press <Enter> to exit Vim[1;1H[34h[?25h[?25l[40;1H[K[40;1H:qa![?2004l[40;1H[K[40;1H[?2004l[?1l>[?1049l[34h[?25h[?2004hroot@8d526f641b03:/app# cat > /app/plugin/layout_quine.vim << 'ENDOFPLUGIN'
+[?2004l[?2004h> " LayoutQuine Plugin
+[?2004l[?2004h> " A Vimscript plugin that can replicate a Vim layout
+[?2004l[?2004h> 
+[?2004l[?2004h> if exists('g:layout_quine_loaded')
+[?2004l[?2004h>     finish
+[?2004l[?2004h> endif
+[?2004l[?2004h> let g:layout_quine_loaded = 1
+[?2004l[?2004h> 
+[?2004l[?2004h> function! s:CaptureLayout()
+[?2004l[?2004h>     let layout = {}
+[?2004l[?2004h>     let layout.active_tab = tabpagenr()
+[?2004l[?2004h>     let layout.tabs = []
+[?2004l[?2004h> 
+[?2004l[?2004h>     let tab_count = tabpagenr('$')
+[?2004l[?2004h> 
+[?2004l[?2004h>     for tab_num in range(1, tab_count)
+[?2004l[?2004h>         let tab_info = {}
+[?2004l[?2004h>         let tab_info.windows = []
+[?2004l[?2004h>         let tab_info.window_count = winnr('$')
+[?2004l[?2004h> 
+[?2004l[?2004h>         execute 'tabnext' tab_num
+[?2004l[?2004h> 
+[?2004l[?2004h>         let win_count = winnr('$')
+[?2004l[?2004h> 
+[?2004l[?2004h>         for win_num in range(1, win_count)
+[?2004l[?2004h>             let win_info = {}
+[?2004l[?2004h>             let win_info.bufnr = winbufnr(win_num)
+[?2004l[?2004h>             let win_info.bufname = bufname(winbufnr(win_num))
+[?2004l[?2004h>             let win_info.width = winwidth(win_num)
+[?2004l[?2004h>             let win_info.height = winheight(win_num)
+[?2004l[?2004h> 
+[?2004l[?2004h>             if win_num > 1
+[?2004l[?2004h>                 let prev_win = win_num - 1
+[?2004l[?2004h>                 let prev_right = win_screenpos(prev_win)[0] + winwidth(prev_win)
+[?2004l[?2004h>                 let curr_left = win_screenpos(win_num)[0]
+[?2004l[?2004h> 
+[?2004l[?2004h>                 if prev_right == curr_left
+[?2004l[?2004h>                     let win_info.split_type = 'vsplit'
+[?2004l[?2004h>                 else
+[?2004l[?2004h>                     let win_info.split_type = 'split'
+[?2004l[?2004h>                 endif
+[?2004l[?2004h>             else
+[?2004l[?2004h>                 let win_info.split_type = 'first'
+[?2004l[?2004h>             endif
+[?2004l[?2004h> 
+[?2004l[?2004h>             call add(tab_info.windows, win_info)
+[?2004l[?2004h>         endfor
+[?2004l[?2004h> 
+[?2004l[?2004h>         call add(layout.tabs, tab_info)
+[?2004l[?2004h>     endfor
+[?2004l[?2004h> 
+[?2004l[?2004h>     execute 'tabnext' layout.active_tab
+[?2004l[?2004h> 
+[?2004l[?2004h>     return layout
+[?2004l[?2004h> endfunction
+[?2004l[?2004h> ENDOFPLUGIN
+[?2004l[?2004hroot@8d526f641b03:/app# cat >> /app/plugin/layout_quine.vim << 'ENDOFPLUGIN'
+[?2004l[?2004h> 
+[?2004l[?2004h> function! s:GenerateLayoutScript(layout, indent)
+[?2004l[?2004h>     let script = ''
+[?2004l[?2004h>     let ind = repeat('    ', a:indent)
+[?2004l[?2004h>     let ind1 = repeat('    ', a:indent + 1)
+[?2004l[?2004h> 
+[?2004l[?2004h>     let script = script . ind . '" Recreate tabs and windows\n'
+[?2004l[?2004h>     let script = script . ind . '" Active tab was: ' . a:layout.active_tab . '\n'
+[?2004l[?2004h>     let script = script . ind . '\n'
+[?2004l[?2004h> 
+[?2004l[?2004h>     let tab_count = len(a:layout.tabs)
+[?2004l[?2004h> 
+[?2004l[?2004h>     for tab_idx in range(0, tab_count - 1)
+[?2004l[?2004h>         let tab = a:layout.tabs[tab_idx]
+[?2004l[?2004h> 
+[?2004l[?2004h>         if tab_idx > 0
+[?2004l[?2004h>             let script = script . ind . '" Tab ' . (tab_idx + 1) . '\n'
+[?2004l[?2004h>             let script = script . ind . 'tabnew\n'
+[?2004l[?2004h>             let script = script . ind . '\n'
+[?2004l[?2004h>         endif
+[?2004l[?2004h> 
+[?2004l[?2004h>         let win_count = len(tab.windows)
+[?2004l[?2004h>         let first_window = 1
+[?2004l[?2004h> 
+[?2004l[?2004h>         for win_idx in range(0, win_count - 1)
+[?2004l[?2004h>             let win = tab.windows[win_idx]
+[?2004l[?2004h> 
+[?2004l[?2004h>             if first_window
+[?2004l[?2004h>                 let first_window = 0
+[?2004l[?2004h> 
+[?2004l[?2004h>                 if win.bufname != ''
+[?2004l[?2004h>                     let script = script . ind . '" Window ' . (win_idx + 1) . ' - buffer: ' . win.bufname . '\n'
+[?2004l[?2004h>                     let script = script . ind . 'edit ' . fnameescape(win.bufname) . '\n'
+[?2004l[?2004h>                 endif
+[?2004l[?2004h>             else
+[?2004l[?2004h>                 let script = script . ind . '" Window ' . (win_idx + 1) . ' - buffer: ' . win.bufname . '\n'
+[?2004l[?2004h> 
+[?2004l[?2004h>                 if win.split_type == 'vsplit'
+[?2004l[?2004h>                     let script = script . ind . 'vsplit\n'
+[?2004l[?2004h>                 elseif win.split_type == 'split'
+[?2004l[?2004h>                     let script = script . ind . 'split\n'
+[?2004l[?2004h>                 endif
+[?2004l[?2004h> 
+[?2004l[?2004h>                 if win.bufname != ''
+[?2004l[?2004h>                     let script = script . ind . 'edit ' . fnameescape(win.bufname) . '\n'
+[?2004l[?2004h>                 endif
+[?2004l[?2004h>             endif
+[?2004l[?2004h> 
+[?2004l[?2004h>             let script = script . ind . '\n'
+[?2004l[?2004h>         endfor
+[?2004l[?2004h>     endfor
+[?2004l[?2004h> 
+[?2004l[?2004h>     let script = script . ind . '" Restore active tab\n'
+[?2004l[?2004h>     let script = script . ind . 'if ' . tab_count . ' > 1\n'
+[?2004l[?2004h>     let script = script . ind1 . 'tabnext ' . a:layout.active_tab . '\n'
+[?2004l[?2004h>     let script = script . ind . 'endif\n'
+[?2004l[?2004h> 
+[?2004l[?2004h>     return script
+[?2004l[?2004h> endfunction
+[?2004l[?2004h> ENDOFPLUGIN
+[?2004l[?2004hroot@8d526f641b03:/app# cat >> /app/plugin/layout_quine.vim << 'ENDOFPLUGIN'
+[?2004l[?2004h> 
+[?2004l[?2004h> function! s:LayoutQuineImpl(path)
+[?2004l[?2004h>     let layout = s:CaptureLayout()
+[?2004l[?2004h>     let script = s:GenerateLayoutScript(layout, 0)
+[?2004l[?2004h> 
+[?2004l[?2004h>     call writefile(split(script, '\n'), a:path)
+[?2004l[?2004h> 
+[?2004l[?2004h>     echo 'Layout saved to: ' . a:path
+[?2004l[?2004h> endfunction
+[?2004l[?2004h> 
+[?2004l[?2004h> command! -nargs=1 LayoutQuine call s:LayoutQuineImpl(<f-args>)
+[?2004l[?2004h> ENDOFPLUGIN
+[?2004l[?2004hroot@8d526f641b03:/app# cat /app/plugin/layout_quine.vim
+[?2004l" LayoutQuine Plugin
+" A Vimscript plugin that can replicate a Vim layout
+
+if exists('g:layout_quine_loaded')
+    finish
+endif
+let g:layout_quine_loaded = 1
+
+function! s:CaptureLayout()
+    let layout = {}
+    let layout.active_tab = tabpagenr()
+    let layout.tabs = []
+
+    let tab_count = tabpagenr('$')
+
+    for tab_num in range(1, tab_count)
+        let tab_info = {}
+        let tab_info.windows = []
+        let tab_info.window_count = winnr('$')
+
+        execute 'tabnext' tab_num
+
+        let win_count = winnr('$')
+
+        for win_num in range(1, win_count)
+            let win_info = {}
+            let win_info.bufnr = winbufnr(win_num)
+            let win_info.bufname = bufname(winbufnr(win_num))
+            let win_info.width = winwidth(win_num)
+            let win_info.height = winheight(win_num)
+
+            if win_num > 1
+                let prev_win = win_num - 1
+                let prev_right = win_screenpos(prev_win)[0] + winwidth(prev_win)
+                let curr_left = win_screenpos(win_num)[0]
+
+                if prev_right == curr_left
+                    let win_info.split_type = 'vsplit'
+                else
+                    let win_info.split_type = 'split'
+                endif
+            else
+                let win_info.split_type = 'first'
+            endif
+
+            call add(tab_info.windows, win_info)
+        endfor
+
+        call add(layout.tabs, tab_info)
+    endfor
+
+    execute 'tabnext' layout.active_tab
+
+    return layout
+endfunction
+
+function! s:GenerateLayoutScript(layout, indent)
+    let script = ''
+    let ind = repeat('    ', a:indent)
+    let ind1 = repeat('    ', a:indent + 1)
+
+    let script = script . ind . '" Recreate tabs and windows\n'
+    let script = script . ind . '" Active tab was: ' . a:layout.active_tab . '\n'
+    let script = script . ind . '\n'
+
+    let tab_count = len(a:layout.tabs)
+
+    for tab_idx in range(0, tab_count - 1)
+        let tab = a:layout.tabs[tab_idx]
+
+        if tab_idx > 0
+            let script = script . ind . '" Tab ' . (tab_idx + 1) . '\n'
+            let script = script . ind . 'tabnew\n'
+            let script = script . ind . '\n'
+        endif
+
+        let win_count = len(tab.windows)
+        let first_window = 1
+
+        for win_idx in range(0, win_count - 1)
+            let win = tab.windows[win_idx]
+
+            if first_window
+                let first_window = 0
+
+                if win.bufname != ''
+                    let script = script . ind . '" Window ' . (win_idx + 1) . ' - buffer: ' . win.bufname . '\n'
+                    let script = script . ind . 'edit ' . fnameescape(win.bufname) . '\n'
+                endif
+            else
+                let script = script . ind . '" Window ' . (win_idx + 1) . ' - buffer: ' . win.bufname . '\n'
+
+                if win.split_type == 'vsplit'
+                    let script = script . ind . 'vsplit\n'
+                elseif win.split_type == 'split'
+                    let script = script . ind . 'split\n'
+                endif
+
+                if win.bufname != ''
+                    let script = script . ind . 'edit ' . fnameescape(win.bufname) . '\n'
+                endif
+            endif
+
+            let script = script . ind . '\n'
+        endfor
+    endfor
+
+    let script = script . ind . '" Restore active tab\n'
+    let script = script . ind . 'if ' . tab_count . ' > 1\n'
+    let script = script . ind1 . 'tabnext ' . a:layout.active_tab . '\n'
+    let script = script . ind . 'endif\n'
+
+    return script
+endfunction
+
+function! s:LayoutQuineImpl(path)
+    let layout = s:CaptureLayout()
+    let script = s:GenerateLayoutScript(layout, 0)
+
+    call writefile(split(script, '\n'), a:path)
+
+    echo 'Layout saved to: ' . a:path
+endfunction
+
+command! -nargs=1 LayoutQuine call s:LayoutQuineImpl(<f-args>)
+[?2004hroot@8d526f641b03:/app# vim -u /app/plugin/layout_quine.vim -c 'vsplit' -c 'split' -c 'tabnew' -c 'vsplit' -c 'LayoutQuine /tmp/test_layout.vim' -c 'q'
+[?2004l[?1049h[?1h=[?2004h[1;40r[27m[24m[23m[0m[H[J[?25l[40;1HLayout saved to: /tmp/test_layout.vim[1;1H[4m[30m[47m [24m[0m[4m[35m[47m3[24m[0m[4m[30m[47m [No Name] [24m[0m[1m [No Name] [0m[7m                                                                                                                                        [0m[1;160H[4m[30m[47mX[24m[0m[3;1H[94m~                                                                                                                                                               [4;1H~                                                                                                                                                               [5;1H~                                                                                                                                                               [6;1H~                                                                                                                                                               [7;1H~                                                                                                                                                               [8;1H~                                                                                                                                                               [9;1H~                                                                                                                                                               [10;1H~                                                                                                                                                               [11;1H~                                                                                                                                                               [12;1H~                                                                                                                                                               [13;1H~                                                                                                                                                               [14;1H~                                                                                                                                                               [15;1H~                                                                                                                                                               [16;1H~                                                                                                                                                               [17;1H~                                                                                                                                                               [18;1H~                                                                                                                                                               [19;1H~                                                                                                                                                               [20;1H~                                                                                                                                                               [21;1H~                                                                                                                                                               [22;1H~                                                                                                                                                               [23;1H~                                                                                                                                                               [24;1H~                                                                                                                                                               [25;1H~                                                                                                                                                               [26;1H~                                                                                                                                                               [27;1H~                                                                                                                                                               [28;1H~                                                                                                                                                               [29;1H~                                                                                                                                                               [30;1H~                                                                                                                                                               [31;1H~                                                                                                                                                               [32;1H~                                                                                                                                                               [33;1H~                                                                                                                                                               [34;1H~                                                                                                                                                               [35;1H~                                                                                                                                                               [36;1H~                                                                                                                                                               [37;1H~                                                                                                                                                               [38;1H~                                                                                                                                                               [39;1H~                                                                                                                                                               [0m[12;72HVIM - Vi IMproved[14;73Hversion 9.0.2142[15;69Hby Bram Moolenaar et al.[16;61HModified by team+vim@tracker.debian.org[17;59HVim is open source and freely distributable[19;66HBecome a registered Vim user![20;58Htype  :help register[34m<Enter>[0m   for information [22;58Htype  :q[34m<Enter>[0m               to exit         [23;58Htype  :help[34m<Enter>[0m  or  [34m<F1>[0m  for on-line help[24;58Htype  :help version9[34m<Enter>[0m   for version info[26;66HRunning in Vi compatible mode[27;58Htype  :set nocp[34m<Enter>[0m        for Vim defaults[28;58Htype  :help cp-default[34m<Enter>[0m for info on this[2;1H[34h[?25h[?25l[40;1H[K[40;1H/tmp/test_layout.vim/tmp [40;6H[K[40;1H[31msearch hit BOTTOM, continuing at TOP[0m[97m[41mE486: Pattern not found: tmp[0m[40;29H[K[2;1H[34h[?25h[?25l[40;1H[K[40;1H:q![1;1H                                                                                [7m|[2;81H|[3;81H|[4;81H|[5;81H|[6;81H|[7;81H|[8;81H|[9;81H|[10;81H|[11;81H|[12;81H|[13;81H|[14;81H|[15;81H|[16;81H|[17;81H|[18;81H|[19;81H|[0m[2;1H[94m~                                                                               [12;72H         [14;73H        [15;69H            [16;61H                    [17;59H                      [19;66H               [0m
+[1m[7m[No Name]                                                                       [0m[7m|[0m
+                                                                                [7m|[22;81H|[23;81H|[24;81H|[25;81H|[26;81H|[27;81H|[28;81H|[29;81H|[30;81H|[31;81H|[32;81H|[33;81H|[34;81H|[35;81H|[36;81H|[37;81H|[38;81H|[0m[22;58H[94m                       [23;58H                       [24;58H                       [26;66H               [27;58H                       [28;58H                       [0m[39;1H[7m[No Name]                                                                        [0m[1;82H[K[2;82H[94m~                                                                              [3;82H~[4;82H~[5;82H~[6;82H~[7;82H~[8;82H~[9;82H~[10;82H~[11;82H~[12;82H~      [13;82H~[14;82H~      [15;82H~          [16;82H~                 [17;82H~                   [18;82H~[19;82H~            [20;82H~                     [21;82H~[22;82H~                     [23;82H~                     [24;82H~                     [25;82H~[26;82H~            [27;82H~                     [28;82H~                     [29;82H~[30;82H~[31;82H~[32;82H~[33;82H~[34;82H~[35;82H~[36;82H~[37;82H~[38;82H~[0m[39;82H[7m[No Name]                                                                      [1;1H[34h[?25h[?25l[0m[40;1HType  :qa  and press <Enter> to exit Vim[1;1H[34h[?25h[?25l[40;1H[K[40;1H:qa![?2004l[40;1H[K[40;1H[?2004l[?1l>[?1049l[34h[?25h[?2004hroot@8d526f641b03:/app# cat /tmp/test_layout.vim
+[?2004l" Recreate tabs and windows\n" Active tab was: 2\n\n\n" Window 2 - buffer: \nsplit\n\n" Window 3 - buffer: \nsplit\n\n" Tab 2\ntabnew\n\n\n" Window 2 - buffer: \nsplit\n\n" Restore active tab\nif 2 > 1\n    tabnext 2\nendif\n
+[?2004hroot@8d526f641b03:/app# cat > /app/plugin/layout_quine.vim << 'ENDOFPLUGIN'
+[?2004l[?2004h> " LayoutQuine Plugin
+[?2004l[?2004h> " A Vimscript plugin that can replicate a Vim layout
+[?2004l[?2004h> 
+[?2004l[?2004h> if exists('g:layout_quine_loaded')
+[?2004l[?2004h>     finish
+[?2004l[?2004h> endif
+[?2004l[?2004h> let g:layout_quine_loaded = 1
+[?2004l[?2004h> 
+[?2004l[?2004h> function! s:CaptureLayout()
+[?2004l[?2004h>     let layout = {}
+[?2004l[?2004h>     let layout.active_tab = tabpagenr()
+[?2004l[?2004h>     let layout.tabs = []
+[?2004l[?2004h> 
+[?2004l[?2004h>     let tab_count = tabpagenr('$')
+[?2004l[?2004h> 
+[?2004l[?2004h>     for tab_num in range(1, tab_count)
+[?2004l[?2004h>         let tab_info = {}
+[?2004l[?2004h>         let tab_info.windows = []
+[?2004l[?2004h>         let tab_info.window_count = winnr('$')
+[?2004l[?2004h> 
+[?2004l[?2004h>         execute 'tabnext' tab_num
+[?2004l[?2004h> 
+[?2004l[?2004h>         let win_count = winnr('$')
+[?2004l[?2004h> 
+[?2004l[?2004h>         for win_num in range(1, win_count)
+[?2004l[?2004h>             let win_info = {}
+[?2004l[?2004h>             let win_info.bufnr = winbufnr(win_num)
+[?2004l[?2004h>             let win_info.bufname = bufname(winbufnr(win_num))
+[?2004l[?2004h>             let win_info.width = winwidth(win_num)
+[?2004l[?2004h>             let win_info.height = winheight(win_num)
+[?2004l[?2004h> 
+[?2004l[?2004h>             if win_num > 1
+[?2004l[?2004h>                 let prev_win = win_num - 1
+[?2004l[?2004h>                 let prev_right = win_screenpos(prev_win)[0] + winwidth(prev_win)
+[?2004l[?2004h>                 let curr_left = win_screenpos(win_num)[0]
+[?2004l[?2004h> 
+[?2004l[?2004h>                 if prev_right == curr_left
+[?2004l[?2004h>                     let win_info.split_type = 'vsplit'
+[?2004l[?2004h>                 else
+[?2004l[?2004h>                     let win_info.split_type = 'split'
+[?2004l[?2004h>                 endif
+[?2004l[?2004h>             else
+[?2004l[?2004h>                 let win_info.split_type = 'first'
+[?2004l[?2004h>             endif
+[?2004l[?2004h> 
+[?2004l[?2004h>             call add(tab_info.windows, win_info)
+[?2004l[?2004h>         endfor
+[?2004l[?2004h> 
+[?2004l[?2004h>         call add(layout.tabs, tab_info)
+[?2004l[?2004h>     endfor
+[?2004l[?2004h> 
+[?2004l[?2004h>     execute 'tabnext' layout.active_tab
+[?2004l[?2004h> 
+[?2004l[?2004h>     return layout
+[?2004l[?2004h> endfunction
+[?2004l[?2004h> ENDOFPLUGIN
+[?2004l[?2004hroot@8d526f641b03:/app# cat >> /app/plugin/layout_quine.vim << 'ENDOFPLUGIN'
+[?2004l[?2004h> 
+[?2004l[?2004h> function! s:GenerateLayoutScript(layout, indent)
+[?2004l[?2004h>     let script = []
+[?2004l[?2004h>     let ind = repeat('    ', a:indent)
+[?2004l[?2004h>     let ind1 = repeat('    ', a:indent + 1)
+[?2004l[?2004h> 
+[?2004l[?2004h>     call add(script, ind . '" Recreate tabs and windows')
+[?2004l[?2004h>     call add(script, ind . '" Active tab was: ' . a:layout.active_tab)
+[?2004l[?2004h>     call add(script, '')
+[?2004l[?2004h> 
+[?2004l[?2004h>     let tab_count = len(a:layout.tabs)
+[?2004l[?2004h> 
+[?2004l[?2004h>     for tab_idx in range(0, tab_count - 1)
+[?2004l[?2004h>         let tab = a:layout.tabs[tab_idx]
+[?2004l[?2004h> 
+[?2004l[?2004h>         if tab_idx > 0
+[?2004l[?2004h>             call add(script, ind . '" Tab ' . (tab_idx + 1))
+[?2004l[?2004h>             call add(script, ind . 'tabnew')
+[?2004l[?2004h>             call add(script, '')
+[?2004l[?2004h>         endif
+[?2004l[?2004h> 
+[?2004l[?2004h>         let win_count = len(tab.windows)
+[?2004l[?2004h>         let first_window = 1
+[?2004l[?2004h> 
+[?2004l[?2004h>         for win_idx in range(0, win_count - 1)
+[?2004l[?2004h>             let win = tab.windows[win_idx]
+[?2004l[?2004h> 
+[?2004l[?2004h>             if first_window
+[?2004l[?2004h>                 let first_window = 0
+[?2004l[?2004h> 
+[?2004l[?2004h>                 if win.bufname != ''
+[?2004l[?2004h>                     call add(script, ind . '" Window ' . (win_idx + 1) . ' - buffer: ' . win.bufname)
+[?2004l[?2004h>                     call add(script, ind . 'edit ' . fnameescape(win.bufname))
+[?2004l[?2004h>                 endif
+[?2004l[?2004h>             else
+[?2004l[?2004h>                 call add(script, ind . '" Window ' . (win_idx + 1) . ' - buffer: ' . win.bufname)
+[?2004l[?2004h> 
+[?2004l[?2004h>                 if win.split_type == 'vsplit'
+[?2004l[?2004h>                     call add(script, ind . 'vsplit')
+[?2004l[?2004h>                 elseif win.split_type == 'split'
+[?2004l[?2004h>                     call add(script, ind . 'split')
+[?2004l[?2004h>                 endif
+[?2004l[?2004h> 
+[?2004l[?2004h>                 if win.bufname != ''
+[?2004l[?2004h>                     call add(script, ind . 'edit ' . fnameescape(win.bufname))
+[?2004l[?2004h>                 endif
+[?2004l[?2004h>             endif
+[?2004l[?2004h> 
+[?2004l[?2004h>             call add(script, '')
+[?2004l[?2004h>         endfor
+[?2004l[?2004h>     endfor
+[?2004l[?2004h> 
+[?2004l[?2004h>     call add(script, ind . '" Restore active tab')
+[?2004l[?2004h>     call add(script, ind . 'if ' . tab_count . ' > 1')
+[?2004l[?2004h>     call add(script, ind1 . 'tabnext ' . a:layout.active_tab)
+[?2004l[?2004h>     call add(script, ind . 'endif')
+[?2004l[?2004h> 
+[?2004l[?2004h>     return script
+[?2004l[?2004h> endfunction
+[?2004l[?2004h> ENDOFPLUGIN
+[?2004l[?2004hroot@8d526f641b03:/app# cat >> /app/plugin/layout_quine.vim << 'ENDOFPLUGIN'
+[?2004l[?2004h> 
+[?2004l[?2004h> function! s:LayoutQuineImpl(path)
+[?2004l[?2004h>     let layout = s:CaptureLayout()
+[?2004l[?2004h>     let script = s:GenerateLayoutScript(layout, 0)
+[?2004l[?2004h> 
+[?2004l[?2004h>     call writefile(script, a:path)
+[?2004l[?2004h> 
+[?2004l[?2004h>     echo 'Layout saved to: ' . a:path
+[?2004l[?2004h> endfunction
+[?2004l[?2004h> 
+[?2004l[?2004h> command! -nargs=1 LayoutQuine call s:LayoutQuineImpl(<f-args>)
+[?2004l[?2004h> ENDOFPLUGIN
+[?2004l[?2004hroot@8d526f641b03:/app# cat /app/plugin/layout_quine.vim
+[?2004l" LayoutQuine Plugin
+" A Vimscript plugin that can replicate a Vim layout
+
+if exists('g:layout_quine_loaded')
+    finish
+endif
+let g:layout_quine_loaded = 1
+
+function! s:CaptureLayout()
+    let layout = {}
+    let layout.active_tab = tabpagenr()
+    let layout.tabs = []
+
+    let tab_count = tabpagenr('$')
+
+    for tab_num in range(1, tab_count)
+        let tab_info = {}
+        let tab_info.windows = []
+        let tab_info.window_count = winnr('$')
+
+        execute 'tabnext' tab_num
+
+        let win_count = winnr('$')
+
+        for win_num in range(1, win_count)
+            let win_info = {}
+            let win_info.bufnr = winbufnr(win_num)
+            let win_info.bufname = bufname(winbufnr(win_num))
+            let win_info.width = winwidth(win_num)
+            let win_info.height = winheight(win_num)
+
+            if win_num > 1
+                let prev_win = win_num - 1
+                let prev_right = win_screenpos(prev_win)[0] + winwidth(prev_win)
+                let curr_left = win_screenpos(win_num)[0]
+
+                if prev_right == curr_left
+                    let win_info.split_type = 'vsplit'
+                else
+                    let win_info.split_type = 'split'
+                endif
+            else
+                let win_info.split_type = 'first'
+            endif
+
+            call add(tab_info.windows, win_info)
+        endfor
+
+        call add(layout.tabs, tab_info)
+    endfor
+
+    execute 'tabnext' layout.active_tab
+
+    return layout
+endfunction
+
+function! s:GenerateLayoutScript(layout, indent)
+    let script = []
+    let ind = repeat('    ', a:indent)
+    let ind1 = repeat('    ', a:indent + 1)
+
+    call add(script, ind . '" Recreate tabs and windows')
+    call add(script, ind . '" Active tab was: ' . a:layout.active_tab)
+    call add(script, '')
+
+    let tab_count = len(a:layout.tabs)
+
+    for tab_idx in range(0, tab_count - 1)
+        let tab = a:layout.tabs[tab_idx]
+
+        if tab_idx > 0
+            call add(script, ind . '" Tab ' . (tab_idx + 1))
+            call add(script, ind . 'tabnew')
+            call add(script, '')
+        endif
+
+        let win_count = len(tab.windows)
+        let first_window = 1
+
+        for win_idx in range(0, win_count - 1)
+            let win = tab.windows[win_idx]
+
+            if first_window
+                let first_window = 0
+
+                if win.bufname != ''
+                    call add(script, ind . '" Window ' . (win_idx + 1) . ' - buffer: ' . win.bufname)
+                    call add(script, ind . 'edit ' . fnameescape(win.bufname))
+                endif
+            else
+                call add(script, ind . '" Window ' . (win_idx + 1) . ' - buffer: ' . win.bufname)
+
+                if win.split_type == 'vsplit'
+                    call add(script, ind . 'vsplit')
+                elseif win.split_type == 'split'
+                    call add(script, ind . 'split')
+                endif
+
+                if win.bufname != ''
+                    call add(script, ind . 'edit ' . fnameescape(win.bufname))
+                endif
+            endif
+
+            call add(script, '')
+        endfor
+    endfor
+
+    call add(script, ind . '" Restore active tab')
+    call add(script, ind . 'if ' . tab_count . ' > 1')
+    call add(script, ind1 . 'tabnext ' . a:layout.active_tab)
+    call add(script, ind . 'endif')
+
+    return script
+endfunction
+
+function! s:LayoutQuineImpl(path)
+    let layout = s:CaptureLayout()
+    let script = s:GenerateLayoutScript(layout, 0)
+
+    call writefile(script, a:path)
+
+    echo 'Layout saved to: ' . a:path
+endfunction
+
+command! -nargs=1 LayoutQuine call s:LayoutQuineImpl(<f-args>)
+[?2004hroot@8d526f641b03:/app# vim -u /app/plugin/layout_quine.vim -c 'vsplit' -c 'split' -c 'tabnew' -c 'vsplit' -c 'LayoutQuine /tmp/test_layout.vim' -c 'q'
+[?2004l[?1049h[?1h=[?2004h[1;40r[27m[24m[23m[0m[H[J[?25l[40;1HLayout saved to: /tmp/test_layout.vim[1;1H[4m[30m[47m [24m[0m[4m[35m[47m3[24m[0m[4m[30m[47m [No Name] [24m[0m[1m [No Name] [0m[7m                                                                                                                                        [0m[1;160H[4m[30m[47mX[24m[0m[3;1H[94m~                                                                                                                                                               [4;1H~                                                                                                                                                               [5;1H~                                                                                                                                                               [6;1H~                                                                                                                                                               [7;1H~                                                                                                                                                               [8;1H~                                                                                                                                                               [9;1H~                                                                                                                                                               [10;1H~                                                                                                                                                               [11;1H~                                                                                                                                                               [12;1H~                                                                                                                                                               [13;1H~                                                                                                                                                               [14;1H~                                                                                                                                                               [15;1H~                                                                                                                                                               [16;1H~                                                                                                                                                               [17;1H~                                                                                                                                                               [18;1H~                                                                                                                                                               [19;1H~                                                                                                                                                               [20;1H~                                                                                                                                                               [21;1H~                                                                                                                                                               [22;1H~                                                                                                                                                               [23;1H~                                                                                                                                                               [24;1H~                                                                                                                                                               [25;1H~                                                                                                                                                               [26;1H~                                                                                                                                                               [27;1H~                                                                                                                                                               [28;1H~                                                                                                                                                               [29;1H~                                                                                                                                                               [30;1H~                                                                                                                                                               [31;1H~                                                                                                                                                               [32;1H~                                                                                                                                                               [33;1H~                                                                                                                                                               [34;1H~                                                                                                                                                               [35;1H~                                                                                                                                                               [36;1H~                                                                                                                                                               [37;1H~                                                                                                                                                               [38;1H~                                                                                                                                                               [39;1H~                                                                                                                                                               [0m[12;72HVIM - Vi IMproved[14;73Hversion 9.0.2142[15;69Hby Bram Moolenaar et al.[16;61HModified by team+vim@tracker.debian.org[17;59HVim is open source and freely distributable[19;66HHelp poor children in Uganda![20;58Htype  :help iccf[34m<Enter>[0m       for information [22;58Htype  :q[34m<Enter>[0m               to exit         [23;58Htype  :help[34m<Enter>[0m  or  [34m<F1>[0m  for on-line help[24;58Htype  :help version9[34m<Enter>[0m   for version info[26;66HRunning in Vi compatible mode[27;58Htype  :set nocp[34m<Enter>[0m        for Vim defaults[28;58Htype  :help cp-default[34m<Enter>[0m for info on this[2;1H[34h[?25h[?25l[40;1H[K[40;1H/tmp/test_layout.vim/tmp [40;6H[K[40;1H[31msearch hit BOTTOM, continuing at TOP[0m[97m[41mE486: Pattern not found: tmp[0m[40;29H[K[2;1H[34h[?25h[?25l[40;1H[K[40;1H:qa![?2004l[40;1H[K[40;1H[?2004l[?1l>[?1049l[34h[?25h[?2004hroot@8d526f641b03:/app# cat /tmp/test_layout.vim
+[?2004l" Recreate tabs and windows
+" Active tab was: 2
+
+
+" Window 2 - buffer: 
+split
+
+" Window 3 - buffer: 
+split
+
+" Tab 2
+tabnew
+
+
+" Window 2 - buffer: 
+split
+
+" Restore active tab
+if 2 > 1
+    tabnext 2
+endif
+[?2004hroot@8d526f641b03:/app# echo 'test1' > /tmp/file1.txt && echo 'test2' > /tmp/file2.txt && echo 'test3' > /tmp/file3.txt
+[?2004l[?2004hroot@8d526f641b03:/app# vim -u /app/plugin/layout_quine.vim /tmp/file1.txt -c 'vsplit /tmp/file2.txt' -c 'split /tmp/file3.txt' -c 'tabnew' -c 'edit /tmp/file1.txt' -c 'vsplit /tmp/file2.txt' -c 'LayoutQuine /tmp/test_layout.vim' -c 'q'
+[?2004l[?1049h[?1h=[?2004h[1;40r[27m[24m[23m[0m[H[J[?25l[40;1H"/tmp/file1.txt" 1 line, 6 bytes
+"/tmp/file2.txt" 1 line, 6 bytes
+"/tmp/file3.txt" 1 line, 6 bytes
+"/tmp/file1.txt" line 1 of 1 --100%-- col 1
+"/tmp/file2.txt" line 1 of 1 --100%-- col 1
+Layout saved to: /tmp/test_layout.vim
+Press ENTER or type command to continue[34h[?25h[1;1H[6L[1;1H[4m[30m[47m [24m[0m[4m[35m[47m3[24m[0m[4m[30m[47m /t/file3.txt [24m[0m[1m /t/file1.txt [0m[7m                                                                                                                                  [0m[1;160H[4m[30m[47mX[?25l[24m[0m[2;1Htest1
+[94m~                                                                                                                                                               [4;1H~                                                                                                                                                               [5;1H~                                                                                                                                                               [6;1H~                                                                                                                                                               [7;1H~                                                                                                                                                               [8;1H~                                                                                                                                                               [9;1H~                                                                                                                                                               [10;1H~                                                                                                                                                               [11;1H~                                                                                                                                                               [12;1H~                                                                                                                                                               [13;1H~                                                                                                                                                               [14;1H~                                                                                                                                                               [15;1H~                                                                                                                                                               [16;1H~                                                                                                                                                               [17;1H~                                                                                                                                                               [18;1H~                                                                                                                                                               [19;1H~                                                                                                                                                               [20;1H~                                                                                                                                                               [21;1H~                                                                                                                                                               [22;1H~                                                                                                                                                               [23;1H~                                                                                                                                                               [24;1H~                                                                                                                                                               [25;1H~                                                                                                                                                               [26;1H~                                                                                                                                                               [27;1H~                                                                                                                                                               [28;1H~                                                                                                                                                               [29;1H~                                                                                                                                                               [30;1H~                                                                                                                                                               [31;1H~                                                                                                                                                               [32;1H~                                                                                                                                                               [33;1H~                                                                                                                                                               [34;1H~                                                                                                                                                               [35;1H~                                                                                                                                                               [36;1H~                                                                                                                                                               [37;1H~                                                                                                                                                               [38;1H~                                                                                                                                                               [39;1H~                                                                                                                                                               [0m[40;1H[K[2;1H[34h[?25ht[?25l[40;1H/tmp/test_layout.vim/tmp [40;6H[K[40;1H[31msearch hit BOTTOM, continuing at TOP[0m[97m[41mE486: Pattern not found: tmp[0m[40;29H[K[2;2H[34h[?25h[?25l[40;1H[K[40;1H:qa![?2004l[40;1H[K[40;1H[?2004l[?1l>[?1049l[34h[?25h[?2004hroot@8d526f641b03:/app# cat /tmp/test_layout.vim
+[?2004l" Recreate tabs and windows
+" Active tab was: 2
+
+" Window 1 - buffer: /tmp/file3.txt
+edit /tmp/file3.txt
+
+" Window 2 - buffer: /tmp/file2.txt
+split
+edit /tmp/file2.txt
+
+" Window 3 - buffer: /tmp/file1.txt
+split
+edit /tmp/file1.txt
+
+" Tab 2
+tabnew
+
+" Window 1 - buffer: /tmp/file2.txt
+edit /tmp/file2.txt
+
+" Window 2 - buffer: /tmp/file1.txt
+split
+edit /tmp/file1.txt
+
+" Restore active tab
+if 2 > 1
+    tabnext 2
+endif
+[?2004hroot@8d526f641b03:/app# ls -la /app/plugin/layout_quine.vim
+[?2004l-rw-r--r-- 1 root root 3638 Apr 10 01:04 /app/plugin/layout_quine.vim
+[?2004hroot@8d526f641b03:/app# 

@@ -1,0 +1,86 @@
+New Terminal Output:
+
+root@8884a9b806ea:/app# cat > /app/verify_artifact.sh << 'EOF'
+> #!/bin/bash
+> set -e
+>
+> # Check if artifact path is provided
+> if [ $# -ne 1 ]; then
+>     echo "Usage: $0 <artifact-path>" >&2
+>     exit 1
+> fi
+>
+> ARTIFACT_PATH="$1"
+> ARTIFACT_NAME=$(basename "$ARTIFACT_PATH")
+>
+> # Define required files
+> SIG_FILE="/app/signed/${ARTIFACT_NAME}.sig"
+> PROVENANCE_FILE="/app/signed/${ARTIFACT_NAME}.provenance.json"
+> PROVENANCE_SIG_FILE="/app/signed/${ARTIFACT_NAME}.provenance.sig"
+> CHAIN_FILE="/app/signed/${ARTIFACT_NAME}.chain.pem"
+>
+> # Verify all required files exist
+> for f in "$ARTIFACT_PATH" "$SIG_FILE" "$PROVENANCE_FILE" "$PROVENANCE_SIG_FILE" "$CHAIN_FILE"; do
+>     if [ ! -f "$f" ]; then
+>         echo "VERIFICATION_FAILED: Required file $f not found" >&2
+>         exit 1
+>     fi
+> done
+>
+> # Verify certificate chain format and extract public key from first cert
+> if ! openssl x509 -inform PEM -in "$CHAIN_FILE" -noout -text >/dev/null 2>&1; then
+>     echo "VERIFICATION_FAILED: Invalid certificate chain format" >&2
+>     exit 1
+> fi
+>
+> # Extract public key from the first certificate in the chain
+> PUBKEY=$(openssl x509 -in "$CHAIN_FILE" -pubkey -noout)
+>
+> # Verify artifact signature
+> if ! echo "$PUBKEY" | openssl pkey -pubin -outform DER | openssl dgst -sha256 -verify - -signature "$SIG_FILE" "$ARTIFACT_PATH"; then
+>     echo "VERIFICATION_FAILED: Artifact signature verification failed" >&2
+>     exit 1
+> fi
+>
+> # Verify provenance signature
+> if ! echo "$PUBKEY" | openssl pkey -pubin -outform DER | openssl dgst -sha256 -verify - -signature "$PROVENANCE_SIG_FILE" "$PROVENANCE_FILE"; then
+>     echo "VERIFICATION_FAILED: Provenance signature verification failed" >&2
+>     exit 1
+> fi
+>
+> # Validate provenance JSON content
+> if ! jq -e '.artifact == "'$ARTIFACT_NAME'"' "$PROVENANCE_FILE" >/dev/null 2>&1; then
+>     echo "VERIFICATION_FAILED: Provenance artifact field mismatch" >&2
+>     exit 1
+> fi
+>
+> # Verify SHA256 checksum
+> EXPECTED_SHA256=$(jq -r '.sha256' "$PROVENANCE_FILE")
+> ACTUAL_SHA256=$(sha256sum "$ARTIFACT_PATH" | cut -d' ' -f1)
+> if [ "$EXPECTED_SHA256" != "$ACTUAL_SHA256" ]; then
+>     echo "VERIFICATION_FAILED: SHA256 checksum mismatch" >&2
+>     exit 1
+> fi
+>
+> # Check required fields exist
+> REQUIRED_FIELDS="buildID artifact sha256 signedAt signer certificateChain"
+> for field in $REQUIRED_FIELDS; do
+>     if ! jq -e ".$field" "$PROVENANCE_FILE" >/dev/null 2>&1; then
+>         echo "VERIFICATION_FAILED: Missing required field $field in provenance" >&2
+>         exit 1
+>     fi
+> done
+>
+> # All validations passed
+> echo "VERIFICATION_PASSED"
+> exit 0
+> EOF
+root@8884a9b806ea:/app# chmod +x /app/verify_artifact.sh
+root@8884a9b806ea:/app# /app/sign_artifact.sh /app/artifacts/test.txt build-001
+Certificate request self-signature ok
+subject=CN=build-build-001, O=SecureBuild, C=US
+Successfully signed test.txt with build ID build-001
+root@8884a9b806ea:/app# /app/verify_artifact.sh /app/artifacts/test.txt
+Could not open file or uri for loading private key of public key from -: No such file or directory
+VERIFICATION_FAILED: Artifact signature verification failed
+root@8884a9b806ea:/app#

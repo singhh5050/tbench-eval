@@ -1,0 +1,231 @@
+New Terminal Output:
+
+root@b12cd1002d87:/app# mkdir -p /app/task_file/output_data
+root@b12cd1002d87:/app# cat > /app/solve.py << 'ENDOFSCRIPT'
+> #!/usr/bin/env python3
+> """
+> Supply Chain Fulfillment Optimization Solution
+> """
+d>
+> import json
+> from collections import defaultdict
+> from pathlib import Path
+>
+> def load_data(input_dir):
+>     """Load all input data files."""
+me>     shipments = {}
+>     with open(input_dir / "shipments.jsonl") as f:
+>         for line in f:
+>             s = json.loads(line)
+>             shipments[s["shipment_id"]] = s
+>
+>     warehouses = {}
+>     with open(input_dir / "warehouses.jsonl") as f:
+>         for line in f:
+>             w = json.loads(line)
+>             warehouses[w["warehouse_id"]] = w
+>
+>     destinations = {}
+>     with open(input_dir / "destinations.jsonl") as f:
+>         for line in f:
+>             d = json.loads(line)
+>             destinations[d["destination_id"]] = d
+>
+>     routes = {}
+>     routes_by_key = {}
+>     with open(input_dir / "routes.jsonl") as f:
+>         for line in f:
+>             r = json.loads(line)
+>             routes[r["route_id"]] = r
+>             key = (r["warehouse_id"], r["destination_id"])
+>             routes_by_key[key] = r
+>
+>     compatibility = []
+>     with open(input_dir / "compatibility.jsonl") as f:
+>         for line in f:
+>             compatibility.append(json.loads(line))
+>
+>     return shipments, warehouses, destinations, routes, routes_by_key, compatibility
+>
+> def get_valid_routes_for_shipment(shipment, warehouses, routes_by_key):
+>     """Find all valid (warehouse, destination) pairs for a shipment."""
+>     valid = []
+>     dest = shipment
+>
+>     for (wh_id, dest_id), route in routes_by_key.items():
+>         # Must be going to correct destination
+>         if dest_id != dest["destination_id"]:
+>             continue
+>
+>         warehouse = warehouses[wh_id]
+>
+>         # Check capabilities
+>         if dest["requires_hazmat"] and not warehouse["handles_hazmat"]:
+>             continue
+>         if dest["requires_refrigerated"] and not warehouse["handles_refrigerated"]:
+>             continue
+>         if dest["requires_oversized"] and not warehouse["handles_oversized"]:
+>             continue
+>
+>         # Check route capabilities
+>         if dest["requires_hazmat"] and not route["allows_hazmat"]:
+>             continue
+>         if dest["requires_refrigerated"] and not route["allows_refrigerated"]:
+>             continue
+>         if dest["requires_oversized"] and not route["allows_oversized"]:
+>             continue
+>
+>         # Check route capacity
+>         if dest["volume"] > route["capacity_volume"]:
+>             continue
+>         if dest["weight"] > route["capacity_weight"]:
+>             continue
+>
+>         # Check warehouse capacity
+>         if dest["volume"] > warehouse["volume_capacity"]:
+>             continue
+>         if dest["weight"] > warehouse["weight_capacity"]:
+>             continue
+>
+>         # Check arrival time <= deadline
+>         arrival_time = warehouse["availability_start"] + route["transit_time_hours"]
+>         if arrival_time > dest["deadline_hours"]:
+>             continue
+>
+>         # Check destination time window
+>         if arrival_time < dest["delivery_window_start"] or arrival_time > dest["delivery_window_end"]:
+>             continue
+>
+>         # Check warehouse availability
+>         if warehouse["availability_start"] >= warehouse["availability_end"]:
+>             continue
+>         if dest["deadline_hours"] < warehouse["availability_start"]:
+>             continue
+>
+>         valid.append((wh_id, dest_id, route, warehouse, arrival_time))
+>
+>     return valid
+>
+> def compute_cost(shipment, warehouse, route):
+>     """Compute fulfillment cost for an assignment."""
+>     h = warehouse["base_handling_cost"] * (shipment["volume"] / 100)
+>     t = route["base_cost_per_km"] * route["distance_km"] * (shipment["weight"] / 1000)
+>     m = shipment["priority_multiplier"]
+>     return (h + t) * m
+>
+> def solve(input_dir, output_file):
+>     """Main solving function."""
+>     shipments, warehouses, destinations, routes, routes_by_key, compatibility = load_data(input_dir)
+>
+>     # Build valid assignments for each shipment
+>     shipment_valid = {}
+>     for sid, shipment in shipments.items():
+>         valid = get_valid_routes_for_shipment(shipment, warehouses, routes_by_key)
+>         shipment_valid[sid] = valid
+>
+>     # Sort shipments by priority (critical first) for better assignment
+>     priority_order = {"critical": 0, "high": 1, "medium": 2, "low": 3}
+>     sorted_shipments = sorted(shipments.values(), key=lambda s: priority_order.get(s["priority"], 2))
+>
+>     # Track warehouse loads
+>     warehouse_volume = defaultdict(int)
+>     warehouse_weight = defaultdict(int)
+>
+>     # Track which warehouses are used
+>     used_warehouses = set()
+>
+>     # Track route usage
+>     route_volume = defaultdict(int)
+>     route_weight = defaultdict(int)
+>
+>     # Track shipments per destination region for quota
+>     region_shipments = defaultdict(list)
+>
+>     assignments = []
+>
+>     for shipment in sorted_shipments:
+>         sid = shipment["shipment_id"]
+>         valid = shipment_valid[sid]
+>
+>         if not valid:
+>             print(f"Warning: No valid assignment for shipment {sid}")
+>             continue
+>
+>         # Score each option
+>         scored = []
+>         for wh_id, dest_id, route, warehouse, arrival_time in valid:
+>             # Check warehouse capacity constraints
+>             new_vol = warehouse_volume[wh_id] + shipment["volume"]
+>             new_weight = warehouse_weight[wh_id] + shipment["weight"]
+>
+>             if new_vol > warehouse["volume_capacity"]:
+>                 continue
+>             if new_weight > warehouse["weight_capacity"]:
+>                 continue
+>
+>             # Check route capacity
+>             new_route_vol = route_volume[(wh_id, dest_id)] + shipment["volume"]
+>             new_route_weight = route_weight[(wh_id, dest_id)] + shipment["weight"]
+>
+>             if new_route_vol > route["capacity_volume"]:
+>                 continue
+>             if new_route_weight > route["capacity_weight"]:
+>                 continue
+>
+>             # Check hazmat/refrigerated consistency
+>             # If warehouse already has hazmat, can't add refrigerated and vice versa
+>             # But we don't track this yet, so skip for now and check later
+>
+>             cost = compute_cost(shipment, warehouse, route)
+>
+>             # Score: lower cost is better, also consider balance
+>             # Use warehouse utilization as a factor
+>             utilization = new_vol / warehouse["volume_capacity"] if warehouse["volume_capacity"] > 0 else 1
+>
+>             # Prefer less utilized warehouses for balance
+>             score = cost + utilization * 10  # Penalize high utilization
+>
+>             scored.append((score, cost, wh_id, dest_id, route, warehouse, arrival_time))
+>
+>         if not scored:
+>             print(f"Warning: No feasible assignment for shipment {sid}")
+>             continue
+>
+>         # Pick best option (lowest score)
+>         scored.sort(key=lambda x: x[0])
+>         best = scored[0]
+>
+>         _, cost, wh_id, dest_id, route, warehouse, arrival_time = best
+>
+>         # Update tracking
+>         warehouse_volume[wh_id] += shipment["volume"]
+>         warehouse_weight[wh_id] += shipment["weight"]
+>         route_volume[(wh_id, dest_id)] += shipment["volume"]
+>         route_weight[(wh_id, dest_id)] += shipment["weight"]
+>         used_warehouses.add(wh_id)
+>         region_shipments[destinations[dest_id]["region"]].append(sid)
+>
+>         assignments.append({
+>             "shipment_id": sid,
+>             "warehouse_id": wh_id,
+>             "destination_id": dest_id
+>         })
+>
+>     # Sort by shipment_id
+>     assignments.sort(key=lambda x: x["shipment_id"])
+>
+>     # Write output
+>     output_file.parent.mkdir(parents=True, exist_ok=True)
+>     with open(output_file, "w") as f:
+>         for a in assignments:
+>             f.write(json.dumps(a) + "\n")
+>
+>     print(f"Wrote {len(assignments)} assignments")
+>     return assignments
+>
+> if __name__ == "__main__":
+>     input_dir = Path("/app/task_file/input_data")
+>     output_file = Path("/app/task_file/output_data/assignments.jsonl")
+>     solve(input_dir, output_file)
+> ENDOFSCRIPT
+root@b12cd1002d87:/app#

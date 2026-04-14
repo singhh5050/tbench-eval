@@ -1,0 +1,38 @@
+New Terminal Output:
+
+root@e65884aa2bb3:/app# python3 -c "
+> import pandas as pd
+> from sklearn.model_selection import train_test_split
+> import json
+>
+> # Load data
+>  df = pd.read_csv('/app/data/train.csv')
+>
+> # Reset index
+>  df = df.reset_index(drop=True)
+>
+> # Split data
+> train_df, val_df = train_test_split(df, test_size=0.2, random_state=42, shuffle=True)
+>
+> # Get validation indices
+> val_indices = val_df.index.tolist()
+> train_indices = train_df.index.tolist()
+>
+> # Create split_info
+> split_info = {
+>     'train_size': len(train_indices),
+>     'validation_size': len(val_indices),
+>     'random_state': 42,
+>     'test_size': 0.2,
+>     'train_indices': train_indices,
+>     'validation_indices': val_indices
+> }
+>
+> # Save to JSON
+> with open('/app/output/split_info.json', 'w') as f:
+>     json.dump(split_info, f, indent=2)
+> "
+  File "<string>", line 7
+    df = pd.read_csv('/app/data/train.csv')
+IndentationError: unexpected indent
+root@e65884aa2bb3:/app#

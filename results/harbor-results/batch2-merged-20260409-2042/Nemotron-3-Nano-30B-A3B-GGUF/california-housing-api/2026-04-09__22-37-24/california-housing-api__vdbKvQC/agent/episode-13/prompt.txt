@@ -1,0 +1,182 @@
+New Terminal Output:
+
+root@e65884aa2bb3:/app# cat > /app/api/app.py << 'EOL'
+> from fastapi import FastAPI, HTTPException
+     'model_type': 'Random Forest Regressor',
+        'features_count': 8
+    }
+
+@app.post('/predict', response_model=PredictResponse)
+async def predict(request: PredictRequest):
+    if len(request.features) != 8:
+        raise HTTPException(status_code=400, detail='Exactly 8 features required')
+
+    # Convert to numpy array and reshape for prediction
+    input_array = np.array(request.features).reshape(1, -1)
+    prediction = best_model.predict(input_array)[0]
+
+    return {
+        'prediction': float(prediction),
+        'model_name': 'random_forest'
+    }
+
+@app.post('/predict-batch', response_model=PredictBatchResponse)
+async def predict_batch(request: PredictBatchRequest):
+    if not request.features_list:
+        raise HTTPException(status_code=400, detail='Features list cannot be empty')
+
+    # Validate each sample has exactly 8 features
+    for i, features in enumerate(request.features_list):
+        if len(features) != 8:
+            raise HTTPException(status_code=400, detail=f'Sample {i} must have exactly 8 features')
+
+    # Convert to numpy array
+    input_array = np.array(request.features_list)
+    predictions = best_model.predict(input_array).tolist()
+
+    return {
+        'predictions': predictions,
+        'model_name': 'random_forest',
+        'count': len(predictions)
+    }
+
+# This will be used when running with uvicorn
+if __name__ == '__main__':
+    import uvicorn
+    uvicorn.run('api.app:app', host='0.0.0.0', port=8000, reload=False)
+EOL
+> from pydantic import BaseModel
+> import pickle
+> import numpy as np
+>
+> # Load the best model at startup
+> with open('/app/models/best_model.pkl', 'rb') as f:
+>     best_model = pickle.load(f)
+>
+> # Create FastAPI app
+> app = FastAPI()
+>
+> # Request models
+> class PredictRequest(BaseModel):
+>     features: list[float]
+>
+> class PredictBatchRequest(BaseModel):
+>     features_list: list[list[float]]
+>
+> class HealthResponse(BaseModel):
+>     status: str
+>     model_loaded: bool
+>
+> class ModelInfoResponse(BaseModel):
+>     model_name: str
+>     model_type: str
+>     features_count: int
+>
+> class PredictResponse(BaseModel):
+>     prediction: float
+>     model_name: str
+>
+> class PredictBatchResponse(BaseModel):
+>     predictions: list[float]
+>     model_name: str
+>     count: int
+>
+> @app.get('/health')
+> async def health():
+>     return {
+>         'status': 'healthy',
+>         'model_loaded': True
+>     }
+>
+> @app.get('/model-info')
+> async def model_info():
+>     return {
+>         'model_name': 'random_forest',
+>         'model_type': 'Random Forest Regressor',
+>         'features_count': 8
+>     }
+>
+> @app.post('/predict', response_model=PredictResponse)
+> async def predict(request: PredictRequest):
+>     if len(request.features) != 8:
+>         raise HTTPException(status_code=400, detail='Exactly 8 features required')
+>
+>     # Convert to numpy array and reshape for prediction
+>     input_array = np.array(request.features).reshape(1, -1)
+>     prediction = best_model.predict(input_array)[0]
+>
+>     return {
+>         'prediction': float(prediction),
+>         'model_name': 'random_forest'
+>     }
+>
+> @app.post('/predict-batch', response_model=PredictBatchResponse)
+> async def predict_batch(request: PredictBatchRequest):
+>     if not request.features_list:
+>         raise HTTPException(status_code=400, detail='Features list cannot be empty')
+>
+>     # Validate each sample has exactly 8 features
+>     for i, features in enumerate(request.features_list):
+>         if len(features) != 8:
+>             raise HTTPException(status_code=400, detail=f'Sample {i} must have exactly 8 features')
+>
+>     # Convert to numpy array
+>     input_array = np.array(request.features_list)
+>     predictions = best_model.predict(input_array).tolist()
+>
+>     return {
+>         'predictions': predictions,
+>         'model_name': 'random_forest',
+>         'count': len(predictions)
+>     }
+>
+> # This will be used when running with uvicorn
+> if __name__ == '__main__':
+>     import uvicorn
+>     uvicorn.run('api.app:app', host='0.0.0.0', port=8000, reload=False)
+> EOL
+root@e65884aa2bb3:/app# python3 /app/api/app.py &
+[1] 777
+root@e65884aa2bb3:/app# Traceback (most recent call last):
+  File "/app/api/app.py", line 90, in <module>
+    uvicorn.run('api.app:app', host='0.0.0.0', port=8000, reload=False)
+    ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.13/site-packages/uvicorn/main.py", line 579, in run
+    server.run()
+    ~~~~~~~~~~^^
+  File "/usr/local/lib/python3.13/site-packages/uvicorn/server.py", line 66, in run
+    return asyncio.run(self.serve(sockets=sockets))
+           ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.13/asyncio/runners.py", line 194, in run
+    return runner.run(main)
+           ~~~~~~~~~~^^^^^^
+  File "/usr/local/lib/python3.13/asyncio/runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/usr/local/lib/python3.13/asyncio/base_events.py", line 720, in run_until_complete
+    return future.result()
+           ~~~~~~~~~~~~~^^
+  File "/usr/local/lib/python3.13/site-packages/uvicorn/server.py", line 70, in serve
+    await self._serve(sockets)
+  File "/usr/local/lib/python3.13/site-packages/uvicorn/server.py", line 77, in _serve
+    config.load()
+    ~~~~~~~~~~~^^
+  File "/usr/local/lib/python3.13/site-packages/uvicorn/config.py", line 435, in load
+    self.loaded_app = import_from_string(self.app)
+                      ~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "/usr/local/lib/python3.13/site-packages/uvicorn/importer.py", line 22, in import_from_string
+    raise exc from None
+  File "/usr/local/lib/python3.13/site-packages/uvicorn/importer.py", line 19, in import_from_string
+    module = importlib.import_module(module_str)
+  File "/usr/local/lib/python3.13/importlib/__init__.py", line 88, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1310, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 488, in _call_with_frames_removed
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'api'
+

@@ -1,0 +1,29 @@
+New Terminal Output:
+
+root@85192a4178f3:/workdir# python3 -c "
+> import cv2
+> import numpy as np
+>
+> for i in [1, 2, 3, 4, 5, 6]:
+>     filepath = '/workdir/data/cards/card_' + str(i) + '.png'
+>     img = cv2.imread(filepath)
+>     rank_area = img[10:70, 10:70]
+>     gray = cv2.cvtColor(rank_area, cv2.COLOR_BGR2GRAY)
+>     _, binary = cv2.threshold(gray, 128, 255, cv2.THRESH_BINARY_INV)
+>     contours, _ = cv2.findContours(binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+>     if contours:
+>         x, y, w, h = cv2.boundingRect(max(contours, key=cv2.contourArea))
+>         digit = binary[y:y+h, x:x+w]
+>         right_third = digit[:, int(2*digit.shape[1]/3):]
+>         left_two_thirds = digit[:, :int(2*digit.shape[1]/3)]
+>         right_black = float(np.sum(right_third == 0)) / right_third.size
+>         left_black = float(np.sum(left_two_thirds == 0)) / left_two_thirds.size
+>         print('card_' + str(i) + '.png - Right: ' + str(round(right_black*100, 1)) + '%, Left: ' + str(round(left_black*100, 1)) + '%')
+> "
+card_1.png - Right: 38.8%, Left: 68.2%
+card_2.png - Right: 52.0%, Left: 62.0%
+card_3.png - Right: 77.1%, Left: 52.8%
+card_4.png - Right: 69.8%, Left: 67.2%
+card_5.png - Right: 56.4%, Left: 61.0%
+card_6.png - Right: 37.1%, Left: 67.3%
+root@85192a4178f3:/workdir#

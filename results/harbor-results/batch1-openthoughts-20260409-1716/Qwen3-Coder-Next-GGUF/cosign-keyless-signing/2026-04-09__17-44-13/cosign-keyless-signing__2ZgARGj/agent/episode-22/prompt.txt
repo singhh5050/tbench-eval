@@ -1,0 +1,45 @@
+New Terminal Output:
+
+root@2928fe68ba2e:/app# # Verify all scripts are executable
+root@2928fe68ba2e:/app# ls -la /app/*.sh
+-rwxr-xr-x 1 root root 2486 Apr  9 23:45 /app/setup_ca.sh
+-rwxr-xr-x 1 root root 3527 Apr  9 23:45 /app/sign_artifact.sh
+-rwxr-xr-x 1 root root 4351 Apr  9 23:48 /app/verify_artifact.sh
+root@2928fe68ba2e:/app# # Sign and verify sbom.json
+root@2928fe68ba2e:/app# /app/sign_artifact.sh /app/artifacts/sbom.json build-003
+Generating ephemeral ECDSA keypair...
+Creating signing certificate...
+Certificate request self-signature ok
+subject=CN=build-build-003, O=SecureBuild, C=US
+Signing artifact...
+Signing provenance attestation...
+Creating certificate chain...
+Destroying ephemeral key...
+Cleaning up signing artifacts...
+Signing complete!
+Artifact: /app/artifacts/sbom.json
+Build ID: build-003
+SHA256: 9ef840e050f65b6481d46aead08fe961e9c1b7c0896026f2582ebc6198af5910
+
+Output files:
+  - Signature: /app/signed/sbom.json.sig
+  - Provenance: /app/signed/sbom.json.provenance.json
+  - Provenance Signature: /app/signed/sbom.json.provenance.sig
+  - Chain: /app/signed/sbom.json.chain.pem
+root@2928fe68ba2e:/app# /app/verify_artifact.sh /app/artifacts/sbom.json
+Checking required files...
+All required files present.
+Validating certificate chain...
+Certificate will not expire
+Certificate chain valid.
+Extracting public key from signing certificate...
+Verifying artifact signature...
+Artifact signature verified.
+Verifying provenance signature...
+Provenance signature verified.
+Validating provenance content...
+Provenance content validated.
+Artifact SHA256: 9ef840e050f65b6481d46aead08fe961e9c1b7c0896026f2582ebc6198af5910
+
+VERIFICATION_PASSED
+root@2928fe68ba2e:/app#

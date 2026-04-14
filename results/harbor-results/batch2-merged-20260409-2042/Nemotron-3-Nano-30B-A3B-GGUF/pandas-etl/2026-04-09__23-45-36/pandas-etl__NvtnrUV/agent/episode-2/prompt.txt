@@ -1,0 +1,56 @@
+New Terminal Output:
+
+root@90a0c630d774:/app# cat > /app/process.py << 'EOF'
+> import csv, re, datetime
+>
+>
+> def process_address(addr):
+>     # Extract postal_code: last sequence of digits at end of address
+>     postal = re.search(r'(\d+)\s*$', addr)
+>     postal_code = postal.group(1) if postal else ''
+>     # Split by newline and get the last part
+>     parts = addr.splitlines()
+>     last_part = parts[-1].strip()
+>     # City is the part before the first comma
+>     city = last_part.split(',')[0].strip()
+>     return postal_code, city
+>
+>
+> def format_birth_date(bd):
+>     try:
+>         dt = datetime.datetime.strptime(bd, "%d %b %Y")
+>         return dt.strftime("%Y-%m-%d")
+>     except Exception:
+>         return bd
+>
+>
+> def generate_team_name(row):
+>     # FL: uppercase initials of first and last name
+>     fl = (row['first_name'][0] + row['last_name'][0]).upper()
+>     # I: first letter of each word in institute
+>     institute_letters = ''.join([word[0] for word in row['institute'].split()])
+>     return f"{fl}-{row['country']}-{institute_letters}"
+>
+>
+> with open('/app/data.csv', 'r') as f_in, open('/app/result.csv', 'w', newline='') as f_out:
+>     reader = csv.DictReader(f_in)
+>     fieldnames = ['participant_id', 'first_name', 'last_name', 'birth_date', 'address', 'phone_number', 'country', 'institute', 'occupation', 'register_time',
+ 'postal_code', 'city', 'team_name']
+>     writer = csv.DictWriter(f_out, fieldnames=fieldnames)
+>     writer.writeheader()
+>     for row in reader:
+>         postal_code, city = process_address(row['address'])
+>         row['birth_date'] = format_birth_date(row['birth_date'])
+>         row['postal_code'] = postal_code
+>         row['city'] = city
+>         row['team_name'] = generate_team_name(row)
+>         writer.writerow(row)
+> EOF
+root@90a0c630d774:/app# python3 /app/process.py
+root@90a0c630d774:/app# head -n 5 /app/result.csv
+participant_id,first_name,last_name,birth_date,address,phone_number,country,institute,occupation,register_time,postal_code,city,team_name
+bd9b6f88-b84f-4c4d-90f8-b67fe2f1a29a,Citra,Nurdiyanti,1991-02-05,"Gg. Monginsidi No. 08
+Medan, Aceh 80734",(0151) 081 2706,Georgia,UD Prakasa Mandasari,Business Intelligence Engineer,1617634046.0,80734,Medan,CN-Georgia-UPM
+7dfe3391-6f40-47b6-b4db-0c76ebaf5fc3,Aris,Setiawan,1993-01-11,"Gg. Rajawali Timur No. 7
+Prabumulih, MA 09434",+62 (036) 461 7027,Korea Utara,Universitas Diponegoro,Frontend Engineer,1617634018.0,09434,Prabumulih,AS-Korea Utara-UD
+root@90a0c630d774:/app#

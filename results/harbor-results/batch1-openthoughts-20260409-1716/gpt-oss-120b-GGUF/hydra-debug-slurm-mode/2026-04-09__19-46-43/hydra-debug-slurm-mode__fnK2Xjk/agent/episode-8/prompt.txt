@@ -1,0 +1,48 @@
+New Terminal Output:
+
+root@1fe2173fccbd:/app/src# cat <<'EOF' > /app/src/config/mode/debug.yaml
+> defaults: []
+> debug: true
+> train:
+>   max_num_epochs: 1
+> EOF
+root@1fe2173fccbd:/app/src# python - <<'PY'
+> import inspect, textwrap, sys
+> from hydra_plugins.hydra_submitit_launcher.submitit_launcher import SlurmLauncher
+> from omegaconf import OmegaConf
+> cfg = OmegaConf.structured(SlurmLauncher)
+> print(OmegaConf.to_yaml(cfg))
+> PY
+Traceback (most recent call last):
+  File "<stdin>", line 4, in <module>
+  File "/usr/local/lib/python3.13/site-packages/omegaconf/omegaconf.py", line 125, in structured
+    return OmegaConf.create(obj, parent, flags)
+           ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.13/site-packages/omegaconf/omegaconf.py", line 178, in create
+    return OmegaConf._create_impl(
+           ~~~~~~~~~~~~~~~~~~~~~~^
+        obj=obj,
+        ^^^^^^^^
+        parent=parent,
+        ^^^^^^^^^^^^^^
+        flags=flags,
+        ^^^^^^^^^^^^
+    )
+    ^
+  File "/usr/local/lib/python3.13/site-packages/omegaconf/omegaconf.py", line 900, in _create_impl
+    format_and_raise(node=None, key=None, value=None, msg=str(e), cause=e)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.13/site-packages/omegaconf/_utils.py", line 899, in format_and_raise
+    _raise(ex, cause)
+    ~~~~~~^^^^^^^^^^^
+  File "/usr/local/lib/python3.13/site-packages/omegaconf/_utils.py", line 797, in _raise
+    raise ex.with_traceback(sys.exc_info()[2])  # set env var OC_CAUSE=1 for full trace
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.13/site-packages/omegaconf/omegaconf.py", line 891, in _create_impl
+    raise ValidationError(
+    ...<2 lines>...
+    )
+omegaconf.errors.ValidationError: Input class 'SlurmLauncher' is not a structured config. did you forget to decorate it as a dataclass?
+    full_key:
+    object_type=None
+root@1fe2173fccbd:/app/src#

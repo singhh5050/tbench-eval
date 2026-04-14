@@ -1,0 +1,14 @@
+{
+  "analysis": "The issue is that Hydra's config validation is using the BasicLauncherConf schema to validate the launcher config. The BasicLauncherConf only has `_target_` as a field, but the SlurmLauncher needs many more parameters.\n\nI need to find a way to bypass the validation. Let me try using the `hydra._target_: null` pattern or look for a way to disable validation for the launcher section.",
+  "plan": "Let me try using the Hydra config validation settings to disable validation for the launcher section. I'll also try using the `open_dict` pattern to bypass validation.",
+  "commands": [
+    {
+      "keystrokes": "cat > /app/src/config/slurm.yaml << 'EOF'\n# @package _global_\n\nhydra:\n  launcher:\n    _target_: hydra_plugins.hydra_submitit_launcher.submitit_launcher.SlurmLauncher\n    folder: /tmp/${hydra:run.dir}/slurm\n    submitit_folder: /tmp/${hydra:run.dir}/submitit\n    max_num_timeout: 3\n    cpus_per_task: 4\n    gpus_per_node: 0\n    tasks_per_node: 1\n    nodes: 1\n    mem_gb: 8\n    partition: null\n    additional_parameters:\n      wckey: ''\n    srun_args:\n      - '--cpu-bind=none'\n    comment: ''\n\n_debug: false\n\nhydra:\n  launcher:\n    _target_: hydra_plugins.hydra_submitit_launcher.submitit_launcher.SlurmLauncher\n    folder: /tmp/${hydra:run.dir}/slurm\n    submitit_folder: /tmp/${hydra:run.dir}/submitit\n    max_num_timeout: 3\n    cpus_per_task: 4\n    gpus_per_node: 0\n    tasks_per_node: 1\n    nodes: 1\n    mem_gb: 8\n    partition: null\n    additional_parameters:\n      wckey: ''\n    srun_args:\n      - '--cpu-bind=none'\n    comment: ''\nEOF\n",
+      "duration": 0.1
+    },
+    {
+      "keystrokes": "python /app/src/main.py -cn=slurm --cfg job 2>&1\n",
+      "duration": 2
+    }
+  ]
+}

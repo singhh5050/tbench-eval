@@ -1,0 +1,63 @@
+New Terminal Output:
+root@a50e1f4425c3:/opt/myapp# mkdir -p /opt/myapp
+root@a50e1f4425c3:/opt/myapp# cd /opt/myapp
+root@a50e1f4425c3:/opt/myapp# cat > app.py << 'EOF'
+> #!/usr/bin/env python3
+> import argparse
+> import json
+> import logging
+> import sys
+> import datetime
+>
+> # Parse command line arguments
+> parser = argparse.ArgumentParser()
+> parser.add_argument('--log-level', default='INFO', choices=['INFO', 'WARN', 'ERROR'])
+> args = parser.parse_args()
+>
+> # Configure logger
+> logger = logging.getLogger()
+> logger.setLevel(args.log_level)
+>
+> # Create formatter that outputs JSON
+> class JsonFormatter(logging.Formatter):
+>     def format(self, record):
+>         # Create standardized JSON structure
+>         log_entry = {
+>             "timestamp": datetime.datetime.utcnow().replace(microsecond=0).isoformat() + "Z",
+>             "level": args.log_level,
+>             "message": record.getMessage(),
+>             "service": "myapp"
+>         }
+>         return json.dumps(log_entry)
+>
+> # Create handler that outputs to stdout
+> handler = logging.StreamHandler(sys.stdout)
+> formatter = JsonFormatter()
+> handler.setFormatter(formatter)
+>
+> # Add handler to logger
+> logger.addHandler(handler)
+>
+> # Log continuously at 10-second intervals
+> while True:
+>     logger.info("Service heartbeat - checking system health")
+>     # Also log WARN and ERROR messages if level is set appropriately
+>     if args.log_level == 'ERROR':
+>         logger.error("Simulated error condition for testing")
+>     elif args.log_level == 'WARN':
+>         logger.warning("Simulated warning condition for testing")
+>     elif args.log_level == 'INFO':
+>         logger.info("Service is running normally")
+>     elif args.log_level == 'DEBUG':
+>         logger.debug("Debug information for developers")
+>
+>     sys.stdout.flush()
+>     time.sleep(10)
+> EOF
+root@a50e1f4425c3:/opt/myapp# chmod +x app.py
+root@a50e1f4425c3:/opt/myapp# groupadd myapp
+groupadd: group 'myapp' already exists
+root@a50e1f4425c3:/opt/myapp# useradd -r -s /usr/sbin/nologin -d /opt/myapp -g myapp myapp
+useradd: user 'myapp' already exists
+root@a50e1f4425c3:/opt/myapp# chown -R myapp:myapp /opt/myapp
+root@a50e1f4425c3:/opt/myapp#

@@ -1,0 +1,41 @@
+New Terminal Output:
+
+root@85192a4178f3:/workdir# python3 << 'EOF'
+> import cv2
+> import numpy as np
+>
+> # Let's look for the '4' pattern more systematically
+> # '4' typically has: vertical line on right, horizontal bar across middle-right, diagonal from top-left to center
+>
+> for i in range(1, 7):
+>     filepath = f'/workdir/data/cards/card_{i}.png'
+>     img = cv2.imread(filepath)
+>
+>     rank_area = img[10:70, 10:70]
+>     gray = cv2.cvtColor(rank_area, cv2.COLOR_BGR2GRAY)
+>     _, binary = cv2.threshold(gray, 128, 255, cv2.THRESH_BINARY_INV)
+>
+>     contours, _ = cv2.findContours(binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+>
+>     if contours:
+>         x, y, w, h = cv2.boundingRect(max(contours, key=cv2.contourArea))
+>         digit = binary[y:y+h, x:x+w]
+>
+>         # Divide into 3 vertical sections
+>         left = digit[:, :digit.shape[1]//3]
+>         mid = digit[:, digit.shape[1]//3:2*digit.shape[1]//3]
+>         right = digit[:, 2*digit.shape[1]//3:]
+>
+>         left_black = np.sum(left == 0) / left.size
+>         mid_black = np.sum(mid == 0) / mid.size
+>         right_black = np.sum(right == 0) / right.size
+>
+>         print(f'card_{i}.png - Left: {left_black:.2%}, Mid: {mid_black:.2%}, Right: {right_black:.2%}')
+> EOF
+card_1.png - Left: 71.56%, Mid: 65.12%, Right: 38.81%
+card_2.png - Left: 68.52%, Mid: 55.56%, Right: 51.97%
+card_3.png - Left: 47.06%, Mid: 58.50%, Right: 77.11%
+card_4.png - Left: 83.25%, Mid: 51.11%, Right: 69.83%
+card_5.png - Left: 50.28%, Mid: 71.79%, Right: 56.41%
+card_6.png - Left: 70.00%, Mid: 64.55%, Right: 37.09%
+root@85192a4178f3:/workdir#

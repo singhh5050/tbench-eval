@@ -1,0 +1,26 @@
+New Terminal Output:
+
+root@b12cd1002d87:/app# python3 -c "
+> import sys
+> from pathlib import Path
+> sys.path.append('/app/task_file/scripts')
+> from model import SupplyChainModel
+>
+> model = SupplyChainModel()
+> result = model.evaluate(
+>     input_dir=Path('/app/task_file/input_data'),
+>     output_file=Path('/app/task_file/output_data/assignments.jsonl')
+> )
+>
+> print(f'Valid: {result[\"is_valid\"]}')
+> if result['is_valid']:
+>     print(f'Total Score: {result[\"total_score\"]:.4f}')
+>     print(f'Cost Score: {result[\"cost_score\"]:.4f}')
+>     print(f'On-Time Score: {result[\"on_time_delivery_score\"]:.4f}')
+>     print(f'Balance Score: {result[\"warehouse_balance_score\"]:.4f}')
+> else:
+>     print(f'Errors: {result[\"validation_errors\"][:10]}')
+> "
+Valid: False
+Errors: ['Constraint 1 (Completeness): Missing shipments: [990]']
+root@b12cd1002d87:/app#

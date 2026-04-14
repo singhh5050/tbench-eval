@@ -1,0 +1,18 @@
+New Terminal Output:
+
+root@ac4d5de4c098:/opt/myapp# grep -E 'programname|msg contains' /etc/rsyslog.d/50-myapp.conf
+if $programname == 'myapp' then /var/log/app_events.log
+if $programname == 'myapp' and $msg contains '"level":"ERROR"' then /var/log/app_errors.log
+root@ac4d5de4c098:/opt/myapp# /usr/local/bin/check_service_health.sh | python3 -c "import sys,json; d=json.load(sys.stdin); print('Valid JSON:', list(d.keys()))
+"
+Valid JSON: ['service', 'time_window', 'restarts', 'errors', 'restart_loop_detected', 'timestamp']
+root@ac4d5de4c098:/opt/myapp# ls -la /etc/systemd/system/myapp.service /opt/myapp/app.py /etc/rsyslog.d/50-myapp.conf /etc/logrotate.d/myapp /usr/local/bin/chec
+k_service_health.sh /var/log/app_events.log /var/log/app_errors.log
+-rw-r--r-- 1 root  root   258 Apr 10 00:56 /etc/logrotate.d/myapp
+-rw-r--r-- 1 root  root   283 Apr 10 00:55 /etc/rsyslog.d/50-myapp.conf
+-rw-r--r-- 1 root  root   326 Apr 10 00:55 /etc/systemd/system/myapp.service
+-rwxr-xr-x 1 root  root  1673 Apr 10 00:55 /opt/myapp/app.py
+-rwxr-xr-x 1 root  root   933 Apr 10 00:56 /usr/local/bin/check_service_health.sh
+-rw-r--r-- 1 myapp myapp    0 Apr 10 00:55 /var/log/app_errors.log
+-rw-r--r-- 1 myapp myapp    0 Apr 10 00:55 /var/log/app_events.log
+root@ac4d5de4c098:/opt/myapp#

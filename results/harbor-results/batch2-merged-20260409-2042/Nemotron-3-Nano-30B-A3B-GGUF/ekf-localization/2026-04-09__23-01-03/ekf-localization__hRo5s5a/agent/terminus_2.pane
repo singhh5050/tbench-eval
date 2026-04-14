@@ -1,0 +1,329 @@
+[?2004hroot@e35d21f34863:/app# asciinema rec --stdin /logs/agent/recording.cast
+[?2004l[0;32masciinema: recording asciicast to /logs/agent/recording.cast[0m
+[0;32masciinema: press <ctrl-d> or type "exit" when you're done[0m
+[?2004hroot@e35d21f34863:/app# clear
+[?2004l[H[J[3J[?2004hroot@e35d21f34863:/app# ls -la /app/data/
+[?2004ltotal 28
+drwxr-xr-x 2 root root  4096 Apr  9 23:55 .
+drwxr-xr-x 1 root root  4096 Apr  9 23:55 ..
+-rw-r--r-- 1 root root 17046 Apr  9 23:55 ground_motion.csv
+[?2004hroot@e35d21f34863:/app# head -n 10 /app/data/ground_motion.csv
+[?2004ltime,accel_g
+0.000,0.011652
+0.020,0.000096
+0.040,-0.002243
+0.060,-0.019283
+0.080,-0.002524
+0.100,0.040133
+0.120,0.010926
+0.140,0.016763
+0.160,-0.009206
+[?2004hroot@e35d21f34863:/app# cat > /app/simulate.py << 'EOF'
+[?2004l[?2004h> import numpy as np
+[?2004l[?2004h> # Read ground motion data
+[?2004l[?2004h>  data = np.genfromtxt('/app/data/ground_motion.csv', delimiter=',', skip_header=1)
+[?2004l[?2004h>  t = data[:,0]
+[?2004l[?2004h>  a_g_g = data[:,1]
+[?2004l[?2004h>  a_g = a_g_g * 9.81  # convert to m/s^2
+[?2004l[?2004h>  dt = np.mean(np.diff(t))
+[?2004l[?2004h>  N = len(t)
+[?2004l[?2004h> 
+[?2004l[?2004h> # Physical parameters
+[?2004l[?2004h> m = 2000.0
+[?2004l[?2004h> k = 400000.0
+[?2004l[?2004h> M = np.diag([m, m, m])
+[?2004l[?2004h> K = k * np.array([[2, -1, 0], [-1, 2, -1], [0, -1, 1]])
+[?2004l[?2004h> 
+[?2004l[?2004h> # Compute damping coefficients alpha, beta_damp for 2% damping in 1st and 3rd modes
+[?2004l[?2004h> # Natural frequencies from generalized eigenvalue problem K phi = omega^2 M phi
+[?2004l[?2004h> w_sq = np.linalg.eigvals(np.linalg.inv(M) @ K)
+[?2004l[?2004h> omega = np.sqrt(w_sq)
+[?2004l[?2004h> # Sort to get 1st and 3rd mode frequencies
+[?2004l[?2004h> idx = np.argsort(w_sq)
+[?2004l[?2004h> omega1 = omega[idx[0]]
+[?2004l[?2004h> omega3 = omega[idx[2]]
+[?2004l[?2004h> zeta = 0.02
+[?2004l[?2004h> # Solve: 0.5*(alpha/omega_i + beta*omega_i) = zeta for i=1,3
+[?2004l[?2004h> A = np.array([[1/omega1, omega1], [1/omega3, omega3]])
+[?2004l[?2004h> b = np.array([2*zeta, 2*zeta])  # multiply both sides by 2
+[?2004l[?2004h> alpha_damp, beta_damp = np.linalg.solve(A, b)
+[?2004l[?2004h> C = alpha_damp * M + beta_damp * K
+[?2004l[?2004h> 
+[?2004l[?2004h> # Newmark-beta parameters
+[?2004l[?2004h> gamma = 0.5
+[?2004l[?2004h> beta_n = 0.25
+[?2004l[?2004h> a0 = 1.0 / (beta_n * dt**2)
+[?2004l[?2004h> a1 = gamma / (beta_n * dt)
+[?2004l[?2004h> a2 = 1.0 / (beta_n * dt)
+[?2004l[?2004h> a3 = 1.0/(2*beta_n) - 1.0
+[?2004l[?2004h> a4 = gamma / beta_n - 1.0
+[?2004l[?2004h> a5 = dt * (gamma/(2*beta_n) - 1.0)
+[?2004l[?2004h> 
+[?2004l[?2004h> # Effective stiffness matrix at each step
+[?2004l[?2004h> K_hat = K + a0 * M + a1 * C
+[?2004l[?2004h> 
+[?2004l[?2004h> # Initialize response arrays
+[?2004l[?2004h> u = np.zeros(3)
+[?2004l[?2004h> v = np.zeros(3)
+[?2004l[?2004h> a = np.zeros(3)
+[?2004l[?2004h> response = []
+[?2004l[?2004h> 
+[?2004l[?2004h> # Time-stepping
+[?2004l[?2004h> for i in range(N):
+[?2004l[?2004h>     # Current ground acceleration
+[?2004l[?2004h>     a_g_i = a_g[i]
+[?2004l[?2004h>     
+[?2004l[?2004h>     # Effective load vector
+[?2004l[?2004h>     term1 = -M @ np.ones(3) * a_g_i
+[?2004l[?2004h>     term2 = M @ (a0 * u + a2 * v + a3 * a)
+[?2004l[?2004h>     term3 = C @ (a1 * u + a4 * v + a5 * a)
+[?2004l[?2004h>     P_hat = term1 + term2 + term3
+[?2004l[?2004h>     
+[?2004l[?2004h>     # Solve for new displacement
+[?2004l[?2004h>     u_next = np.linalg.solve(K_hat, P_hat)
+[?2004l[?2004h>     
+[?2004l[?2004h>     # Update acceleration and velocity
+[?2004l[?2004h>     a_next = a0 * (u_next - u) - a2 * v - a3 * a
+[?2004l[?2004h>     v_next = v + dt * ((1-gamma) * a + gamma * a_next)
+[?2004l[?2004h>     
+[?2004l[?2004h>     # Store results
+[?2004l[?2004h>     response.append([i*dt, u[0], u[1], u[2]])
+[?2004l[?2004h>     
+[?2004l[?2004h>     # Prepare for next step
+[?2004l[?2004h>     u = u_next
+[?2004l[?2004h>     v = v_next
+[?2004l[?2004h>     a = a_next
+[?2004l[?2004h> 
+[?2004l[?2004h> # Write response to CSV
+[?2004l[?2004h> output_path = '/app/output/response.csv'
+[?2004l[?2004h> np.savetxt(output_path, np.column_stack((np.arange(len(response))*dt, [r[1] for r in response], [r[2] for r in response], [r[3] for r in response])), fmt='%.3f,%.6f', header='time,u1,u2,u3', comments='')
+[?2004l[?2004h> EOF
+[?2004l[?2004hroot@e35d21f34863:/app# python3 /app/simulate.py
+[?2004l  File [35m"/app/simulate.py"[0m, line [35m3[0m
+    data = np.genfromtxt('/app/data/ground_motion.csv', delimiter=',', skip_header=1)
+[1;35mIndentationError[0m: [35munexpected indent[0m
+[?2004hroot@e35d21f34863:/app# head -n 5 /app/output/response.csv
+[?2004lhead: cannot open '/app/output/response.csv' for reading: No such file or directory
+[?2004hroot@e35d21f34863:/app# cat > /app/simulate.py << 'EOF'
+[?2004l[?2004h> import numpy as np
+[?2004l[?2004h> # Read ground motion data
+[?2004l[?2004h> data = np.genfromtxt('/app/data/ground_motion.csv', delimiter=',', skip_header=1)
+[?2004l[?2004h> t = data[:,0]
+[?2004l[?2004h> a_g_g = data[:,1]
+[?2004l[?2004h> a_g = a_g_g * 9.81  # convert to m/s^2
+[?2004l[?2004h> dt = np.mean(np.diff(t))
+[?2004l[?2004h> N = len(t)
+[?2004l[?2004h> 
+[?2004l[?2004h> # Physical parameters
+[?2004l[?2004h> m = 2000.0
+[?2004l[?2004h> k = 400000.0
+[?2004l[?2004h> M = np.diag([m, m, m])
+[?2004l[?2004h> K = k * np.array([[2, -1, 0], [-1, 2, -1], [0, -1, 1]])
+[?2004l[?2004h> 
+[?2004l[?2004h> # Compute damping coefficients alpha, beta_damp for 2% damping in 1st and 3rd modes
+[?2004l[?2004h> # Natural frequencies from generalized eigenvalue problem K phi = omega^2 M phi
+[?2004l[?2004h> w_sq = np.linalg.eigvals(np.linalg.inv(M) @ K)
+[?2004l[?2004h> omega = np.sqrt(w_sq)
+[?2004l[?2004h> # Sort to get 1st and 3rd mode frequencies
+[?2004l[?2004h> idx = np.argsort(w_sq)
+[?2004l[?2004h> omega1 = omega[idx[0]]
+[?2004l[?2004h> omega3 = omega[idx[2]]
+[?2004l[?2004h> zeta = 0.02
+[?2004l[?2004h> # Solve: 0.5*(alpha/omega_i + beta*omega_i) = zeta for i=1,3
+[?2004l[?2004h> A = np.array([[1/omega1, omega1], [1/omega3, omega3]])
+[?2004l[?2004h> b = np.array([2*zeta, 2*zeta])  # multiply both sides by 2
+[?2004l[?2004h> alpha_damp, beta_damp = np.linalg.solve(A, b)
+[?2004l[?2004h> C = alpha_damp * M + beta_damp * K
+[?2004l[?2004h> 
+[?2004l[?2004h> # Newmark-beta parameters
+[?2004l[?2004h> gamma = 0.5
+[?2004l[?2004h> beta_n = 0.25
+[?2004l[?2004h> a0 = 1.0 / (beta_n * dt**2)
+[?2004l[?2004h> a1 = gamma / (beta_n * dt)
+[?2004l[?2004h> a2 = 1.0 / (beta_n * dt)
+[?2004l[?2004h> a3 = 1.0/(2*beta_n) - 1.0
+[?2004l[?2004h> a4 = gamma / beta_n - 1.0
+[?2004l[?2004h> a5 = dt * (gamma/(2*beta_n) - 1.0)
+[?2004l[?2004h> 
+[?2004l[?2004h> # Effective stiffness matrix at each step
+[?2004l[?2004h> K_hat = K + a0 * M + a1 * C
+[?2004l[?2004h> 
+[?2004l[?2004h> # Initialize response arrays
+[?2004l[?2004h> u = np.zeros(3)
+[?2004l[?2004h> v = np.zeros(3)
+[?2004l[?2004h> a = np.zeros(3)
+[?2004l[?2004h> response = []
+[?2004l[?2004h> 
+[?2004l[?2004h> # Time-stepping
+[?2004l[?2004h> for i in range(N):
+[?2004l[?2004h>     # Current ground acceleration
+[?2004l[?2004h>     a_g_i = a_g[i]
+[?2004l[?2004h> 
+[?2004l[?2004h>     # Effective load vector
+[?2004l[?2004h>     term1 = -M @ np.ones(3) * a_g_i
+[?2004l[?2004h>     term2 = M @ (a0 * u + a2 * v + a3 * a)
+[?2004l[?2004h>     term3 = C @ (a1 * u + a4 * v + a5 * a)
+[?2004l[?2004h>     P_hat = term1 + term2 + term3
+[?2004l[?2004h> 
+[?2004l[?2004h>     # Solve for new displacement
+[?2004l[?2004h>     u_next = np.linalg.solve(K_hat, P_hat)
+[?2004l[?2004h> 
+[?2004l[?2004h>     # Update acceleration and velocity
+[?2004l[?2004h>     a_next = a0 * (u_next - u) - a2 * v - a3 * a
+[?2004l[?2004h>     v_next = v + dt * ((1-gamma) * a + gamma * a_next)
+[?2004l[?2004h> 
+[?2004l[?2004h>     # Store results
+[?2004l[?2004h>     response.append([i*dt, u[0], u[1], u[2]])
+[?2004l[?2004h> 
+[?2004l[?2004h>     # Prepare for next step
+[?2004l[?2004h>     u = u_next
+[?2004l[?2004h>     v = v_next
+[?2004l[?2004h>     a = a_next
+[?2004l[?2004h> 
+[?2004l[?2004h> # Write response to CSV
+[?2004l[?2004h> output_path = '/app/output/response.csv'
+[?2004l[?2004h> np.savetxt(output_path, np.column_stack((np.arange(len(response))*dt, [r[1] for r in response], [r[2] for r in response], [r[3] for r in response])), fmt='%.3f,%.6f', header='time,u1,u2,u3', comments='')
+[?2004l[?2004h> EOF
+[?2004l[?2004hroot@e35d21f34863:/app# python3 /app/simulate.py
+[?2004lTraceback (most recent call last):
+  File [35m"/app/simulate.py"[0m, line [35m78[0m, in [35m<module>[0m
+    [31mnp.savetxt[0m[1;31m(output_path, np.column_stack((np.arange(len(response))*dt, [r[1] for r in response], [r[2] for r in response], [r[3] for r in response])), fmt='%.3f,%.6f', header='time,u1,u2,u3', comments='')[0m
+    [31m~~~~~~~~~~[0m[1;31m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  File [35m"/usr/local/lib/python3.13/site-packages/numpy/lib/_npyio_impl.py"[0m, line [35m1623[0m, in [35msavetxt[0m
+    raise error
+[1;35mValueError[0m: [35mfmt has wrong number of % formats:  %.3f,%.6f[0m
+[?2004hroot@e35d21f34863:/app# head -n 5 /app/output/response.csv
+[?2004l[?2004hroot@e35d21f34863:/app# cat > /app/simulate.py << 'EOF'
+[?2004lrameters
+gamma = 0.5
+beta_n = 0.25
+a0 = 1.0 / (beta_n * dt**2)
+a1 = gamma / (beta_n * dt)
+a2 = 1.0 / (beta_n * dt)
+a3 = 1.0/(2*beta_n) - 1.0
+a4 = gamma / beta_n - 1.0
+a5 = dt * (gamma/(2*beta_n) - 1.0)
+
+# Effective stiffness matrix at each step
+K_hat = K + a0 * M + a1 * C
+
+# Initialize response arrays
+u = np.zeros(3)
+v = np.zeros(3)
+a = np.zeros(3)
+response = []
+
+# Time-stepping
+for i in range(N):
+    # Current ground acceleration
+    a_g_i = a_g[i]
+
+    # Effective load vector
+    term1 = -M @ np.ones(3) * a_g_i
+    term2 = M @ (a0 * u + a2 * v + a3 * a)
+    term3 = C @ (a1 * u + a4 * v + a5 * a)
+    P_hat = term1 + term2 + term3
+
+    # Solve for new displacement
+    u_next = np.linalg.solve(K_hat, P_hat)
+
+    # Update acceleration and velocity
+    a_next = a0 * (u_next - u) - a2 * v - a3 * a
+    v_next = v + dt * ((1-gamma) * a + gamma * a_next)
+
+    # Store results
+    response.append([i*dt, u[0], u[1], u[2]])
+
+    # Prepare for next step
+    u = u_next
+    v = v_next
+    a = a_next
+
+# Write response to CS[?2004h> import numpy as np
+[?2004l[?2004h> # Read ground motion data
+[?2004l[?2004h> data = np.genfromtxt('/app/data/ground_motion.csv', delimiter=',', skip_header=1)
+[?2004l[?2004h> t = data[:,0]
+[?2004l[?2004h> a_g_g = data[:,1]
+[?2004l[?2004h> a_g = a_g_g * 9.81  # convert to m/s^2
+[?2004l[?2004h> dt = np.mean(np.diff(t))
+[?2004l[?2004h> N = len(t)
+[?2004l[?2004h> 
+[?2004l[?2004h> # Physical parameters
+[?2004l[?2004h> m = 2000.0
+[?2004l[?2004h> k = 400000.0
+[?2004l[?2004h> M = np.diag([m, m, m])
+[?2004l[?2004h> K = k * np.array([[2, -1, 0], [-1, 2, -1], [0, -1, 1]])
+[?2004l[?2004h> 
+[?2004l[?2004h> # Compute damping coefficients alpha, beta_damp for 2% damping in 1st and 3rd modes
+[?2004l[?2004h> # Natural frequencies from generalized eigenvalue problem K phi = omega^2 M phi
+[?2004l[?2004h> w_sq = np.linalg.eigvals(np.linalg.inv(M) @ K)
+[?2004l[?2004h> omega = np.sqrt(w_sq)
+[?2004l[?2004h> # Sort to get 1st and 3rd mode frequencies
+[?2004l[?2004h> idx = np.argsort(w_sq)
+[?2004l[?2004h> omega1 = omega[idx[0]]
+[?2004l[?2004h> omega3 = omega[idx[2]]
+[?2004l[?2004h> zeta = 0.02
+[?2004l[?2004h> # Solve: 0.5*(alpha/omega_i + beta*omega_i) = zeta for i=1,3
+[?2004l[?2004h> A = np.array([[1/omega1, omega1], [1/omega3, omega3]])
+[?2004l[?2004h> b = np.array([2*zeta, 2*zeta])  # multiply both sides by 2
+[?2004l[?2004h> alpha_damp, beta_damp = np.linalg.solve(A, b)
+[?2004l[?2004h> C = alpha_damp * M + beta_damp * K
+[?2004l[?2004h> 
+[?2004l[?2004h> # Newmark-beta parameters
+[?2004l[?2004h> gamma = 0.5
+[?2004l[?2004h> beta_n = 0.25
+[?2004l[?2004h> a0 = 1.0 / (beta_n * dt**2)
+[?2004l[?2004h> a1 = gamma / (beta_n * dt)
+[?2004l[?2004h> a2 = 1.0 / (beta_n * dt)
+[?2004l[?2004h> a3 = 1.0/(2*beta_n) - 1.0
+[?2004l[?2004h> a4 = gamma / beta_n - 1.0
+[?2004l[?2004h> a5 = dt * (gamma/(2*beta_n) - 1.0)
+[?2004l[?2004h> 
+[?2004l[?2004h> # Effective stiffness matrix at each step
+[?2004l[?2004h> K_hat = K + a0 * M + a1 * C
+[?2004l[?2004h> 
+[?2004l[?2004h> # Initialize response arrays
+[?2004l[?2004h> u = np.zeros(3)
+[?2004l[?2004h> v = np.zeros(3)
+[?2004l[?2004h> a = np.zeros(3)
+[?2004l[?2004h> response = []
+[?2004l[?2004h> 
+[?2004l[?2004h> # Time-stepping
+[?2004l[?2004h> for i in range(N):
+[?2004l[?2004h>     # Current ground acceleration
+[?2004l[?2004h>     a_g_i = a_g[i]
+[?2004l[?2004h> 
+[?2004l[?2004h>     # Effective load vector
+[?2004l[?2004h>     term1 = -M @ np.ones(3) * a_g_i
+[?2004l[?2004h>     term2 = M @ (a0 * u + a2 * v + a3 * a)
+[?2004l[?2004h>     term3 = C @ (a1 * u + a4 * v + a5 * a)
+[?2004l[?2004h>     P_hat = term1 + term2 + term3
+[?2004l[?2004h> 
+[?2004l[?2004h>     # Solve for new displacement
+[?2004l[?2004h>     u_next = np.linalg.solve(K_hat, P_hat)
+[?2004l[?2004h> 
+[?2004l[?2004h>     # Update acceleration and velocity
+[?2004l[?2004h>     a_next = a0 * (u_next - u) - a2 * v - a3 * a
+[?2004l[?2004h>     v_next = v + dt * ((1-gamma) * a + gamma * a_next)
+[?2004l[?2004h> 
+[?2004l[?2004h>     # Store results
+[?2004l[?2004h>     response.append([i*dt, u[0], u[1], u[2]])
+[?2004l[?2004h> 
+[?2004l[?2004h>     # Prepare for next step
+[?2004l[?2004h>     u = u_next
+[?2004l[?2004h>     v = v_next
+[?2004l[?2004h>     a = a_next
+[?2004l[?2004h> 
+[?2004l[?2004h> # Write response to CSV
+[?2004l[?2004h> output_path = '/app/output/response.csv'
+[?2004l[?2004h> data_to_save = np.column_stack((np.arange(len(response))*dt, [r[1] for r in response], [r[2] for r in response], [r[3] for r in response]))
+[?2004l[?2004h> np.savetxt(output_path, data_to_save, fmt='%.3f %.6f %.6f %.6f', delimiter=',', header='time,u1,u2,u3', comments='')
+[?2004l[?2004h> EOF
+[?2004l[?2004hroot@e35d21f34863:/app# python3 /app/simulate.py
+[?2004l[?2004hroot@e35d21f34863:/app# head -n 5 /app/output/response.csv
+[?2004ltime,u1,u2,u3
+0.000 0.000000 0.000000 0.000000
+0.020 -0.000011 -0.000011 -0.000011
+0.040 -0.000044 -0.000046 -0.000046
+0.060 -0.000082 -0.000089 -0.000089
+[?2004hroot@e35d21f34863:/app# 

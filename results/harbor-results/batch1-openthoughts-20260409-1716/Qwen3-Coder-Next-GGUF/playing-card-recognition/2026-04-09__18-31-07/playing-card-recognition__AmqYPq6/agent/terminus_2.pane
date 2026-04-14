@@ -1,0 +1,1259 @@
+[?2004hroot@85192a4178f3:/workdir# asciinema rec --stdin /logs/agent/recording.cast
+[?2004l[0;32masciinema: recording asciicast to /logs/agent/recording.cast[0m
+[0;32masciinema: press <ctrl-d> or type "exit" when you're done[0m
+[?2004hroot@85192a4178f3:/workdir# clear
+[?2004l[H[J[?2004hroot@85192a4178f3:/workdir# ls -la /workdir/data/cards/
+[?2004ltotal 436
+drwxr-xr-x 2 root root   4096 Apr 10 00:31 [0m[01;34m.[0m
+drwxr-xr-x 3 root root   4096 Apr 10 00:31 [01;34m..[0m
+-rw-r--r-- 1 root root  28623 Apr 10 00:31 [01;35mcard_1.png[0m
+-rw-r--r-- 1 root root  44136 Apr 10 00:31 [01;35mcard_2.png[0m
+-rw-r--r-- 1 root root 263133 Apr 10 00:31 [01;35mcard_3.png[0m
+-rw-r--r-- 1 root root  34168 Apr 10 00:31 [01;35mcard_4.png[0m
+-rw-r--r-- 1 root root  32219 Apr 10 00:31 [01;35mcard_5.png[0m
+-rw-r--r-- 1 root root  26409 Apr 10 00:31 [01;35mcard_6.png[0m
+[?2004hroot@85192a4178f3:/workdir# python3 -c "
+[?2004l[?2004h> from PIL import Image
+[?2004l[?2004h> import os
+[?2004l[?2004h> 
+[?2004l[?2004h> for i in range(1, 7):
+[?2004l[?2004h>     filepath = f'/workdir/data/cards/card_{i}.png'
+[?2004l[?2004h>     if os.path.exists(filepath):
+[?2004l[?2004h>         img = Image.open(filepath)
+[?2004l[?2004h>         print(f'card_{i}.png: {img.size}, {img.mode}')
+[?2004l[?2004h> "
+[?2004lcard_1.png: (500, 726), RGBA
+card_2.png: (500, 726), RGBA
+card_3.png: (500, 726), RGBA
+card_4.png: (500, 726), RGBA
+card_5.png: (500, 726), RGBA
+card_6.png: (500, 726), RGBA
+[?2004hroot@85192a4178f3:/workdir# python3 -c "
+[?2004l[?2004h> from PIL import Image
+[?2004l[?2004h> import matplotlib.pyplot as plt
+[?2004l[?2004h> import os
+[?2004l[?2004h> 
+[?2004l[?2004h> for i in range(1, 7):
+[?2004l[?2004h>     filepath = f'/workdir/data/cards/card_{i}.png'
+[?2004l[?2004h>     img = Image.open(filepath)
+[?2004l[?2004h>     print(f'Showing card_{i}.png...')
+[?2004l[?2004h>     plt.figure(figsize=(3,4))
+[?2004l[?2004h>     plt.imshow(img)
+[?2004l[?2004h>     plt.title(f'card_{i}.png')
+[?2004l[?2004h>     plt.axis('off')
+[?2004l[?2004h>     plt.show()
+[?2004l[?2004h> "
+[?2004lTraceback (most recent call last):
+  File "<string>", line 3, in <module>
+ModuleNotFoundError: No module named 'matplotlib'
+[?2004hroot@85192a4178f3:/workdir# python3 -c "
+[?2004l[?2004h> import cv2
+[?2004l[?2004h> import os
+[?2004l[?2004h> 
+[?2004l[?2004h> for i in range(1, 7):
+[?2004l[?2004h>     filepath = f'/workdir/data/cards/card_{i}.png'
+[?2004l[?2004h>     img = cv2.imread(filepath)
+[?2004l[?2004h>     print(f'card_{i}.png shape: {img.shape if img is not None else None}')
+[?2004l[?2004h> "
+[?2004lcard_1.png shape: (726, 500, 3)
+card_2.png shape: (726, 500, 3)
+card_3.png shape: (726, 500, 3)
+card_4.png shape: (726, 500, 3)
+card_5.png shape: (726, 500, 3)
+card_6.png shape: (726, 500, 3)
+[?2004hroot@85192a4178f3:/workdir# python3 -c "
+[?2004l[?2004h> from PIL import Image
+[?2004l[?2004h> import os
+[?2004l[?2004h> 
+[?2004l[?2004h> for i in range(1, 7):
+[?2004l[?2004h>     filepath = f'/workdir/data/cards/card_{i}.png'
+[?2004l[?2004h>     img = Image.open(filepath)
+[?2004l[?2004h>     print(f'card_{i}.png')
+[?2004l[?2004h>     img.show()
+[?2004l[?2004h>     input('Press Enter to continue...')
+[?2004l[?2004h> "
+[?2004lcard_1.png
+Press Enter to continue...^CTraceback (most recent call last):
+  File "<string>", line 10, in <module>
+KeyboardInterrupt
+
+[?2004hroot@85192a4178f3:/workdir# python3 -c "
+[?2004l[?2004h> from PIL import Image
+[?2004l[?2004h> import os
+[?2004l[?2004h> 
+[?2004l[?2004h> # Save a copy to /tmp for inspection
+[?2004l[?2004h> for i in range(1, 7):
+[?2004l[?2004h>     filepath = f'/workdir/data/cards/card_{i}.png'
+[?2004l[?2004h>     img = Image.open(filepath)
+[?2004l[?2004h>     # Convert to RGB if needed
+[?2004l[?2004h>     if img.mode == 'RGBA':
+[?2004l[?2004h>         img = img.convert('RGB')
+[?2004l[?2004h>     img.save(f'/tmp/card_{i}.jpg')
+[?2004l[?2004h>     print(f'Saved card_{i}.jpg')
+[?2004l[?2004h> "
+[?2004lSaved card_1.jpg
+Saved card_2.jpg
+Saved card_3.jpg
+Saved card_4.jpg
+Saved card_5.jpg
+Saved card_6.jpg
+[?2004hroot@85192a4178f3:/workdir# python3 << 'EOF'
+[?2004l[?2004h> import cv2
+[?2004l[?2004h> import numpy as np
+[?2004l[?2004h> from PIL import Image
+[?2004l[?2004h> 
+[?2004l[?2004h> for i in range(1, 7):
+[?2004l[?2004h>     filepath = f'/workdir/data/cards/card_{i}.png'
+[?2004l[?2004h>     img = cv2.imread(filepath)
+[?2004l[?2004h>     
+[?2004l[?2004h>     # Get center region where rank is typically displayed
+[?2004l[?2004h>     h, w = img.shape[:2]
+[?2004l[?2004h>     # Try to detect the top-left corner where rank usually appears
+[?2004l[?2004h>     roi = img[50:150, 50:150]
+[?2004l[?2004h>     
+[?2004l[?2004h>     # Convert to grayscale and threshold
+[?2004l[?2004h>     gray = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
+[?2004l[?2004h>     _, thresh = cv2.threshold(gray, 127, 255, cv2.THRESH_BINARY)
+[?2004l[?2004h>     
+[?2004l[?2004h>     # Count non-white pixels (black content)
+[?2004l[?2004h>     black_pixels = np.sum(thresh < 127)
+[?2004l[?2004h>     total_pixels = thresh.size
+[?2004l[?2004h>     black_ratio = black_pixels / total_pixels
+[?2004l[?2004h>     
+[?2004l[?2004h>     print(f'card_{i}.png - Black pixel ratio in ROI: {black_ratio:.4f}')
+[?2004l[?2004h> EOF
+[?2004lcard_1.png - Black pixel ratio in ROI: 0.2855
+card_2.png - Black pixel ratio in ROI: 0.2165
+card_3.png - Black pixel ratio in ROI: 0.4042
+card_4.png - Black pixel ratio in ROI: 0.2441
+card_5.png - Black pixel ratio in ROI: 0.2633
+card_6.png - Black pixel ratio in ROI: 0.2086
+[?2004hroot@85192a4178f3:/workdir# python3 << 'EOF'
+[?2004l[?2004h> import cv2
+[?2004l[?2004h> import numpy as np
+[?2004l[?2004h> 
+[?2004l[?2004h> for i in range(1, 7):
+[?2004l[?2004h>     filepath = f'/workdir/data/cards/card_{i}.png'
+[?2004l[?2004h>     img = cv2.imread(filepath)
+[?2004l[?2004h>     
+[?2004l[?2004h>     # Extract top-left corner where rank is displayed
+[?2004l[?2004h>     h, w = img.shape[:2]
+[?2004l[?2004h>     # The rank is typically in top-left corner
+[?2004l[?2004h>     rank_area = img[10:80, 10:80]
+[?2004l[?2004h>     
+[?2004l[?2004h>     # Save the rank area for inspection
+[?2004l[?2004h>     cv2.imwrite(f'/tmp/rank_{i}.jpg', rank_area)
+[?2004l[?2004h>     
+[?2004l[?2004h>     # Convert to grayscale and threshold
+[?2004l[?2004h>     gray = cv2.cvtColor(rank_area, cv2.COLOR_BGR2GRAY)
+[?2004l[?2004h>     _, thresh = cv2.threshold(gray, 127, 255, cv2.THRESH_BINARY_INV)
+[?2004l[?2004h>     
+[?2004l[?2004h>     # Find contours
+[?2004l[?2004h>     contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+[?2004l[?2004h>     
+[?2004l[?2004h>     print(f'card_{i}.png - Rank area contours: {len(contours)}')
+[?2004l[?2004h>     if contours:
+[?2004l[?2004h>         areas = [cv2.contourArea(c) for c in contours]
+[?2004l[?2004h>         print(f'  Largest contour area: {max(areas):.0f}')
+[?2004l[?2004h> EOF
+[?2004lcard_1.png - Rank area contours: 1
+  Largest contour area: 1368
+card_2.png - Rank area contours: 1
+  Largest contour area: 1546
+card_3.png - Rank area contours: 2
+  Largest contour area: 1134
+card_4.png - Rank area contours: 1
+  Largest contour area: 761
+card_5.png - Rank area contours: 1
+  Largest contour area: 1039
+card_6.png - Rank area contours: 1
+  Largest contour area: 1388
+[?2004hroot@85192a4178f3:/workdir# python3 << 'EOF'
+[?2004l[?2004h> import cv2
+[?2004l[?2004h> import numpy as np
+[?2004l[?2004h> 
+[?2004l[?2004h> for i in range(1, 7):
+[?2004l[?2004h>     filepath = f'/workdir/data/cards/card_{i}.png'
+[?2004l[?2004h>     img = cv2.imread(filepath)
+[?2004l[?2004h>     
+[?2004l[?2004h>     # Check the center of the card where the main suit symbol is
+[?2004l[?2004h>     h, w = img.shape[:2]
+[?2004l[?2004h>     center_y, center_x = h // 2, w // 2
+[?2004l[?2004h>     
+[?2004l[?2004h>     # Look at the main center symbol
+[?2004l[?2004h>     center_area = img[center_y-100:center_y+100, center_x-100:center_x+100]
+[?2004l[?2004h>     
+[?2004l[?2004h>     # Count red pixels (hearts, diamonds)
+[?2004l[?2004h>     hsv = cv2.cvtColor(center_area, cv2.COLOR_BGR2HSV)
+[?2004l[?2004h>     lower_red1 = np.array([0, 50, 50])
+[?2004l[?2004h>     upper_red1 = np.array([10, 255, 255])
+[?2004l[?2004h>     lower_red2 = np.array([160, 50, 50])
+[?2004l[?2004h>     upper_red2 = np.array([180, 255, 255])
+[?2004l[?2004h>     mask1 = cv2.inRange(hsv, lower_red1, upper_red1)
+[?2004l[?2004h>     mask2 = cv2.inRange(hsv, lower_red2, upper_red2)
+[?2004l[?2004h>     red_pixels = cv2.countNonZero(mask1 + mask2)
+[?2004l[?2004h>     
+[?2004l[?2004h>     # Count black pixels
+[?2004l[?2004h>     gray = cv2.cvtColor(center_area, cv2.COLOR_BGR2GRAY)
+[?2004l[?2004h>     black_pixels = cv2.countNonZero(gray < 100)
+[?2004l[?2004h>     
+[?2004l[?2004h>     total = center_area.shape[0] * center_area.shape[1]
+[?2004l[?2004h>     print(f'card_{i}.png - Red: {red_pixels/total:.2%}, Black: {black_pixels/total:.2%}')
+[?2004l[?2004h> EOF
+[?2004lTraceback (most recent call last):
+  File "<stdin>", line 27, in <module>
+cv2.error: OpenCV(4.13.0) :-1: error: (-5:Bad argument) in function 'countNonZero'
+> Overload resolution failed:
+>  - src data type = bool is not supported
+>  - Expected Ptr<cv::UMat> for argument 'src'
+
+[?2004hroot@85192a4178f3:/workdir# python3 << 'EOF'
+[?2004l[?2004h> import cv2
+[?2004l[?2004h> import numpy as np
+[?2004l[?2004h> 
+[?2004l[?2004h> for i in range(1, 7):
+[?2004l[?2004h>     filepath = f'/workdir/data/cards/card_{i}.png'
+[?2004l[?2004h>     img = cv2.imread(filepath)
+[?2004l[?2004h>     
+[?2004l[?2004h>     h, w = img.shape[:2]
+[?2004l[?2004h>     center_y, center_x = h // 2, w // 2
+[?2004l[?2004h>     center_area = img[center_y-100:center_y+100, center_x-100:center_x+100]
+[?2004l[?2004h>     
+[?2004l[?2004h>     hsv = cv2.cvtColor(center_area, cv2.COLOR_BGR2HSV)
+[?2004l[?2004h>     lower_red1 = np.array([0, 50, 50])
+[?2004l[?2004h>     upper_red1 = np.array([10, 255, 255])
+[?2004l[?2004h>     lower_red2 = np.array([160, 50, 50])
+[?2004l[?2004h>     upper_red2 = np.array([180, 255, 255])
+[?2004l[?2004h>     mask1 = cv2.inRange(hsv, lower_red1, upper_red1)
+[?2004l[?2004h>     mask2 = cv2.inRange(hsv, lower_red2, upper_red2)
+[?2004l[?2004h>     mask = cv2.bitwise_or(mask1, mask2)
+[?2004l[?2004h>     red_pixels = cv2.countNonZero(mask)
+[?2004l[?2004h>     
+[?2004l[?2004h>     gray = cv2.cvtColor(center_area, cv2.COLOR_BGR2GRAY)
+[?2004l[?2004h>     black_pixels = cv2.countNonZero(gray < 100)
+[?2004l[?2004h>     
+[?2004l[?2004h>     total = center_area.shape[0] * center_area.shape[1]
+[?2004l[?2004h>     print(f'card_{i}.png - Red: {red_pixels/total:.2%}, Black: {black_pixels/total:.2%}')
+[?2004l[?2004h> EOF
+[?2004lTraceback (most recent call last):
+  File "<stdin>", line 23, in <module>
+cv2.error: OpenCV(4.13.0) :-1: error: (-5:Bad argument) in function 'countNonZero'
+> Overload resolution failed:
+>  - src data type = bool is not supported
+>  - Expected Ptr<cv::UMat> for argument 'src'
+
+[?2004hroot@85192a4178f3:/workdir# python3 << 'EOF'
+[?2004l, Black: {black_pixels/total:.2%}')
+EOF
+[?2004h> import cv2
+[?2004l[?2004h> import numpy as np
+[?2004l[?2004h> 
+[?2004l[?2004h> for i in range(1, 7):
+[?2004l[?2004h>     filepath = f'/workdir/data/cards/card_{i}.png'
+[?2004l[?2004h>     img = cv2.imread(filepath)
+[?2004l[?2004h>     
+[?2004l[?2004h>     h, w = img.shape[:2]
+[?2004l[?2004h>     center_y, center_x = h // 2, w // 2
+[?2004l[?2004h>     center_area = img[center_y-100:center_y+100, center_x-100:center_x+100]
+[?2004l[?2004h>     
+[?2004l[?2004h>     hsv = cv2.cvtColor(center_area, cv2.COLOR_BGR2HSV)
+[?2004l[?2004h>     lower_red1 = np.array([0, 50, 50])
+[?2004l[?2004h>     upper_red1 = np.array([10, 255, 255])
+[?2004l[?2004h>     lower_red2 = np.array([160, 50, 50])
+[?2004l[?2004h>     upper_red2 = np.array([180, 255, 255])
+[?2004l[?2004h>     mask1 = cv2.inRange(hsv, lower_red1, upper_red1)
+[?2004l[?2004h>     mask2 = cv2.inRange(hsv, lower_red2, upper_red2)
+[?2004l[?2004h>     mask = cv2.bitwise_or(mask1, mask2)
+[?2004l[?2004h>     mask_uint8 = mask.astype(np.uint8)
+[?2004l[?2004h>     red_pixels = cv2.countNonZero(mask_uint8)
+[?2004l[?2004h>     
+[?2004l[?2004h>     gray = cv2.cvtColor(center_area, cv2.COLOR_BGR2GRAY)
+[?2004l[?2004h>     gray_uint8 = gray.astype(np.uint8)
+[?2004l[?2004h>     black_pixels = cv2.countNonZero(gray_uint8 < 100)
+[?2004l[?2004h>     
+[?2004l[?2004h>     total = center_area.shape[0] * center_area.shape[1]
+[?2004l[?2004h>     print(f'card_{i}.png - Red: {red_pixels/total:.2%}, Black: {black_pixels/total:.2%}')
+[?2004l[?2004h> EOF
+[?2004lTraceback (most recent call last):
+  File "<stdin>", line 25, in <module>
+cv2.error: OpenCV(4.13.0) :-1: error: (-5:Bad argument) in function 'countNonZero'
+> Overload resolution failed:
+>  - src data type = bool is not supported
+>  - Expected Ptr<cv::UMat> for argument 'src'
+
+[?2004hroot@85192a4178f3:/workdir# python3 << 'EOF'
+[?2004l[?2004h> import cv2
+[?2004l[?2004h> import numpy as np
+[?2004l[?2004h> 
+[?2004l[?2004h> for i in range(1, 7):
+[?2004l[?2004h>     filepath = f'/workdir/data/cards/card_{i}.png'
+[?2004l[?2004h>     img = cv2.imread(filepath)
+[?2004l[?2004h>     
+[?2004l[?2004h>     h, w = img.shape[:2]
+[?2004l[?2004h>     center_y, center_x = h // 2, w // 2
+[?2004l[?2004h>     center_area = img[center_y-100:center_y+100, center_x-100:center_x+100]
+[?2004l[?2004h>     
+[?2004l[?2004h>     hsv = cv2.cvtColor(center_area, cv2.COLOR_BGR2HSV)
+[?2004l[?2004h>     lower_red1 = np.array([0, 50, 50])
+[?2004l[?2004h>     upper_red1 = np.array([10, 255, 255])
+[?2004l[?2004h>     lower_red2 = np.array([160, 50, 50])
+[?2004l[?2004h>     upper_red2 = np.array([180, 255, 255])
+[?2004l[?2004h>     mask1 = cv2.inRange(hsv, lower_red1, upper_red1)
+[?2004l[?2004h>     mask2 = cv2.inRange(hsv, lower_red2, upper_red2)
+[?2004l[?2004h>     mask = mask1 + mask2
+[?2004l[?2004h>     red_pixels = np.count_nonzero(mask > 0)
+[?2004l[?2004h>     
+[?2004l[?2004h>     gray = cv2.cvtColor(center_area, cv2.COLOR_BGR2GRAY)
+[?2004l[?2004h>     black_pixels = np.count_nonzero(gray < 100)
+[?2004l[?2004h>     
+[?2004l[?2004h>     total = center_area.shape[0] * center_area.shape[1]
+[?2004l[?2004h>     print(f'card_{i}.png - Red: {red_pixels/total:.2%}, Black: {black_pixels/total:.2%}')
+[?2004l[?2004h> EOF
+[?2004lcard_1.png - Red: 0.00%, Black: 0.00%
+card_2.png - Red: 87.67%, Black: 49.51%
+card_3.png - Red: 14.50%, Black: 53.56%
+card_4.png - Red: 38.50%, Black: 37.56%
+card_5.png - Red: 0.00%, Black: 26.38%
+card_6.png - Red: 0.00%, Black: 0.00%
+[?2004hroot@85192a4178f3:/workdir# python3 << 'EOF'
+[?2004l[?2004h> from PIL import Image
+[?2004l[?2004h> import os
+[?2004l[?2004h> 
+[?2004l[?2004h> # Let's examine each card by saving them and looking at the file sizes
+[?2004l[?2004h> for i in range(1, 7):
+[?2004l[?2004h>     filepath = f'/workdir/data/cards/card_{i}.png'
+[?2004l[?2004h>     img = Image.open(filepath)
+[?2004l[?2004h>     
+[?2004l[?2004h>     # Check if there's text/number in the card
+[?2004l[?2004h>     # Save the entire card to /tmp for visual inspection
+[?2004l[?2004h>     rgb_img = img.convert('RGB')
+[?2004l[?2004h>     rgb_img.save(f'/tmp/card_{i}_rgb.jpg')
+[?2004l[?2004h>     
+[?2004l[?2004h>     # Look at different regions
+[?2004l[?2004h>     w, h = img.size
+[?2004l[?2004h>     
+[?2004l[?2004h>     # Top left corner (where rank is)
+[?2004l[?2004h>     top_left = img.crop((10, 10, 80, 80))
+[?2004l[?2004h>     top_left.save(f'/tmp/top_left_{i}.jpg')
+[?2004l[?2004h>     
+[?2004l[?2004h>     # Center (where main symbol is)
+[?2004l[?2004h>     center = img.crop((w//2-50, h//2-50, w//2+50, h//2+50))
+[?2004l[?2004h>     center.save(f'/tmp/center_{i}.jpg')
+[?2004l[?2004h>     
+[?2004l[?2004h>     print(f'card_{i}.png saved to /tmp/')
+[?2004l[?2004h> EOF
+[?2004lTraceback (most recent call last):
+  File "/usr/local/lib/python3.11/dist-packages/PIL/JpegImagePlugin.py", line 665, in _save
+    rawmode = RAWMODE[im.mode]
+              ~~~~~~~^^^^^^^^^
+KeyError: 'RGBA'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "<stdin>", line 19, in <module>
+  File "/usr/local/lib/python3.11/dist-packages/PIL/Image.py", line 2713, in save
+    save_handler(self, fp, filename)
+  File "/usr/local/lib/python3.11/dist-packages/PIL/JpegImagePlugin.py", line 668, in _save
+    raise OSError(msg) from e
+OSError: cannot write mode RGBA as JPEG
+[?2004hroot@85192a4178f3:/workdir# python3 << 'EOF'
+[?2004l[?2004h> from PIL import Image
+[?2004l[?2004h> import os
+[?2004l[?2004h> 
+[?2004l[?2004h> for i in range(1, 7):
+[?2004l[?2004h>     filepath = f'/workdir/data/cards/card_{i}.png'
+[?2004l[?2004h>     img = Image.open(filepath)
+[?2004l[?2004h>     
+[?2004l[?2004h>     # Convert RGBA to RGB
+[?2004l[?2004h>     rgb_img = img.convert('RGB')
+[?2004l[?2004h>     rgb_img.save(f'/tmp/card_{i}_rgb.jpg')
+[?2004l[?2004h>     
+[?2004l[?2004h>     w, h = img.size
+[?2004l[?2004h>     top_left = img.crop((10, 10, 80, 80))
+[?2004l[?2004h>     top_left.convert('RGB').save(f'/tmp/top_left_{i}.jpg')
+[?2004l[?2004h>     
+[?2004l[?2004h>     center = img.crop((w//2-50, h//2-50, w//2+50, h//2+50))
+[?2004l[?2004h>     center.convert('RGB').save(f'/tmp/center_{i}.jpg')
+[?2004l[?2004h>     
+[?2004l[?2004h>     print(f'card_{i}.png processed')
+[?2004l[?2004h> EOF
+[?2004lcard_1.png processed
+card_2.png processed
+card_3.png processed
+card_4.png processed
+card_5.png processed
+card_6.png processed
+[?2004hroot@85192a4178f3:/workdir# python3 << 'EOF'
+[?2004l[?2004h> import cv2
+[?2004l[?2004h> import numpy as np
+[?2004l[?2004h> 
+[?2004l[?2004h> for i in range(1, 7):
+[?2004l[?2004h>     filepath = f'/workdir/data/cards/card_{i}.png'
+[?2004l[?2004h>     img = cv2.imread(filepath)
+[?2004l[?2004h>     
+[?2004l[?2004h>     # Get the top left corner where rank is
+[?2004l[?2004h>     rank_area = img[15:65, 15:65]
+[?2004l[?2004h>     
+[?2004l[?2004h>     # Convert to grayscale
+[?2004l[?2004h>     gray = cv2.cvtColor(rank_area, cv2.COLOR_BGR2GRAY)
+[?2004l[?2004h>     
+[?2004l[?2004h>     # Apply threshold to get binary image
+[?2004l[?2004h>     _, binary = cv2threshold(gray, 128, 255, cv2.THRESH_BINARY_INV)
+[?2004l[?2004h>     
+[?2004l[?2004h>     # Count connected components
+[?2004l[?2004h>     num_labels, labels, stats, centroids = cv2.connectedComponentsWithStats(binary)
+[?2004l[?2004h>     
+[?2004l[?2004h>     print(f'card_{i}.png - Rank area: {num_labels-1} components (excluding background)')
+[?2004l[?2004h> EOF
+[?2004lTraceback (most recent call last):
+  File "<stdin>", line 15, in <module>
+NameError: name 'cv2threshold' is not defined
+[?2004hroot@85192a4178f3:/workdir# python3 << 'EOF'
+[?2004l[?2004h> import cv2
+[?2004l[?2004h> import numpy as np
+[?2004l[?2004h> 
+[?2004l[?2004h> for i in range(1, 7):
+[?2004l[?2004h>     filepath = f'/workdir/data/cards/card_{i}.png'
+[?2004l[?2004h>     img = cv2.imread(filepath)
+[?2004l[?2004h>     
+[?2004l[?2004h>     rank_area = img[15:65, 15:65]
+[?2004l[?2004h>     gray = cv2.cvtColor(rank_area, cv2.COLOR_BGR2GRAY)
+[?2004l[?2004h>     _, binary = cv2.threshold(gray, 128, 255, cv2.THRESH_BINARY_INV)
+[?2004l[?2004h>     
+[?2004l[?2004h>     num_labels, labels, stats, centroids = cv2.connectedComponentsWithStats(binary)
+[?2004l[?2004h>     
+[?2004l[?2004h>     print(f'card_{i}.png - Rank area: {num_labels-1} components')
+[?2004l[?2004h> EOF
+[?2004lcard_1.png - Rank area: 1 components
+card_2.png - Rank area: 1 components
+card_3.png - Rank area: 1 components
+card_4.png - Rank area: 1 components
+card_5.png - Rank area: 1 components
+card_6.png - Rank area: 1 components
+[?2004hroot@85192a4178f3:/workdir# python3 << 'EOF'
+[?2004l[?2004h> import cv2
+[?2004l[?2004h> import numpy as np
+[?2004l[?2004h> 
+[?2004l[?2004h> for i in range(1, 7):
+[?2004l[?2004h>     filepath = f'/workdir/data/cards/card_{i}.png'
+[?2004l[?2004h>     img = cv2.imread(filepath)
+[?2004l[?2004h>     
+[?2004l[?2004h>     rank_area = img[15:65, 15:65]
+[?2004l[?2004h>     gray = cv2.cvtColor(rank_area, cv2.COLOR_BGR2GRAY)
+[?2004l[?2004h>     _, binary = cv2.threshold(gray, 128, 255, cv2.THRESH_BINARY_INV)
+[?2004l[?2004h>     
+[?2004l[?2004h>     # Get the bounding box of the main contour
+[?2004l[?2004h>     contours, _ = cv2.findContours(binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+[?2004l[?2004h>     if contours:
+[?2004l[?2004h>         x, y, w, h = cv2.boundingRect(contours[0])
+[?2004l[?2004h>         # Crop to the digit region
+[?2004l[?2004h>         digit = binary[y:y+h, x:x+w]
+[?2004l[?2004h>         
+[?2004l[?2004h>         # Calculate vertical projection
+[?2004l[?2004h>         vert_proj = np.sum(digit == 0, axis=0)
+[?2004l[?2004h>         
+[?2004l[?2004h>         print(f'card_{i}.png - Bounding box: {w}x{h}')
+[?2004l[?2004h>         print(f'  Vertical proj (first 10): {vert_proj[:10]}')
+[?2004l[?2004h> EOF
+[?2004lcard_1.png - Bounding box: 39x50
+  Vertical proj (first 10): [43 41 40 39 37 36 34 33 31 31]
+card_2.png - Bounding box: 39x49
+  Vertical proj (first 10): [48 45 43 40 37 35 32 30 27 25]
+card_3.png - Bounding box: 46x50
+  Vertical proj (first 10): [ 0  0 39 39 39 39 39 39 39 39]
+card_4.png - Bounding box: 37x50
+  Vertical proj (first 10): [45 45 45 45 45 45 45 45 45 45]
+card_5.png - Bounding box: 34x38
+  Vertical proj (first 10): [35 30 25 19 14  9  3  1  2  3]
+card_6.png - Bounding box: 38x50
+  Vertical proj (first 10): [44 42 41 40 38 37 35 34 34 33]
+[?2004hroot@85192a4178f3:/workdir# python3 << 'EOF'
+[?2004l[?2004h> try:
+[?2004l[?2004h>     import pytesseract
+[?2004l[?2004h>     print('pytesseract available')
+[?2004l[?2004h> except:
+[?2004l[?2004h>     print('pytesseract not available')
+[?2004l[?2004h> 
+[?2004l[?2004h> import cv2
+[?2004l[?2004h> import numpy as np
+[?2004l[?2004h> 
+[?2004l[?2004h> for i in range(1, 7):
+[?2004l[?2004h>     filepath = f'/workdir/data/cards/card_{i}.png'
+[?2004l[?2004h>     img = cv2.imread(filepath)
+[?2004l[?2004h>     
+[?2004l[?2004h>     # Extract rank area (top left)
+[?2004l[?2004h>     rank_area = img[5:80, 5:90]
+[?2004l[?2004h>     
+[?2004l[?2004h>     # Convert to grayscale and threshold
+[?2004l[?2004h>     gray = cv2.cvtColor(rank_area, cv2.COLOR_BGR2GRAY)
+[?2004l[?2004h>     _, binary = cv2.threshold(gray, 200, 255, cv2.THRESH_BINARY)
+[?2004l[?2004h>     
+[?2004l[?2004h>     # Save for OCR
+[?2004l[?2004h>     cv2.imwrite(f'/tmp/rank_{i}_ocr.jpg', binary)
+[?2004l[?2004h>     
+[?2004l[?2004h>     print(f'card_{i}.png rank area saved')
+[?2004l[?2004h> EOF
+[?2004lpytesseract not available
+card_1.png rank area saved
+card_2.png rank area saved
+card_3.png rank area saved
+card_4.png rank area saved
+card_5.png rank area saved
+card_6.png rank area saved
+[?2004hroot@85192a4178f3:/workdir# python3 << 'EOF'
+[?2004l[?2004h> import cv2
+[?2004l[?2004h> import numpy as np
+[?2004l[?2004h> 
+[?2004l[?2004h> # Let's look at the actual images more carefully
+[?2004l[?2004h> # I'll check different regions to find which one has a '4'
+[?2004l[?2004h> 
+[?2004l[?2004h> for i in range(1, 7):
+[?2004l[?2004h>     filepath = f'/workdir/data/cards/card_{i}.png'
+[?2004l[?2004h>     img = cv2.imread(filepath)
+[?2004l[?2004h>     
+[?2004l[?2004h>     # Get multiple regions of interest
+[?2004l[?2004h>     h, w = img.shape[:2]
+[?2004l[?2004h>     
+[?2004l[?2004h>     # Top left corner
+[?2004l[?2004h>     tl = img[10:60, 10:60]
+[?2004l[?2004h>     tl_gray = cv2.cvtColor(tl, cv2.COLOR_BGR2GRAY)
+[?2004l[?2004h>     tl_sum = np.sum(tl_gray < 100)
+[?2004l[?2004h>     
+[?2004l[?2004h>     # Center of card
+[?2004l[?2004h>     center = img[h//2-40:h//2+40, w//2-40:w//2+40]
+[?2004l[?2004h>     center_gray = cv2.cvtColor(center, cv2.COLOR_BGR2GRAY)
+[?2004l[?2004h>     center_sum = np.sum(center_gray < 100)
+[?2004l[?2004h>     
+[?2004l[?2004h>     # Bottom left
+[?2004l[?2004h>     bl = img[h-80:h-30, 10:60]
+[?2004l[?2004h>     bl_gray = cv2.cvtColor(bl, cv2.COLOR_BGR2GRAY)
+[?2004l[?2004h>     bl_sum = np.sum(bl_gray < 100)
+[?2004l[?2004h>     
+[?2004l[?2004h>     print(f'card_{i}.png - TL black: {tl_sum}, Center black: {center_sum}, BL black: {bl_sum}')
+[?2004l[?2004h> EOF
+[?2004lcard_1.png - TL black: 530, Center black: 0, BL black: 0
+card_2.png - TL black: 610, Center black: 6183, BL black: 0
+card_3.png - TL black: 909, Center black: 4112, BL black: 0
+card_4.png - TL black: 499, Center black: 491, BL black: 0
+card_5.png - TL black: 528, Center black: 6039, BL black: 0
+card_6.png - TL black: 426, Center black: 0, BL black: 0
+[?2004hroot@85192a4178f3:/workdir# python3 << 'EOF'
+[?2004l[?2004h> import cv2
+[?2004l[?2004h> import numpy as np
+[?2004l[?2004h> 
+[?2004l[?2004h> for i in range(1, 7):
+[?2004l[?2004h>     filepath = f'/workdir/data/cards/card_{i}.png'
+[?2004l[?2004h>     img = cv2.imread(filepath)
+[?2004l[?2004h>     
+[?2004l[?2004h>     # Extract rank area
+[?2004l[?2004h>     rank_area = img[10:70, 10:70]
+[?2004l[?2004h>     gray = cv2.cvtColor(rank_area, cv2.COLOR_BGR2GRAY)
+[?2004l[?2004h>     _, binary = cv2.threshold(gray, 128, 255, cv2.THRESH_BINARY_INV)
+[?2004l[?2004h>     
+[?2004l[?2004h>     # Find contours
+[?2004l[?2004h>     contours, _ = cv2.findContours(binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+[?2004l[?2004h>     
+[?2004l[?2004h>     if contours:
+[?2004l[?2004h>         # Get the main contour
+[?2004l[?2004h>         main_contour = max(contours, key=cv2.contourArea)
+[?2004l[?2004h>         x, y, w, h = cv2.boundingRect(main_contour)
+[?2004l[?2004h>         
+[?2004l[?2004h>         # Calculate aspect ratio
+[?2004l[?2004h>         aspect_ratio = w / h if h > 0 else 0
+[?2004l[?2004h>         
+[?2004l[?2004h>         # Crop the digit
+[?2004l[?2004h>         digit = binary[y:y+h, x:x+w]
+[?2004l[?2004h>         
+[?2004l[?2004h>         # Calculate horizontal and vertical projections
+[?2004l[?2004h>         vert_proj = np.sum(digit == 0, axis=0)
+[?2004l[?2004h>         horiz_proj = np.sum(digit == 0, axis=1)
+[?2004l[?2004h>         
+[?2004l[?2004h>         # Check if there are gaps in the projection (for '4' pattern)
+[?2004l[?2004h>         if len(vert_proj) > 0:
+[?2004l[?2004h>             max_v = np.max(vert_proj)
+[?2004l[?2004h>             min_v = np.min(vert_proj)
+[?2004l[?2004h>             v_range = max_v - min_v
+[?2004l[?2004h>         else:
+[?2004l[?2004h>             v_range = 0
+[?2004l[?2004h>         
+[?2004l[?2004h>         print(f'card_{i}.png - W: {w}, H: {h}, Aspect: {aspect_ratio:.2f}, V_range: {v_range}')
+[?2004l[?2004h> EOF
+[?2004lcard_1.png - W: 44, H: 56, Aspect: 0.79, V_range: 48
+card_2.png - W: 46, H: 54, Aspect: 0.85, V_range: 29
+card_3.png - W: 51, H: 55, Aspect: 0.93, V_range: 54
+card_4.png - W: 42, H: 58, Aspect: 0.72, V_range: 26
+card_5.png - W: 39, H: 54, Aspect: 0.72, V_range: 34
+card_6.png - W: 43, H: 55, Aspect: 0.78, V_range: 47
+[?2004hroot@85192a4178f3:/workdir# python3 << 'EOF'
+[?2004l[?2004h> import cv2
+[?2004l[?2004h> import numpy as np
+[?2004l[?2004h> 
+[?2004l[?2004h> # Let's look at the actual pixel patterns more carefully
+[?2004l[?2004h> # A '4' typically has: a vertical line on the right, a horizontal line across the middle, and a diagonal
+[?2004l[?2004h> 
+[?2004l[?2004h> for i in range(1, 7):
+[?2004l[?2004h>     filepath = f'/workdir/data/cards/card_{i}.png'
+[?2004l[?2004h>     img = cv2.imread(filepath)
+[?2004l[?2004h>     
+[?2004l[?2004h>     rank_area = img[10:70, 10:70]
+[?2004l[?2004h>     gray = cv2.cvtColor(rank_area, cv2.COLOR_BGR2GRAY)
+[?2004l[?2004h>     
+[?2004l[?2004h>     # Get the top left corner of the rank area
+[?2004l[?2004h>     top_left = gray[5:30, 5:30]
+[?2004l[?2004h>     
+[?2004l[?2004h>     # Calculate mean pixel values in different quadrants
+[?2004l[?2004h>     h, w = top_left.shape
+[?2004l[?2004h>     q1 = np.mean(top_left[:h//2, :w//2])  # top-left quadrant
+[?2004l[?2004h>     q2 = np.mean(top_left[:h//2, w//2:])  # top-right quadrant
+[?2004l[?2004h>     q3 = np.mean(top_left[h//2:, :w//2])  # bottom-left quadrant
+[?2004l[?2004h>     q4 = np.mean(top_left[h//2:, w//2:])  # bottom-right quadrant
+[?2004l[?2004h>     
+[?2004l[?2004h>     print(f'card_{i}.png - Q1(40-60): {q1:.1f}, Q2(60-80): {q2:.1f}, Q3(40-60): {q3:.1f}, Q4(60-80): {q4:.1f}')
+[?2004l[?2004h> EOF
+[?2004lcard_1.png - Q1(40-60): 255.0, Q2(60-80): 255.0, Q3(40-60): 255.0, Q4(60-80): 254.0
+card_2.png - Q1(40-60): 255.0, Q2(60-80): 255.0, Q3(40-60): 255.0, Q4(60-80): 225.1
+card_3.png - Q1(40-60): 214.8, Q2(60-80): 251.2, Q3(40-60): 210.6, Q4(60-80): 101.0
+card_4.png - Q1(40-60): 255.0, Q2(60-80): 187.2, Q3(40-60): 255.0, Q4(60-80): 255.0
+card_5.png - Q1(40-60): 255.0, Q2(60-80): 197.8, Q3(40-60): 255.0, Q4(60-80): 146.5
+card_6.png - Q1(40-60): 255.0, Q2(60-80): 255.0, Q3(40-60): 255.0, Q4(60-80): 255.0
+[?2004hroot@85192a4178f3:/workdir# python3 << 'EOF'
+[?2004l[?2004h> import cv2
+[?2004l[?2004h> import numpy as np
+[?2004l[?2004h> 
+[?2004l[?2004h> for i in range(1, 7):
+[?2004l[?2004h>     filepath = f'/workdir/data/cards/card_{i}.png'
+[?2004l[?2004h>     img = cv2.imread(filepath)
+[?2004l[?2004h>     
+[?2004l[?2004h>     rank_area = img[10:70, 10:70]
+[?2004l[?2004h>     gray = cv2.cvtColor(rank_area, cv2.COLOR_BGR2GRAY)
+[?2004l[?2004h>     _, binary = cv2.threshold(gray, 128, 255, cv2.THRESH_BINARY_INV)
+[?2004l[?2004h>     
+[?2004l[?2004h>     # Find contours
+[?2004l[?2004h>     contours, _ = cv2.findContours(binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+[?2004l[?2004h>     
+[?2004l[?2004h>     if contours:
+[?2004l[?2004h>         # Get the bounding box
+[?2004l[?2004h>         x, y, w, h = cv2.boundingRect(max(contours, key=cv2.contourArea))
+[?2004l[?2004h>         digit = binary[y:y+h, x:x+w]
+[?2004l[?2004h>         
+[?2004l[?2004h>         # Calculate the right-side coverage (for '4' which has vertical line on right)
+[?2004l[?2004h>         right_third = digit[:, int(2*digit.shape[1]/3):]
+[?2004l[?2004h>         left_two_thirds = digit[:, :int(2*digit.shape[1]/3)]
+[?2004l[?2004h>         
+[?2004l[?2004h>         right_black = np.sum(right_third == 0) / right_third.size
+[?2004l[?2004h>         left_black = np.sum(left_two_thirds == 0) / left_two_thirds.size
+[?2004l[?2004h>         
+[?2004l[?2004h>         print(f'card_{i}.png - Right 1/3 black: {right_black:.2%}, Left 2/3 black: {left_black:.2%}')
+[?2004l[?2004h> EOF
+[?2004lcard_1.png - Right 1/3 black: 38.81%, Left 2/3 black: 68.23%
+card_2.png - Right 1/3 black: 51.97%, Left 2/3 black: 62.04%
+card_3.png - Right 1/3 black: 77.11%, Left 2/3 black: 52.78%
+card_4.png - Right 1/3 black: 69.83%, Left 2/3 black: 67.18%
+card_5.png - Right 1/3 black: 56.41%, Left 2/3 black: 61.04%
+card_6.png - Right 1/3 black: 37.09%, Left 2/3 black: 67.27%
+[?2004hroot@85192a4178f3:/workdir# python3 << 'EOF'
+[?2004l[?2004h> import cv2
+[?2004l[?2004h> import numpy as np
+[?2004l[?2004h> 
+[?2004l[?2004h> # Let's look for the specific pattern of '4'
+[?2004l[?2004h> # A '4' has: vertical line on right, horizontal bar across middle, and sometimes a diagonal
+[?2004l[?2004h> 
+[?2004l[?2004h> for i in range(1, 7):
+[?2004l[?2004h>     filepath = f'/workdir/data/cards/card_{i}.png'
+[?2004l[?2004h>     img = cv2.imread(filepath)
+[?2004l[?2004h>     
+[?2004l[?2004h>     rank_area = img[10:70, 10:70]
+[?2004l[?2004h>     gray = cv2.cvtColor(rank_area, cv2.COLOR_BGR2GRAY)
+[?2004l[?2004h>     _, binary = cv2.threshold(gray, 128, 255, cv2.THRESH_BINARY_INV)
+[?2004l[?2004h>     
+[?2004l[?2004h>     contours, _ = cv2.findContours(binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+[?2004l[?2004h>     
+[?2004l[?2004h>     if contours:
+[?2004l[?2004h>         x, y, w, h = cv2.boundingRect(max(contours, key=cv2.contourArea))
+[?2004l[?2004h>         digit = binary[y:y+h, x:x+w]
+[?2004l[?2004h>         
+[?2004l[?2004h>         # Check for horizontal bar in middle
+[?2004l[?2004h>         mid_row = digit[digit.shape[0]//2]
+[?2004l[?2004h>         mid_black = np.sum(mid_row == 0) / len(mid_row)
+[?2004l[?2004h>         
+[?2004l[?2004h>         # Check for vertical bar on right
+[?2004l[?2004h>         right_col = digit[:, int(3*digit.shape[1]/4):]
+[?2004l[?2004h>         right_black = np.sum(right_col == 0) / right_col.size
+[?2004l[?2004h>         
+[?2004l[?2004h>         # Check top vs bottom
+[?2004l[?2004h>         top_half = digit[:digit.shape[0]//2]
+[?2004l[?2004h>         bottom_half = digit[digit.shape[0]//2:]
+[?2004l[?2004h>         top_black = np.sum(top_half == 0) / top_half.size
+[?2004l[?2004h>         bottom_black = np.sum(bottom_half == 0) / bottom_half.size
+[?2004l[?2004h>         
+[?2004l[?2004h>         print(f'card_{i}.png - Mid horiz: {mid_black:.2%}, Right vert: {right_black:.2%}, Top: {top_black:.2%}, Bottom: {bottom_black:.2%}')
+[?2004l[?2004h> EOF
+[?2004lcard_1.png - Mid horiz: 63.64%, Right vert: 46.75%, Top: 68.59%, Bottom: 47.81%
+card_2.png - Mid horiz: 60.87%, Right vert: 53.55%, Top: 66.43%, Bottom: 50.64%
+card_3.png - Mid horiz: 62.75%, Right vert: 83.36%, Top: 63.18%, Bottom: 58.68%
+card_4.png - Mid horiz: 78.57%, Right vert: 72.41%, Top: 56.73%, Bottom: 79.39%
+card_5.png - Mid horiz: 12.82%, Right vert: 52.59%, Top: 52.90%, Bottom: 66.10%
+card_6.png - Mid horiz: 62.79%, Right vert: 38.84%, Top: 68.04%, Bottom: 45.85%
+[?2004hroot@85192a4178f3:/workdir# python3 << 'EOF'
+[?2004l[?2004h> import cv2
+[?2004l[?2004h> import numpy as np
+[?2004l[?2004h> 
+[?2004l[?2004h> # Let's look for the '4' pattern more systematically
+[?2004l[?2004h> # '4' typically has: vertical line on right, horizontal bar across middle-right, diagonal from top-left to center
+[?2004l[?2004h> 
+[?2004l[?2004h> for i in range(1, 7):
+[?2004l[?2004h>     filepath = f'/workdir/data/cards/card_{i}.png'
+[?2004l[?2004h>     img = cv2.imread(filepath)
+[?2004l[?2004h>     
+[?2004l[?2004h>     rank_area = img[10:70, 10:70]
+[?2004l[?2004h>     gray = cv2.cvtColor(rank_area, cv2.COLOR_BGR2GRAY)
+[?2004l[?2004h>     _, binary = cv2.threshold(gray, 128, 255, cv2.THRESH_BINARY_INV)
+[?2004l[?2004h>     
+[?2004l[?2004h>     contours, _ = cv2.findContours(binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+[?2004l[?2004h>     
+[?2004l[?2004h>     if contours:
+[?2004l[?2004h>         x, y, w, h = cv2.boundingRect(max(contours, key=cv2.contourArea))
+[?2004l[?2004h>         digit = binary[y:y+h, x:x+w]
+[?2004l[?2004h>         
+[?2004l[?2004h>         # Divide into 3 vertical sections
+[?2004l[?2004h>         left = digit[:, :digit.shape[1]//3]
+[?2004l[?2004h>         mid = digit[:, digit.shape[1]//3:2*digit.shape[1]//3]
+[?2004l[?2004h>         right = digit[:, 2*digit.shape[1]//3:]
+[?2004l[?2004h>         
+[?2004l[?2004h>         left_black = np.sum(left == 0) / left.size
+[?2004l[?2004h>         mid_black = np.sum(mid == 0) / mid.size
+[?2004l[?2004h>         right_black = np.sum(right == 0) / right.size
+[?2004l[?2004h>         
+[?2004l[?2004h>         print(f'card_{i}.png - Left: {left_black:.2%}, Mid: {mid_black:.2%}, Right: {right_black:.2%}')
+[?2004l[?2004h> EOF
+[?2004lcard_1.png - Left: 71.56%, Mid: 65.12%, Right: 38.81%
+card_2.png - Left: 68.52%, Mid: 55.56%, Right: 51.97%
+card_3.png - Left: 47.06%, Mid: 58.50%, Right: 77.11%
+card_4.png - Left: 83.25%, Mid: 51.11%, Right: 69.83%
+card_5.png - Left: 50.28%, Mid: 71.79%, Right: 56.41%
+card_6.png - Left: 70.00%, Mid: 64.55%, Right: 37.09%
+[?2004hroot@85192a4178f3:/workdir# python3 << 'EOF'
+[?2004l[?2004h> import cv2
+[?2004l[?2004h> import numpy as np
+[?2004l[?2004h> 
+[?2004l[?2004h> # Let's analyze the suit color and try to identify the '4'
+[?2004l[?2004h> # Red suits: hearts, diamonds
+[?2004l[?2004h> # Black suits: clubs, spades
+[?2004l[?2004h> 
+[?2004l[?2004h> for i in range(1, 7):
+[?2004l[?2004h>     filepath = f'/workdir/data/cards/card_{i}.png'
+[?2004l[?2004h>     img = cv2.imread(filepath)
+[?2004l[?2004h>     
+[?2004l[?2004h>     # Convert to HSV to detect colors
+[?2004l[?2004h>     hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+[?2004l[?2004h>     
+[?2004l[?2004h>     # Detect red (hearts, diamonds)
+[?2004l[?2004h>     lower_red1 = np.array([0, 50, 50])
+[?2004l[?2004h>     upper_red1 = np.array([10, 255, 255])
+[?2004l[?2004h>     lower_red2 = np.array([160, 50, 50])
+[?2004l[?2004h>     upper_red2 = np.array([180, 255, 255])
+[?2004l[?2004h>     mask1 = cv2.inRange(hsv, lower_red1, upper_red1)
+[?2004l[?2004h>     mask2 = cv2.inRange(hsv, lower_red2, upper_red2)
+[?2004l[?2004h>     red_mask = cv2.bitwise_or(mask1, mask2)
+[?2004l[?2004h>     red_pixels = np.count_nonzero(red_mask)
+[?2004l[?2004h>     
+[?2004l[?2004h>     # Detect black
+[?2004l[?2004h>     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+[?2004l[?2004h>     black_mask = gray < 50
+[?2004l[?2004h>     black_pixels = np.count_nonzero(black_mask)
+[?2004l[?2004h>     
+[?2004l[?2004h>     total = img.shape[0] * img.shape[1]
+[?2004l[?2004h>     
+[?2004l[?2004h>     print(f'card_{i}.png - Red: {red_pixels/total:.2%}, Black: {black_pixels/total:.2%}')
+[?2004l[?2004h>     
+[?2004l[?2004h>     # Determine suit color
+[?2004l[?2004h>     if red_pixels > black_pixels:
+[?2004l[?2004h>         print(f'  -> Likely RED suit (hearts or diamonds)')
+[?2004l[?2004h>     else:
+[?2004l[?2004h>         print(f'  -> Likely BLACK suit (clubs or spades)')
+[?2004l[?2004h> EOF
+[?2004lcard_1.png - Red: 0.00%, Black: 16.12%
+  -> Likely BLACK suit (clubs or spades)
+card_2.png - Red: 21.05%, Black: 0.69%
+  -> Likely RED suit (hearts or diamonds)
+card_3.png - Red: 4.02%, Black: 17.84%
+  -> Likely BLACK suit (clubs or spades)
+card_4.png - Red: 17.99%, Black: 0.69%
+  -> Likely RED suit (hearts or diamonds)
+card_5.png - Red: 0.00%, Black: 17.60%
+  -> Likely BLACK suit (clubs or spades)
+card_6.png - Red: 0.00%, Black: 14.65%
+  -> Likely BLACK suit (clubs or spades)
+[?2004hroot@85192a4178f3:/workdir# python3 << 'EOF'
+[?2004l[?2004h> import cv2
+[?2004l[?2004h> import numpy as np
+[?2004l[?2004h> 
+[?2004l[?2004h> # Let's look at the structure of card_3 which has the distinctive right-heavy pattern
+[?2004l[?2004h> # A '4' typically has: vertical line on right, horizontal bar crossing it
+[?2004l[?2004h> 
+[?2004l[?2004h> for i in [3]:  # Focus on card_3
+[?2004l[?2004h>     filepath = f'/workdir/data/cards/card_{i}.png'
+[?2004l[?2004h>     img = cv2.imread(filepath)
+[?2004l[?2004h>     
+[?2004l[?2004h>     rank_area = img[10:70, 10:70]
+[?2004l[?2004h>     gray = cv2.cvtColor(rank_area, cv2.COLOR_BGR2GRAY)
+[?2004l[?2004h>     _, binary = cv2.threshold(gray, 128, 255, cv2.THRESH_BINARY_INV)
+[?2004l[?2004h>     
+[?2004l[?2004h>     contours, _ = cv2.findContours(binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+[?2004l[?2004h>     
+[?2004l[?2004h>     if contours:
+[?2004l[?2004h>         x, y, w, h = cv2.boundingRect(max(contours, key=cv2.contourArea))
+[?2004l[?2004h>         digit = binary[y:y+h, x:x+w]
+[?2004l[?2004h>         
+[?2004l[?2004h>         # Print the digit as a character grid
+[?2004l[?2004h>         print(f'card_{i}.png digit shape:')
+[?2004l[?2004h>         for row in range(0, digit.shape[0], 4):  # Sample every 4 rows
+[?2004l[?2004h>             line = ''
+[?2004l[?2004h>             for col in range(0, digit.shape[1], 2):  # Sample every 2 cols
+[?2004l[?2004h>                 if digit[row, col] == 0:
+[?2004l[?2004h>                     line += '#'
+[?2004l[?2004h>                 else:
+[?2004l[?2004h>                     line += ' '
+[?2004l[?2004h>             print(line)
+[?2004l[?2004h>         print()
+[?2004l[?2004h> EOF
+[?2004lcard_3.png digit shape:
+    ################      
+    ##############      ##
+    ############      ####
+    ##########      ######
+    ########      ########
+    ######      ##########
+    ####     #############
+    ##       #############
+              ############
+       ###      ##########
+     #######     #########
+    #########      #######
+    ###########     ######
+    ############      ####
+
+[?2004hroot@85192a4178f3:/workdir# python3 << 'EOF'
+[?2004l[?2004h> import cv2
+[?2004l[?2004h> import numpy as np
+[?2004l[?2004h> 
+[?2004l[?2004h> # Let's check all cards to find the '4'
+[?2004l[?2004h> for i in range(1, 7):
+[?2004l[?2004h>     filepath = f'/workdir/data/cards/card_{i}.png'
+[?2004l[?2004h>     img = cv2.imread(filepath)
+[?2004l[?2004h>     
+[?2004l[?2004h>     rank_area = img[10:70, 10:70]
+[?2004l[?2004h>     gray = cv2.cvtColor(rank_area, cv2.COLOR_BGR2GRAY)
+[?2004l[?2004h>     _, binary = cv2.threshold(gray, 128, 255, cv2.THRESH_BINARY_INV)
+[?2004l[?2004h>     
+[?2004l[?2004h>     contours, _ = cv2.findContours(binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+[?2004l[?2004h>     
+[?2004l[?2004h>     if contours:
+[?2004l[?2004h>         x, y, w, h = cv2.boundingRect(max(contours, key=cv2.contourArea))
+[?2004l[?2004h>         digit = binary[y:y+h, x:x+w]
+[?2004l[?2004h>         
+[?2004l[?2004h>         print(f'card_{i}.png digit shape:')
+[?2004l[?2004h>         for row in range(0, digit.shape[0], 4):
+[?2004l[?2004h>             line = ''
+[?2004l[?2004h>             for col in range(0, digit.shape[1], 2):
+[?2004l[?2004h>                 if digit[row, col] == 0:
+[?2004l[?2004h>                     line += '#'
+[?2004l[?2004h>                 else:
+[?2004l[?2004h>                     line += ' '
+[?2004l[?2004h>             print(line)
+[?2004l[?2004h>         print()
+[?2004l[?2004h> EOF
+[?2004lcard_1.png digit shape:
+################   ###
+##############     ###
+#############      ###
+############       ###
+##########    #    ###
+#########    ##    ###
+#######    ####    ###
+######    #####    ###
+####     ######    ###
+###    ########    ###
+##    #########    ###
+                      
+                      
+###############    ###
+
+card_2.png digit shape:
+###########     #######
+##########       ######
+#########        ######
+########    ##    #####
+########    ###    ####
+#######    ####     ###
+######    ######     ##
+#####    ########    ##
+####     #########    #
+####    ##########     
+###                    
+##                     
+#     ###############  
+#    ################# 
+
+card_3.png digit shape:
+    ################      
+    ##############      ##
+    ############      ####
+    ##########      ######
+    ########      ########
+    ######      ##########
+    ####     #############
+    ##       #############
+              ############
+       ###      ##########
+     #######     #########
+    #########      #######
+    ###########     ######
+    ############      ####
+
+card_4.png digit shape:
+                     
+                     
+#################    
+###############     #
+##############    ###
+#############    ####
+###########     #####
+##########     ######
+#########     #######
+#########    ########
+########    #########
+#######     #########
+#######    ##########
+######    ###########
+######    ###########
+
+card_5.png digit shape:
+####                
+###                 
+###    #############
+##     #############
+##    ##############
+##    ##############
+#    ##         ####
+#                  #
+#     #########     
+#################   
+#################   
+##################  
+##################  
+    #############   
+
+card_6.png digit shape:
+################   ###
+##############     ###
+#############      ###
+############       ###
+##########    #    ###
+#########    ##    ###
+#######    ####    ###
+######    #####    ###
+#####    ######    ###
+###    ########    ###
+##    #########    ###
+    ###########    ###
+                      
+                      
+
+[?2004hroot@85192a4178f3:/workdir# python3 << 'EOF'
+[?2004l[?2004h> import cv2
+[?2004l[?2004h> import numpy as np
+[?2004l[?2004h> 
+[?2004l[?2004h> # Let's look at the suit symbol in card_3.png to determine if it's clubs or spades
+[?2004l[?2004h> filepath = '/workdir/data/cards/card_3.png'
+[?2004l[?2004h> img = cv2.imread(filepath)
+[?2004l[?2004h> 
+[?2004l[?2004h> # The suit symbol is typically in the center of the card
+[?2004l[?2004h> h, w = img.shape[:2]
+[?2004l[?2004h> suit_area = img[h//2-60:h//2+60, w//2-60:w//2+60]
+[?2004l[?2004h> 
+[?2004l[?2004h> # Convert to HSV to analyze the suit
+[?2004l[?2004h> hsv = cv2.cvtColor(suit_area, cv2.COLOR_BGR2HSV)
+[?2004l[?2004h> 
+[?2004l[?2004h> # Count black pixels (suit symbols are black)
+[?2004l[?2004h> gray = cv2.cvtColor(suit_area, cv2.COLOR_BGR2GRAY)
+[?2004l[?2004h> _, binary = cv2.threshold(gray, 100, 255, cv2.THRESH_BINARY_INV)
+[?2004l[?2004h> 
+[?2004l[?2004h> # Find contours to understand the suit shape
+[?2004l[?2004h> contours, _ = cv2.findContours(binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+[?2004l[?2004h> 
+[?2004l[?2004h> print(f'Suit area contours: {len(contours)}')
+[?2004l[?2004h> 
+[?2004l[?2004h> # Print the suit shape
+[?2004l[?2004h> print('Suit symbol shape:')
+[?2004l[?2004h> for row in range(0, binary.shape[0], 4):
+[?2004l[?2004h>     line = ''
+[?2004l[?2004h>     for col in range(0, binary.shape[1], 2):
+[?2004l[?2004h>         if binary[row, col] == 0:
+[?2004l[?2004h>             line += '#'
+[?2004l[?2004h>         else:
+[?2004l[?2004h>             line += ' '
+[?2004l[?2004h>     print(line)
+[?2004l[?2004h> EOF
+[?2004lSuit area contours: 7
+Suit symbol shape:
+###  #######       ####  ###  ##     ########  ##  ######## 
+############        ##  #########      #################  ##
+############            ##            ##  ###########  #####
+ ###########            ##            #####  #####  ########
+  ##########            ##            ########   #########  
+   #########            ##               ##############  ###
+##  ########            ##             ##   #######  #######
+#    #######            ###  #####     #####   #  ######### 
+      ######             ###  ####      ################    
+#     ######               ######         ####      #  #### 
+       #####                            ###   ###### ###### 
+#      ###                   ####       #### #######  ###   
+   ##### #####              ######                        # 
+  ##### ########            ######      #####  ####  #####  
+  ###    #    #                         ###   ######   ###  
+    ####   ###  #####                   ####  #####  #####  
+  #####  ######   ####      ####                   #      # 
+  #####  ######  ####      ######            ######## ##### 
+    ###          #         ######             ###### ###### 
+     #   ##  ### #####                             ####     
+  #####  ####### #####        ###                #####      
+  #####   #### ##  ####     ########             #####      
+  ##  ##############       #####  ###            ######     
+   ########   #########            ###           #######   #
+ #######  #####  ######            ###           ####### #  
+ #####  ##########  ###            ###           ########## 
+###  ################              ###           ###########
+  ########      ########           ##            ###########
+#######  ########  #####     #### ###            ###########
+####   #############  ###   ### #####  ##        ###########
+[?2004hroot@85192a4178f3:/workdir# python3 << 'EOF'
+[?2004l[?2004h> import cv2
+[?2004l[?2004h> import numpy as np
+[?2004l[?2004h> 
+[?2004l[?2004h> # Let's look at the suit symbol more carefully
+[?2004l[?2004h> filepath = '/workdir/data/cards/card_3.png'
+[?2004l[?2004h> img = cv2.imread(filepath)
+[?2004l[?2004h> 
+[?2004l[?2004h> h, w = img.shape[:2]
+[?2004l[?2004h> 
+[?2004l[?2004h> # Look at the center where the suit symbol should be
+[?2004l[?2004h> suit_area = img[h//2-80:h//2+80, w//2-80:w//2+80]
+[?2004l[?2004h> 
+[?2004l[?2004h> # Convert to HSV to analyze colors
+[?2004l[?2004h> hsv = cv2.cvtColor(suit_area, cv2.COLOR_BGR2HSV)
+[?2004l[?2004h> 
+[?2004l[?2004h> # Find the main suit color
+[?2004l[?2004h> # For black suits (clubs, spades), we look for dark pixels
+[?2004l[?2004h> gray = cv2.cvtColor(suit_area, cv2.COLOR_BGR2GRAY)
+[?2004l[?2004h> 
+[?2004l[?2004h> # Apply a lower threshold to get the suit symbol
+[?2004l[?2004h> _, binary = cv2.threshold(gray, 150, 255, cv2.THRESH_BINARY)
+[?2004l[?2004h> 
+[?2004l[?2004h> print('Suit symbol (inverted - white is symbol):')
+[?2004l[?2004h> for row in range(0, binary.shape[0], 4):
+[?2004l[?2004h>     line = ''
+[?2004l[?2004h>     for col in range(0, binary.shape[1], 2):
+[?2004l[?2004h>         if binary[row, col] == 255:
+[?2004l[?2004h>             line += '#'
+[?2004l[?2004h>         else:
+[?2004l[?2004h>             line += ' '
+[?2004l[?2004h>     print(line)
+[?2004l[?2004h> EOF
+[?2004lSuit symbol (inverted - white is symbol):
+    ########## ####         ###     ##      #####   ###########   ########     #
+   ##  ######   #####      ####    ###       #######   #####   ########        #
+  ## #######    ######      ##########          #######     ########   ##       
+ #  ########     #####             ###        ##   ##############   #####       
+   ########      #####             ###         ####   #######    #######        
+     ########   ######       ####  ###   #     #######   #    #######           
+ #      ##############        #   #########       ####### ########   ##         
+ #        ############            ##            ##   ##########   #####         
+ #         ###########            ##            #####   ###    #######          
+ #          #########             ##             #######    #######           ##
+ ###         ########             ##               #############   ###       ###
+#        ###  #######             ##             ##   #######   ######     #  ##
+       ###     ######             ###  #####     #####       ########    #######
+ ###            #####              ###  ####      ################       #######
+  #     ###      ####                ######          ##           ###     #### #
+                 ####                             ###   #####   #####         ##
+  ########        ##                   ####       ###  #######  ###             
+             # ###  ####              ######                                    
+##          #####  ######             ######       ###   ###   ####             
+##  ####    ##     #    #                         ###   #####    ###            
+#  ###        ###     #   ####                    ####   ###   ####         ####
+  #          ###   ######   ###       ###                                 ####  
+             ####   ####   ####      ######             ######  #####     ###   
+                                     ######              ##### ### ##           
+                   ##  ##   ####                                       ###      
+            #####  ######  #####        ###                 ###              ###
+###         ####     ##       ##      ########              ####         #      
+##          #    ###    ######        ####  ###             #####       ##     #
+########      #######    #######             ###            #####               
+########   #######   ###    #####            ###            ######        ######
+########   ####   #########    ##            ###            #########   #####   
+###        #   ###############               ###            #########           
+####         #######      #######            ##             ##########          
+###       #######   ######   #####     ###  ###             ############        
+         #####   ############   ##    ### ####   ##         ##############      
+         ##   #######    #######           ###  ####        ################    
+           #######   ###    #######        ###              ###      ########## 
+         ######   ##########   #####       #########        ###      ########## 
+       #####   #######  #######   ##       ####   ###       ####     #########  
+ #     ##   #######   ##   #######         ###    ###       ####    ########  # 
+[?2004hroot@85192a4178f3:/workdir# python3 << 'EOF'
+[?2004l[?2004h> import cv2
+[?2004l[?2004h> import numpy as np
+[?2004l[?2004h> 
+[?2004l[?2004h> # Let's identify the suit more carefully
+[?2004l[?2004h> filepath = '/workdir/data/cards/card_3.png'
+[?2004l[?2004h> img = cv2.imread(filepath)
+[?2004l[?2004h> 
+[?2004l[?2004h> h, w = img.shape[:2]
+[?2004l[?2004h> 
+[?2004l[?2004h> # Look at the suit symbol area
+[?2004l[?2004h> suit_area = img[h//2-100:h//2+50, w//2-60:w//2+60]
+[?2004l[?2004h> 
+[?2004l[?2004h> # Convert to HSV
+[?2004l[?2004h> hsv = cv2.cvtColor(suit_area, cv2.COLOR_BGR2HSV)
+[?2004l[?2004h> 
+[?2004l[?2004h> # Check for red pixels (hearts/diamonds)
+[?2004l[?2004h> lower_red1 = np.array([0, 50, 50])
+[?2004l[?2004h> upper_red1 = np.array([10, 255, 255])
+[?2004l[?2004h> lower_red2 = np.array([160, 50, 50])
+[?2004l[?2004h> upper_red2 = np.array([180, 255, 255])
+[?2004l[?2004h> mask1 = cv2.inRange(hsv, lower_red1, upper_red1)
+[?2004l[?2004h> mask2 = cv2.inRange(hsv, lower_red2, upper_red2)
+[?2004l[?2004h> red_mask = cv2.bitwise_or(mask1, mask2)
+[?2004l[?2004h> red_count = np.count_nonzero(red_mask)
+[?2004l[?2004h> 
+[?2004l[?2004h> # Check for black pixels
+[?2004l[?2004h> gray = cv2.cvtColor(suit_area, cv2.COLOR_BGR2GRAY)
+[?2004l[?2004h> black_mask = gray < 100
+[?2004l[?2004h> black_count = np.count_nonzero(black_mask)
+[?2004l[?2004h> 
+[?2004l[?2004h> print(f'Red pixels in suit area: {red_count}')
+[?2004l[?2004h> print(f'Black pixels in suit area: {black_count}')
+[?2004l[?2004h> 
+[?2004l[?2004h> if red_count > black_count:
+[?2004l[?2004h>     print('Suit color: RED (hearts or diamonds)')
+[?2004l[?2004h> else:
+[?2004l[?2004h>     print('Suit color: BLACK (clubs or spades)')
+[?2004l[?2004h> 
+[?2004l[?2004h> # Now look at the shape of the suit symbol
+[?2004l[?2004h> _, binary = cv2.threshold(gray, 100, 255, cv2.THRESH_BINARY_INV)
+[?2004l[?2004h> contours, _ = cv2.findContours(binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+[?2004l[?2004h> 
+[?2004l[?2004h> print(f'Number of suit symbol parts: {len(contours)}')
+[?2004l[?2004h> 
+[?2004l[?2004h> # Print the main suit shape
+[?2004l[?2004h> main_contour = max(contours, key=cv2.contourArea)
+[?2004l[?2004h> x, y, w_cont, h_cont = cv2.boundingRect(main_contour)
+[?2004l[?2004h> suit_digit = binary[y:y+h_cont, x:x+w_cont]
+[?2004l[?2004h> 
+[?2004l[?2004h> print('Suit symbol shape:')
+[?2004l[?2004h> for row in range(0, suit_digit.shape[0], 4):
+[?2004l[?2004h>     line = ''
+[?2004l[?2004h>     for col in range(0, suit_digit.shape[1], 2):
+[?2004l[?2004h>         if suit_digit[row, col] == 0:
+[?2004l[?2004h>             line += '#'
+[?2004l[?2004h>         else:
+[?2004l[?2004h>             line += ' '
+[?2004l[?2004h>     print(line)
+[?2004l[?2004h> EOF
+[?2004lRed pixels in suit area: 1209
+Black pixels in suit area: 9227
+Suit color: BLACK (clubs or spades)
+Number of suit symbol parts: 5
+Suit symbol shape:
+#        ##    ####     ###   #####  ##  ######  ##### ###  
+###      ###   ####      ###   #######   ###### ######   ###
+#####     ########        ##     ########  #### ####  ######
+#######                   ###       ########       #########
+########                  ###    ###   ##################  #
+#### #####       ####     ##      ######  ############ #####
+###   #####      ####    ###       ########  #####  ########
+###   ######      ##########         #########   #########  
+##    ######             ###        ##  ###############  ###
+##     #####             ###        #####   ########  ######
+###  #######       ####  ###  ##     ########  ##  ######## 
+############        ##  #########      #################  ##
+############            ##            ##  ###########  #####
+ ###########            ##            #####  #####  ########
+  ##########            ##            ########   #########  
+   #########            ##               ##############  ###
+##  ########            ##             ##   #######  #######
+#    #######            ###  #####     #####   #  ######### 
+      ######             ###  ####      ################    
+#     ######               ######         ####      #  #### 
+       #####                            ###   ###### ###### 
+#      ###                   ####       #### #######  ###   
+   ##### #####              ######                        # 
+  ##### ########            ######      #####  ####  #####  
+  ###    #    #                         ###   ######   ###  
+    ####   ###  #####                   ####  #####  #####  
+  #####  ######   ####      ####                   #      # 
+  #####  ######  ####      ######            ######## ##### 
+    ###          #         ######             ###### ###### 
+     #   ##  ### #####                             ####     
+  #####  ####### #####        ###                #####      
+  #####   #### ##  ####     ########             #####      
+  ##  ##############       #####  ###            ######     
+   ########   #########            ###           #######   #
+ #######  #####  ######            ###           ####### #  
+ #####  ##########  ###            ###           ########## 
+###  ################              ###           ###########
+  ########      ########           ##            ###########
+[?2004hroot@85192a4178f3:/workdir# cat > /workdir/card_analysis.json << 'EOF'
+[?2004l[?2004h> {
+[?2004l[?2004h>   "four_card": {
+[?2004l[?2004h>     "filename": "card_3.png",
+[?2004l[?2004h>     "suit": "clubs",
+[?2004l[?2004h>     "color": "black"
+[?2004l[?2004h>   }
+[?2004l[?2004h> }
+[?2004l[?2004h> EOF
+[?2004l[?2004hroot@85192a4178f3:/workdir# cat /workdir/card_analysis.json
+[?2004l{
+  "four_card": {
+    "filename": "card_3.png",
+    "suit": "clubs",
+    "color": "black"
+  }
+}
+[?2004hroot@85192a4178f3:/workdir# python3 -c "
+[?2004l[?2004h> import cv2
+[?2004l[?2004h> import numpy as np
+[?2004l[?2004h> 
+[?2004l[?2004h> for i in [1, 2, 3, 4, 5, 6]:
+[?2004l[?2004h>     filepath = '/workdir/data/cards/card_' + str(i) + '.png'
+[?2004l[?2004h>     img = cv2.imread(filepath)
+[?2004l[?2004h>     rank_area = img[10:70, 10:70]
+[?2004l[?2004h>     gray = cv2.cvtColor(rank_area, cv2.COLOR_BGR2GRAY)
+[?2004l[?2004h>     _, binary = cv2.threshold(gray, 128, 255, cv2.THRESH_BINARY_INV)
+[?2004l[?2004h>     contours, _ = cv2.findContours(binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+[?2004l[?2004h>     if contours:
+[?2004l[?2004h>         x, y, w, h = cv2.boundingRect(max(contours, key=cv2.contourArea))
+[?2004l[?2004h>         digit = binary[y:y+h, x:x+w]
+[?2004l[?2004h>         right_third = digit[:, int(2*digit.shape[1]/3):]
+[?2004l[?2004h>         left_two_thirds = digit[:, :int(2*digit.shape[1]/3)]
+[?2004l[?2004h>         right_black = float(np.sum(right_third == 0)) / right_third.size
+[?2004l[?2004h>         left_black = float(np.sum(left_two_thirds == 0)) / left_two_thirds.size
+[?2004l[?2004h>         print('card_' + str(i) + '.png - Right: ' + str(round(right_black*100, 1)) + '%, Left: ' + str(round(left_black*100, 1)) + '%')
+[?2004l[?2004h> "
+[?2004lcard_1.png - Right: 38.8%, Left: 68.2%
+card_2.png - Right: 52.0%, Left: 62.0%
+card_3.png - Right: 77.1%, Left: 52.8%
+card_4.png - Right: 69.8%, Left: 67.2%
+card_5.png - Right: 56.4%, Left: 61.0%
+card_6.png - Right: 37.1%, Left: 67.3%
+[?2004hroot@85192a4178f3:/workdir# cat /workdir/card_analysis.json
+[?2004l{
+  "four_card": {
+    "filename": "card_3.png",
+    "suit": "clubs",
+    "color": "black"
+  }
+}
+[?2004hroot@85192a4178f3:/workdir# 

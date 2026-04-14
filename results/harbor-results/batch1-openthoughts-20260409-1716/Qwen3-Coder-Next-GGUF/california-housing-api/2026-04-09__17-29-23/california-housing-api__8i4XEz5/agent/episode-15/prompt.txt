@@ -1,0 +1,48 @@
+New Terminal Output:
+
+root@ec00c077f56c:/app# echo '=== Final Summary ===' && echo && echo 'Data files:' && ls -la /app/data/*.csv && echo && echo 'Models:' && ls -la /app/models/ &&
+ echo && echo 'Output files:' && ls -la /app/output/ && echo && echo 'API app:' && ls -la /app/api/ && echo && echo 'API Status:' && curl -s http://localhost:80
+00/health && echo && echo && echo 'Validation Metrics:' && cat /app/output/api_metrics.json
+=== Final Summary ===
+
+Data files:
+-rwxrwxrwx 1 root root  354101 Dec 22 08:24 /app/data/test.csv
+-rwxrwxrwx 1 root root 1516656 Dec 22 08:24 /app/data/train.csv
+
+Models:
+total 226592
+drwxr-xr-x 1 root root      4096 Apr  9 23:31 .
+drwxr-xr-x 1 root root      4096 Apr  9 23:33 ..
+-rw-r--r-- 1 root root 116002615 Apr  9 23:31 best_model.pkl
+-rw-r--r-- 1 root root       709 Apr  9 23:31 linear_regression.pkl
+-rw-r--r-- 1 root root 116002615 Apr  9 23:31 random_forest.pkl
+-rw-r--r-- 1 root root       681 Apr  9 23:31 ridge.pkl
+
+Output files:
+total 340
+drwxr-xr-x 1 root root   4096 Apr  9 23:34 .
+drwxr-xr-x 1 root root   4096 Apr  9 23:33 ..
+-rw-r--r-- 1 root root    107 Apr  9 23:34 api_metrics.json
+-rw-r--r-- 1 root root 155362 Apr  9 23:34 api_predictions.csv
+-rw-r--r-- 1 root root    567 Apr  9 23:31 model_comparison.json
+-rw-r--r-- 1 root root 170671 Apr  9 23:31 split_info.json
+
+API app:
+total 20
+drwxr-xr-x 1 root root 4096 Apr  9 23:32 .
+drwxr-xr-x 1 root root 4096 Apr  9 23:33 ..
+drwxr-xr-x 2 root root 4096 Apr  9 23:33 __pycache__
+-rw-r--r-- 1 root root 1952 Apr  9 23:33 app.py
+
+API Status:
+INFO:     127.0.0.1:32980 - "GET /health HTTP/1.1" 200 OK
+{"status":"healthy","model_loaded":true}
+
+Validation Metrics:
+{
+  "sample_count": 3303,
+  "mae": 0.345861,
+  "mse": 0.278088,
+  "rmse": 0.52734,
+  "r2_score": 0.798486
+}root@ec00c077f56c:/app#

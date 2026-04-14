@@ -1,0 +1,950 @@
+[?2004hroot@b26515120965:/app# asciinema rec --stdin /logs/agent/recording.cast
+[?2004l[0;32masciinema: recording asciicast to /logs/agent/recording.cast[0m
+[0;32masciinema: press <ctrl-d> or type "exit" when you're done[0m
+[?2004hroot@b26515120965:/app# clear
+[?2004l[H[J[3J[?2004hroot@b26515120965:/app# cat > /app/solution.py << 'EOF'
+[?2004l[?2004h> def solve(lines: list[str]) -> str:
+[?2004l[?2004h>     if not lines:
+[?2004l[?2004h>         return "OK"
+[?2004l[?2004h>     
+[?2004l[?2004h>     import re
+[?2004l[?2004h>     
+[?2004l[?2004h>     # Parse lines
+[?2004l[?2004h>     entries = []
+[?2004l[?2004h>     node_pattern = re.compile(r'^n[0-9][0-9]*$')
+[?2004l[?2004h>     
+[?2004l[?2004h>     for line in lines:
+[?2004l[?2004h>         stripped = line.strip()
+[?2004ldex[idx]
+        
+        # Collect terms at this index in file order
+        terms_in_order = [e[0] for e in index_entries]
+        
+        # Rule 1: Term monotonicity
+        for i in range(1, len(terms_in_order)):
+            if terms_in_order[i] < terms_in_order[i-1]:
+                if idx not in [b[0] for b in bad_entries]:
+                    bad_entries.append((idx, "BAD_TERM_REGRESSION"))
+                break
+        
+        # Extract operations
+        appends = [(e[0], e[4]) for e in index_entries if e[3] == 'APPEND']
+        votes_here = [(e[0], e[2]) for e in index_entries if e[3] == 'VOTE']
+        commits = [(e[0], e[2]) for e in index_entries if e[3] == 'COMMIT']
+        leaders_here = [(e[0], e[2]) for e in index_entries if e[3] == 'LEADER']
+        
+        # Rule 5: Conflict detection (same term, different data)
+        term_data = {}
+        for term, data in appends:
+            if term in term_data:
+                if term_data[term] != data:
+                    if idx not in [b[0] for b in bad_entries]:
+                        bad_entries.append((idx, "BAD_CONFLICT"))
+                    break
+            else:
+                term_data[term] = data
+        
+        # Rule 4: COMMIT order
+        has_append = len(appends) > 0
+        if not has_append:
+            for commit_term, _ in commits:
+                if idx not in [b[0] for b in bad_entries]:
+                    bad_entries.append((idx, "BAD_COMMIT_ORDER"))
+                break
+        else:
+            # Winning term = highest term
+            winning_term = max(appends, key=lambda x: x[0])[0] if appends else None
+            if winning_term is not None:
+                for commit_term, _ in commits:
+                    if commit_term != winning_term:
+                        if idx not in [b[0] for b in bad_entries]:
+                            bad_entries.append((idx, "BAD_COMMIT_ORDER"))
+                        break
+        
+        # Rule 3: Duplicate vote detection
+        for commit_term, node in votes_here:
+            key = (node, commit_term)
+            if key in votes:
+                if idx not in [b[0] for b in bad_entries]:
+                    bad_entries.append((idx, "BAD_DUPLICATE_VOTE"))
+                break
+            else:
+                votes[key] = idx
+        
+        [?2004h>         
+[?2004l# Rule 3:[?2004h>         # Skip empty lines and comments
+[?2004l[?2004h>         if not stripped or stripped.startswith('#'):
+[?2004l[?2004h>             continue
+[?2004l[?2004h>         
+[?2004l[?2004h>         fields = stripped.split()
+[?2004l[?2004h>         
+[?2004l[?2004h>         # Validate field count
+[?2004l[?2004h>         if len(fields) < 4 or len(fields) > 5:
+[?2004l[?2004h>             break
+[?2004lls[?2004h>         
+[?2004l[?2004h>         try:
+[?2004l[?2004h>             term = int(fields[0])
+[?2004l[?2004h>             if term < 0:
+[?2004l[?2004h>                 break
+[?2004l[?2004h>         except ValueError:
+[?2004l[?2004h>             break
+[?2004l[?2004h>         
+[?2004l[?2004h>         try:
+[?2004l[?2004h>             index = int(fields[1])
+[?2004l[?2004h>             if index < 1:
+[?2004l[?2004h>                 break
+[?2004l[?2004h>         except ValueError:
+[?2004l[?2004h>             break
+[?2004l[?2004h>         
+[?2004l[?2004h>         node = fields[2]
+[?2004l[?2004h>         if not node_pattern.match(node):
+[?2004l[?2004h>             break
+[?2004l[?2004h>         
+[?2004l[?2004h>         op = fields[3]
+[?2004l[?2004h>         if op not in ('VOTE', 'APPEND', 'COMMIT', 'LEADER'):
+[?2004l[?2004h>             break
+[?2004l[?2004h>         
+[?2004l[?2004h>         data = None
+[?2004l[?2004h>         if op == 'APPEND':
+[?2004l[?2004h>             if len(fields) != 5:
+[?2004l[?2004h>                 break
+[?2004l[?2004h>             data = fields[4]
+[?2004l[?2004h>         else:
+[?2004l[?2004h>             if len(fields) != 4:
+[?2004l[?2004h>                 break
+[?2004l[?2004h>         
+[?2004l[?2004h>         entry = (term, index, node, op, data)
+[?2004l[?2004h>         
+[?2004l[?2004h>         # Skip exact duplicates
+[?2004l[?2004h>         if entry in entries:
+[?2004l[?2004h>             continue
+[?2004l[?2004h>         
+[?2004l[?2004h>         entries.append(entry)
+[?2004l[?2004h>     
+[?2004l[?2004h>     # Group by index, maintaining file order
+[?2004l[?2004h>     by_index = {}
+[?2004l[?2004h>     for entry in entries:
+[?2004l[?2004h>         idx = entry[1]
+[?2004l[?2004h>         if idx not in by_index:
+[?2004l[?2004h>             by_index[idx] = []
+[?2004l[?2004h>         by_index[idx].append(entry)
+[?2004l[?2004h>     
+[?2004l[?2004h>     if not by_index:
+[?2004l[?2004h>         return "OK"
+[?2004l[?2004h>     
+[?2004l[?2004h>     indices = sorted(by_index.keys())
+[?2004l[?2004h>     
+[?2004l[?2004h>     bad_entries = []
+[?2004l[?2004h>     
+[?2004l[?2004h>     # Global tracking for protocol rules
+[?2004l[?2004h>     votes = {}  # (node, term) -> first index where vote occurred
+[?2004l[?2004h>     leaders = {}  # term -> first index where leader was established
+[?2004l[?2004h>     
+[?2004l[?2004h>     # First pass: collect violations
+[?2004l[?2004h>     for idx in indices:
+[?2004l[?2004h>         index_entries = by_index[idx]
+[?2004l[?2004h>         
+[?2004l[?2004h>         # Collect terms at this index in file order
+[?2004l[?2004h>         terms_in_order = [e[0] for e in index_entries]
+[?2004l[?2004h>         
+[?2004l[?2004h>         # Rule 1: Term monotonicity
+[?2004l[?2004h>         for i in range(1, len(terms_in_order)):
+[?2004l[?2004h>             if terms_in_order[i] < terms_in_order[i-1]:
+[?2004l[?2004h>                 if idx not in [b[0] for b in bad_entries]:
+[?2004l[?2004h>                     bad_entries.append((idx, "BAD_TERM_REGRESSION"))
+[?2004l[?2004h>                 break
+[?2004l[?2004h>         
+[?2004l[?2004h>         # Extract operations
+[?2004l[?2004h>         appends = [(e[0], e[4]) for e in index_entries if e[3] == 'APPEND']
+[?2004l[?2004h>         votes_here = [(e[0], e[2]) for e in index_entries if e[3] == 'VOTE']
+[?2004l[?2004h>         commits = [(e[0], e[2]) for e in index_entries if e[3] == 'COMMIT']
+[?2004l[?2004h>         leaders_here = [(e[0], e[2]) for e in index_entries if e[3] == 'LEADER']
+[?2004l[?2004h>         
+[?2004l[?2004h>         # Rule 5: Conflict detection (same term, different data)
+[?2004l[?2004h>         term_data = {}
+[?2004l[?2004h>         for term, data in appends:
+[?2004l[?2004h>             if term in term_data:
+[?2004l[?2004h>                 if term_data[term] != data:
+[?2004l[?2004h>                     if idx not in [b[0] for b in bad_entries]:
+[?2004l[?2004h>                         bad_entries.append((idx, "BAD_CONFLICT"))
+[?2004l[?2004h>                     break
+[?2004l[?2004h>             else:
+[?2004l[?2004h>                 term_data[term] = data
+[?2004l[?2004h>         
+[?2004l[?2004h>         # Rule 4: COMMIT order
+[?2004l[?2004h>         has_append = len(appends) > 0
+[?2004l[?2004h>         if not has_append:
+[?2004l[?2004h>             for commit_term, _ in commits:
+[?2004l[?2004h>                 if idx not in [b[0] for b in bad_entries]:
+[?2004l[?2004h>                     bad_entries.append((idx, "BAD_COMMIT_ORDER"))
+[?2004l[?2004h>                 break
+[?2004l[?2004h>         else:
+[?2004l[?2004h>             # Winning term = highest term
+[?2004l[?2004h>             winning_term = max(appends, key=lambda x: x[0])[0] if appends else None
+[?2004l[?2004h>             if winning_term is not None:
+[?2004l[?2004h>                 for commit_term, _ in commits:
+[?2004l[?2004h>                     if commit_term != winning_term:
+[?2004l[?2004h>                         if idx not in [b[0] for b in bad_entries]:
+[?2004l[?2004h>                             bad_entries.append((idx, "BAD_COMMIT_ORDER"))
+[?2004l[?2004h>                         break
+[?2004l[?2004h>         
+[?2004l[?2004h>         # Rule 3: Duplicate vote detection
+[?2004l[?2004h>         for commit_term, node in votes_here:
+[?2004l[?2004h>             key = (node, commit_term)
+[?2004l[?2004h>             if key in votes:
+[?2004l[?2004h>                 if idx not in [b[0] for b in bad_entries]:
+[?2004l[?2004h>                     bad_entries.append((idx, "BAD_DUPLICATE_VOTE"))
+[?2004l[?2004h>                 break
+[?2004l[?2004h>             else:
+[?2004l[?2004h>                 votes[key] = idx
+[?2004l[?2004h>         
+[?2004l[?2004h>         # Rule 3: Leader order
+[?2004l[?2004h>         for leader_term, node in leaders_here:
+[?2004l[?2004h>             if leader_term in leaders:
+[?2004l[?2004h>                 if idx not in [b[0] for b in bad_entries]:
+[?2004l[?2004h>                     bad_entries.append((idx, "BAD_LEADER_ORDER"))
+[?2004l[?2004h>                 break
+[?2004l[?2004h>             else:
+[?2004l[?2004h>                 leaders[leader_term] = idx
+[?2004l[?2004h>     
+[?2004l[?2004h>     # Rule 2: Log matching (need committed terms from previous indices)
+[?2004l[?2004h>     committed_term = 0
+[?2004l[?2004h>     for idx in indices:
+[?2004l[?2004h>         index_entries = by_index[idx]
+[?2004l[?2004h>         appends = [e for e in index_entries if e[3] == 'APPEND']
+[?2004l[?2004h>         commits = [e for e in index_entries if e[3] == 'COMMIT']
+[?2004l[?2004h>         
+[?2004l[?2004h>         if appends and commits:
+[?2004l[?2004h>             winning_term = max(appends, key=lambda x: x[0])[0]
+[?2004l[?2004h>             if committed_term > winning_term:
+[?2004l[?2004h>                 if idx not in [b[0] for b in bad_entries]:
+[?2004l[?2004h>                     bad_entries.append((idx, "BAD_LOG_MATCH"))
+[?2004l[?2004h>             committed_term = winning_term
+[?2004l[?2004h>     
+[?2004l[?2004h>     # Collect repair entries (missing COMMITs)
+[?2004l[?2004h>     ins_entries = []
+[?2004l[?2004h>     bad_indices = set(b[0] for b in bad_entries)
+[?2004l[?2004h>     
+[?2004l[?2004h>     for idx in indices:
+[?2004l[?2004h>         if idx in bad_indices:
+[?2004l[?2004h>             continue
+[?2004l[?2004h>         index_entries = by_index[idx]
+[?2004l[?2004h>         appends = [e for e in index_entries if e[3] == 'APPEND']
+[?2004l[?2004h>         commits = [e for e in index_entries if e[3] == 'COMMIT']
+[?2004l[?2004h>         
+[?2004l[?2004h>         if appends and not commits:
+[?2004l[?2004h>             winning_term = max(appends, key=lambda x: x[0])[0]
+[?2004l[?2004h>             ins_entries.append((idx, winning_term))
+[?2004l[?2004h>     
+[?2004l[?2004h>     # Build output
+[?2004l[?2004h>     output = []
+[?2004l[?2004h>     for idx, reason in sorted(bad_entries, key=lambda x: x[0]):
+[?2004l[?2004h>         output.append(f"BAD {idx} {reason}")
+[?2004l[?2004h>     for idx, term in sorted(ins_entries, key=lambda x: (x[0], x[1])):
+[?2004l[?2004h>         output.append(f"INS {term} {idx} COMMIT")
+[?2004l[?2004h>     
+[?2004l[?2004h>     if not output:
+[?2004l[?2004h>         return "OK"
+[?2004l[?2004h>     return "\n".join(output)
+[?2004l[?2004h> 
+[?2004l[?2004h> 
+[?2004l[?2004h> if __name__ == "__main__":
+[?2004l[?2004h>     import sys
+[?2004l[?2004h>     if len(sys.argv) > 1:
+[?2004l[?2004h>         with open(sys.argv[1]) as f:
+[?2004l[?2004h>             lines = f.read().strip().split('\n')
+[?2004l[?2004h>     else:
+[?2004l[?2004h>         lines = [l.strip() for l in sys.stdin if l.strip()]
+[?2004l[?2004h>     print(solve(lines))
+[?2004l[?2004h> EOF
+[?2004l[?2004hroot@b26515120965:/app# python3 -c "from solution import solve; print(repr(solve([])))"
+[?2004l'OK'
+[?2004hroot@b26515120965:/app# python3 -c "from solution import solve; print(repr(solve(['1 1 n0 APPEND data1', 'X bad', '2 2 n1 APPEND data2'])))"
+[?2004l'INS 1 1 COMMIT'
+[?2004hroot@b26515120965:/app# python3 -c "from solution import solve; print(repr(solve(['2 1 n0 APPEND data1', '1 1 n1 APPEND data2'])))"
+[?2004l'BAD 1 BAD_TERM_REGRESSION'
+[?2004hroot@b26515120965:/app# python3 -c "from solution import solve; print(repr(solve(['1 1 n0 APPEND data1'])))"
+[?2004l'INS 1 1 COMMIT'
+[?2004hroot@b26515120965:/app# python3 -c "from solution import solve; print(repr(solve(['1 1 n0 COMMIT'])))"
+[?2004l'BAD 1 BAD_COMMIT_ORDER'
+[?2004hroot@b26515120965:/app# python3 -c "from solution import solve; print(repr(solve(['1 1 n0 APPEND data1', '2 1 n0 COMMIT'])))"
+[?2004l'BAD 1 BAD_COMMIT_ORDER'
+[?2004hroot@b26515120965:/app# python3 -c "from solution import solve; print(repr(solve(['1 1 n0 VOTE', '1 2 n0 VOTE'])))"
+[?2004l'BAD 2 BAD_DUPLICATE_VOTE'
+[?2004hroot@b26515120965:/app# python3 -c "from solution import solve; print(repr(solve(['1 1 n0 APPEND data1', '1 1 n1 APPEND data2'])))"
+[?2004l'BAD 1 BAD_CONFLICT'
+[?2004hroot@b26515120965:/app# python3 -c "from solution import solve; print(repr(solve(['1 1 n0 APPEND data1', '2 1 n1 APPEND data2'])))"
+[?2004l'INS 2 1 COMMIT'
+[?2004hroot@b26515120965:/app# python3 -c "from solution import solve; print(repr(solve(['2 1 n0 APPEND data1', '2 1 n0 COMMIT', '1 2 n1 APPEND data2'])))"
+[?2004l'INS 1 2 COMMIT'
+[?2004hroot@b26515120965:/app# cat > /app/solution.py << 'EOF'
+[?2004l[?2004h> def solve(lines: list[str]) -> str:
+[?2004l[?2004h>     if not lines:
+[?2004l[?2004h>         return "OK"
+[?2004l[?2004h>     
+[?2004l[?2004h>     import re
+[?2004l[?2004h>     
+[?2004l[?2004h>     # Parse lines
+[?2004l[?2004h>     entries = []
+[?2004l[?2004h>     node_pattern = re.compile(r'^n[0-9][0-9]*$')
+[?2004l[?2004h>     
+[?2004l[?2004h>     for line in lines:
+[?2004l[?2004h>         stripped = line.strip()
+[?2004l[?2004h>         
+[?2004l[?2004h>         # Skip empty lines and comments
+[?2004l[?2004h>         if not stripped or stripped.startswith('#'):
+[?2004l[?2004h>             continue
+[?2004l[?2004h>         
+[?2004l[?2004h>         fields = stripped.split()
+[?2004l[?2004h>         
+[?2004l[?2004h>         # Validate field count
+[?2004l[?2004h>         if len(fields) < 4 or len(fields) > 5:
+[?2004l[?2004h>             break
+[?2004l[?2004h>         
+[?2004l[?2004h>         try:
+[?2004l[?2004h>             term = int(fields[0])
+[?2004l[?2004h>             if term < 0:
+[?2004l[?2004h>                 break
+[?2004l[?2004h>         except ValueError:
+[?2004l[?2004h>             break
+[?2004l[?2004h>         
+[?2004l[?2004h>         try:
+[?2004l[?2004h>             index = int(fields[1])
+[?2004l[?2004h>             if index < 1:
+[?2004l[?2004h>                 break
+[?2004ln[?2004h>         except ValueError:
+[?2004l[?2004h>             break
+[?2004l[?2004h>         
+[?2004l[?2004h>         node = fields[2]
+[?2004l[?2004h>         if not node_pattern.match(node):
+[?2004l[?2004h>             break
+[?2004l[?2004h>         
+[?2004l[?2004h>         op = fields[3]
+[?2004l[?2004h>         if op not in ('VOTE', 'APPEND', 'COMMIT', 'LEADER'):
+[?2004l[?2004h>             break
+[?2004l[?2004h>         
+[?2004l[?2004h>         data = None
+[?2004l[?2004h>         if op == 'APPEND':
+[?2004l[?2004h>             if len(fields) != 5:
+[?2004l[?2004h>                 break
+[?2004l[?2004h>             data = fields[4]
+[?2004l[?2004h>         else:
+[?2004l[?2004h>             if len(fields) != 4:
+[?2004l[?2004h>                 break
+[?2004l[?2004h>         
+[?2004l[?2004h>         entry = (term, index, node, op, data)
+[?2004l[?2004h>         
+[?2004l[?2004h>         # Skip exact duplicates
+[?2004l[?2004h>         if entry in entries:
+[?2004l[?2004h>             continue
+[?2004l[?2004h>         
+[?2004l[?2004h>         entries.append(entry)
+[?2004l[?2004h>     
+[?2004l[?2004h>     # Group by index, maintaining file order
+[?2004l[?2004h>     by_index = {}
+[?2004l[?2004h>     for entry in entries:
+[?2004l[?2004h>         idx = entry[1]
+[?2004l[?2004h>         if idx not in by_index:
+[?2004l[?2004h>             by_index[idx] = []
+[?2004l[?2004h>         by_index[idx].append(entry)
+[?2004l[?2004h>     
+[?2004l[?2004h>     if not by_index:
+[?2004l[?2004h>         return "OK"
+[?2004l[?2004h>     
+[?2004l[?2004h>     indices = sorted(by_index.keys())
+[?2004l[?2004h>     
+[?2004l[?2004h>     bad_entries = []
+[?2004l[?2004h>     
+[?2004l[?2004h>     # Global tracking for protocol rules
+[?2004l[?2004h>     votes = {}  # (node, term) -> first index where vote occurred
+[?2004l[?2004h>     leaders = {}  # term -> first index where leader was established
+[?2004l[?2004h>     
+[?2004l[?2004h>     # Track committed terms per index
+[?2004l[?2004h>     committed_terms = {}
+[?2004l[?2004h>     
+[?2004l[?2004h>     # First pass: collect violations
+[?2004l[?2004h>     for idx in indices:
+[?2004l[?2004h>         index_entries = by_index[idx]
+[?2004l[?2004h>         
+[?2004l[?2004h>         # Collect terms at this index in file order
+[?2004l[?2004h>         terms_in_order = [e[0] for e in index_entries]
+[?2004l[?2004h>         
+[?2004l[?2004h>         # Rule 1: Term monotonicity
+[?2004l[?2004h>         for i in range(1, len(terms_in_order)):
+[?2004l[?2004h>             if terms_in_order[i] < terms_in_order[i-1]:
+[?2004l[?2004h>                 if idx not in [b[0] for b in bad_entries]:
+[?2004l[?2004h>                     bad_entries.append((idx, "BAD_TERM_REGRESSION"))
+[?2004l[?2004h>                 break
+[?2004l[?2004h>         
+[?2004l[?2004h>         # Extract operations
+[?2004l[?2004h>         appends = [(e[0], e[4]) for e in index_entries if e[3] == 'APPEND']
+[?2004l[?2004h>         votes_here = [(e[0], e[2]) for e in index_entries if e[3] == 'VOTE']
+[?2004l[?2004h>         commits = [(e[0], e[2]) for e in index_entries if e[3] == 'COMMIT']
+[?2004l[?2004h>         leaders_here = [(e[0], e[2]) for e in index_entries if e[3] == 'LEADER']
+[?2004l[?2004h>         
+[?2004l[?2004h>         # Rule 5: Conflict detection (same term, different data)
+[?2004l[?2004h>         has_conflict = False
+[?2004l[?2004h>         term_data = {}
+[?2004l[?2004h>         for term, data in appends:
+[?2004l[?2004h>             if term in term_data:
+[?2004l[?2004h>                 if term_data[term] != data:
+[?2004l[?2004h>                     has_conflict = True
+[?2004l[?2004h>                     break
+[?2004l[?2004h>             else:
+[?2004l[?2004h>                 term_data[term] = data
+[?2004l[?2004h>         
+[?2004l[?2004h>         if has_conflict:
+[?2004l[?2004h>             if idx not in [b[0] for b in bad_entries]:
+[?2004l[?2004h>                 bad_entries.append((idx, "BAD_CONFLICT"))
+[?2004l[?2004h>         
+[?2004l[?2004h>         # Rule 4: COMMIT order
+[?2004l[?2004h>         has_append = len(appends) > 0
+[?2004l[?2004h>         commit_violation = False
+[?2004l[?2004h>         
+[?2004l[?2004h>         if not has_append:
+[?2004l[?2004h>             if commits:
+[?2004l[?2004h>                 commit_violation = True
+[?2004l[?2004h>         else:
+[?2004l[?2004h>             # Winning term = highest term
+[?2004l[?2004h>             winning_term = max(appends, key=lambda x: x[0])[0] if appends else None
+[?2004l[?2004h>             if winning_term is not None:
+[?2004l[?2004h>                 for commit_term, _ in commits:
+[?2004l[?2004h>                     if commit_term != winning_term:
+[?2004l[?2004h>                         commit_violation = True
+[?2004l[?2004h>                         break
+[?2004l[?2004h>         
+[?2004l[?2004h>         if commit_violation:
+[?2004l[?2004h>             if idx not in [b[0] for b in bad_entries]:
+[?2004l[?2004h>                 bad_entries.append((idx, "BAD_COMMIT_ORDER"))
+[?2004l[?2004h>         
+[?2004l[?2004h>         # Rule 3: Duplicate vote detection
+[?2004l[?2004h>         for commit_term, node in votes_here:
+[?2004l[?2004h>             key = (node, commit_term)
+[?2004l[?2004h>             if key in votes:
+[?2004l[?2004h>                 if idx not in [b[0] for b in bad_entries]:
+[?2004l[?2004h>                     bad_entries.append((idx, "BAD_DUPLICATE_VOTE"))
+[?2004l[?2004h>                 break
+[?2004l[?2004h>             else:
+[?2004l[?2004h>                 votes[key] = idx
+[?2004l[?2004h>         
+[?2004l[?2004h>         # Rule 3: Leader order
+[?2004l[?2004h>         for leader_term, node in leaders_here:
+[?2004l[?2004h>             if leader_term in leaders:
+[?2004l[?2004h>                 if idx not in [b[0] for b in bad_entries]:
+[?2004l[?2004h>                     bad_entries.append((idx, "BAD_LEADER_ORDER"))
+[?2004l[?2004h>                 break
+[?2004l[?2004h>             else:
+[?2004l[?2004h>                 leaders[leader_term] = idx
+[?2004l[?2004h>         
+[?2004l[?2004h>         # Record committed term if valid
+[?2004l[?2004h>         if has_append and not commit_violation and commits:
+[?2004l[?2004h>             committed_terms[idx] = winning_term
+[?2004l[?2004h>     
+[?2004l[?2004h>     # Rule 2: Log matching (need committed terms from previous indices)
+[?2004l[?2004h>     prev_committed = 0
+[?2004l[?2004h>     for idx in indices:
+[?2004l[?2004h>         if idx in committed_terms:
+[?2004l[?2004h>             if prev_committed > committed_terms[idx]:
+[?2004l[?2004h>                 if idx not in [b[0] for b in bad_entries]:
+[?2004l[?2004h>                     bad_entries.append((idx, "BAD_LOG_MATCH"))
+[?2004l[?2004h>             prev_committed = committed_terms[idx]
+[?2004l[?2004h>     
+[?2004l[?2004h>     # Collect repair entries (missing COMMITs)
+[?2004l[?2004h>     ins_entries = []
+[?2004l[?2004h>     bad_indices = set(b[0] for b in bad_entries)
+[?2004l[?2004h>     
+[?2004l[?2004h>     for idx in indices:
+[?2004l[?2004h>         if idx in bad_indices:
+[?2004l[?2004h>             continue
+[?2004l[?2004h>         index_entries = by_index[idx]
+[?2004l[?2004h>         appends = [e for e in index_entries if e[3] == 'APPEND']
+[?2004l[?2004h>         commits = [e for e in index_entries if e[3] == 'COMMIT']
+[?2004l[?2004h>         
+[?2004l[?2004h>         if appends and not commits:
+[?2004l[?2004h>             winning_term = max(appends, key=lambda x: x[0])[0]
+[?2004l[?2004h>             ins_entries.append((idx, winning_term))
+[?2004l[?2004h>     
+[?2004l[?2004h>     # Build output
+[?2004l[?2004h>     output = []
+[?2004l[?2004h>     for idx, reason in sorted(bad_entries, key=lambda x: x[0]):
+[?2004l[?2004h>         output.append(f"BAD {idx} {reason}")
+[?2004l[?2004h>     for idx, term in sorted(ins_entries, key=lambda x: (x[0], x[1])):
+[?2004l[?2004h>         output.append(f"INS {term} {idx} COMMIT")
+[?2004l[?2004h>     
+[?2004l[?2004h>     if not output:
+[?2004l[?2004h>         return "OK"
+[?2004l[?2004h>     return "\n".join(output)
+[?2004l[?2004h> 
+[?2004l[?2004h> 
+[?2004l[?2004h> if __name__ == "__main__":
+[?2004l[?2004h>     import sys
+[?2004l[?2004h>     if len(sys.argv) > 1:
+[?2004l[?2004h>         with open(sys.argv[1]) as f:
+[?2004l[?2004h>             lines = f.read().strip().split('\n')
+[?2004l[?2004h>     else:
+[?2004l[?2004h>         lines = [l.strip() for l in sys.stdin if l.strip()]
+[?2004l[?2004h>     print(solve(lines))
+[?2004l[?2004h> EOF
+[?2004l[?2004hroot@b26515120965:/app# python3 -c "from solution import solve; print(repr(solve(['2 1 n0 APPEND data1', '2 1 n0 COMMIT', '1 2 n1 APPEND data2'])))"
+[?2004l'INS 1 2 COMMIT'
+[?2004hroot@b26515120965:/app# python3 -c "from solution import solve; print(repr(solve([])))"
+[?2004l'OK'
+[?2004hroot@b26515120965:/app# python3 -c "from solution import solve; print(repr(solve(['1 1 n0 APPEND data1', 'X bad', '2 2 n1 APPEND data2'])))"
+[?2004l'INS 1 1 COMMIT'
+[?2004hroot@b26515120965:/app# python3 -c "from solution import solve; print(repr(solve(['2 1 n0 APPEND data1', '1 1 n1 APPEND data2'])))"
+[?2004l'BAD 1 BAD_TERM_REGRESSION'
+[?2004hroot@b26515120965:/app# python3 -c "from solution import solve; print(repr(solve(['1 1 n0 APPEND data1'])))"
+[?2004l'INS 1 1 COMMIT'
+[?2004hroot@b26515120965:/app# python3 -c "from solution import solve; print(repr(solve(['1 1 n0 COMMIT'])))"
+[?2004l'BAD 1 BAD_COMMIT_ORDER'
+[?2004hroot@b26515120965:/app# python3 -c "from solution import solve; print(repr(solve(['1 1 n0 APPEND data1', '2 1 n0 COMMIT'])))"
+[?2004l'BAD 1 BAD_COMMIT_ORDER'
+[?2004hroot@b26515120965:/app# python3 -c "from solution import solve; print(repr(solve(['1 1 n0 VOTE', '1 2 n0 VOTE'])))"
+[?2004l'BAD 2 BAD_DUPLICATE_VOTE'
+[?2004hroot@b26515120965:/app# python3 -c "from solution import solve; print(repr(solve(['1 1 n0 APPEND data1', '1 1 n1 APPEND data2'])))"
+[?2004l'BAD 1 BAD_CONFLICT'
+[?2004hroot@b26515120965:/app# python3 -c "from solution import solve; print(repr(solve(['1 1 n0 APPEND data1', '2 1 n1 APPEND data2'])))"
+[?2004l'INS 2 1 COMMIT'
+[?2004hroot@b26515120965:/app# cat > /app/solution.py << 'EOF'
+[?2004lR'):
+            break
+        
+        data = None
+        if op == 'APPEND':
+            if len(fields) != 5:
+                break
+            data = fields[4]
+        else:
+            if len(fields) != 4:
+                break
+        
+        entry = (term, index, node, op, data)
+        
+        # Skip exact duplicates
+        if entry in entries:
+            continue
+        
+        entries.append(entry)
+    
+    # Group by index, maintaining file order
+    by_index = {}
+    for entry in entries:
+        idx = entry[1]
+        if idx not in by_index:
+            by_index[idx] = []
+        by_index[idx].append(entry)
+    
+    if not by_index:
+        return "OK"
+    
+    indices = sorted(by_index.keys())
+    
+    bad_entries = []
+    
+    # Global tracking for protocol rules
+    votes = {}  # (node, term) -> first index where vote occurred
+    leaders = {}  # term -> first index where leader was established
+    
+    # Track winning APPEND term per index
+    winning_terms = {}
+    
+    # First pass: collect violations
+    for idx in indices:
+        index_entries = by_index[idx]
+        
+        # Collect terms at this index in file order
+        terms_in_order = [e[0] for e in index_entries]
+        
+        # Rule 1: Term monotonicity
+        for i in range(1, len(terms_in_order)):
+            if terms_in_order[i] < terms_in_order[i-1]:
+                if idx not in [b[0] for b in bad_entries]:
+                    bad_entries.append((idx, "BAD_TERM_REGRESSION"))
+                break
+        
+        # Extract operations
+        appends = [(e[0], e[4]) for e in index_entries if e[3] == 'APPEND']
+        votes_here = [(e[0], e[2]) for e in index_entries if e[3] == 'VOTE']
+        commits = [(e[0], e[2]) for e in index_entries if e[3] == 'COMMIT']
+        leaders_here = [(e[0], e[2]) for e in index_entries if e[3] == 'LEADER']
+        
+        # Rule 5: Conflict detection (same term, different data)
+        has_conflict = False
+        term_data = {}
+        for term, data in appends:
+            if term in term_data:
+                if term_data[term] != data:
+                    has_conflict = True
+                    break
+            else:
+                term_data[term] = data
+        
+        if has_conflict:
+            if idx not in [b[0] for b in bad_entries]:
+                bad_entries.append((idx, "BAD_CONFLICT"))
+        
+        # Rule 4: COMMIT order
+        has_append = len(appends) > 0
+        commit_violation = False
+        
+        if not has_append:
+            if commits:
+                commit_violation = True
+        else:
+            # Winning term = highest term
+            winning_term = max(appends, key=lambda x: x[0])[0] if appends else None
+            if winning_term is not None:
+                for commit_term, _ in commits:
+                    if commit_term != winning_term:
+                        commit_violation = True
+                        break
+        
+        if commit_violation:
+            if idx not in [b[0] for b in bad_entries]:
+                bad_entries.append((idx, "BAD_COMMIT_ORDER"))
+    [?2004h> def solve(lines: list[str]) -> str:
+[?2004l[?2004h>     if not lines:
+[?2004l[?2004h>         return "OK"
+[?2004lerm, n[?2004h>     
+[?2004l[?2004h>     import re
+[?2004l[?2004h>     
+[?2004l[?2004h>     # Parse lines
+[?2004l[?2004h>     entries = []
+[?2004l[?2004h>     node_pattern = re.compile(r'^n[0-9][0-9]*$')
+[?2004l[?2004h>     
+[?2004l[?2004h>     for line in lines:
+[?2004l[?2004h>         stripped = line.strip()
+[?2004l[?2004h>         
+[?2004l[?2004h>         # Skip empty lines and comments
+[?2004l[?2004h>         if not stripped or stripped.startswith('#'):
+[?2004l[?2004h>             continue
+[?2004l[?2004h>         
+[?2004l[?2004h>         fields = stripped.split()
+[?2004l[?2004h>         
+[?2004l[?2004h>         # Validate field count
+[?2004l[?2004h>         if len(fields) < 4 or len(fields) > 5:
+[?2004l[?2004h>             break
+[?2004l[?2004h>         
+[?2004l[?2004h>         try:
+[?2004l[?2004h>             term = int(fields[0])
+[?2004l[?2004h>             if term < 0:
+[?2004l[?2004h>                 break
+[?2004l[?2004h>         except ValueError:
+[?2004l[?2004h>             break
+[?2004l[?2004h>         
+[?2004l[?2004h>         try:
+[?2004l[?2004h>             index = int(fields[1])
+[?2004l[?2004h>             if index < 1:
+[?2004l[?2004h>                 break
+[?2004l[?2004h>         except ValueError:
+[?2004l[?2004h>             break
+[?2004l[?2004h>         
+[?2004l[?2004h>         node = fields[2]
+[?2004l[?2004h>         if not node_pattern.match(node):
+[?2004l[?2004h>             break
+[?2004l[?2004h>         
+[?2004l[?2004h>         op = fields[3]
+[?2004l[?2004h>         if op not in ('VOTE', 'APPEND', 'COMMIT', 'LEADER'):
+[?2004l[?2004h>             break
+[?2004l[?2004h>         
+[?2004l[?2004h>         data = None
+[?2004l[?2004h>         if op == 'APPEND':
+[?2004l[?2004h>             if len(fields) != 5:
+[?2004l[?2004h>                 break
+[?2004l[?2004h>             data = fields[4]
+[?2004l[?2004h>         else:
+[?2004l[?2004h>             if len(fields) != 4:
+[?2004l[?2004h>                 break
+[?2004l[?2004h>         
+[?2004l[?2004h>         entry = (term, index, node, op, data)
+[?2004l[?2004h>         
+[?2004l[?2004h>         # Skip exact duplicates
+[?2004l[?2004h>         if entry in entries:
+[?2004l[?2004h>             continue
+[?2004l[?2004h>         
+[?2004l[?2004h>         entries.append(entry)
+[?2004le[?2004h>     
+[?2004l[?2004h>     # Group by index, maintaining file order
+[?2004l[?2004h>     by_index = {}
+[?2004l[?2004h>     for entry in entries:
+[?2004l[?2004h>         idx = entry[1]
+[?2004l[?2004h>         if idx not in by_index:
+[?2004l[?2004h>             by_index[idx] = []
+[?2004l[?2004h>         by_index[idx].append(entry)
+[?2004l[?2004h>     
+[?2004l[?2004h>     if not by_index:
+[?2004l[?2004h>         return "OK"
+[?2004l[?2004h>     
+[?2004l[?2004h>     indices = sorted(by_index.keys())
+[?2004l[?2004h>     
+[?2004l[?2004h>     bad_entries = []
+[?2004l[?2004h>     
+[?2004l[?2004h>     # Global tracking for protocol rules
+[?2004l[?2004h>     votes = {}  # (node, term) -> first index where vote occurred
+[?2004l[?2004h>     leaders = {}  # term -> first index where leader was established
+[?2004l[?2004h>     
+[?2004l[?2004h>     # Track winning APPEND term per index
+[?2004l[?2004h>     winning_terms = {}
+[?2004l[?2004h>     
+[?2004l[?2004h>     # First pass: collect violations
+[?2004l[?2004h>     for idx in indices:
+[?2004l[?2004h>         index_entries = by_index[idx]
+[?2004l[?2004h>         
+[?2004l[?2004h>         # Collect terms at this index in file order
+[?2004l[?2004h>         terms_in_order = [e[0] for e in index_entries]
+[?2004l[?2004h>         
+[?2004l[?2004h>         # Rule 1: Term monotonicity
+[?2004l[?2004h>         for i in range(1, len(terms_in_order)):
+[?2004l[?2004h>             if terms_in_order[i] < terms_in_order[i-1]:
+[?2004l[?2004h>                 if idx not in [b[0] for b in bad_entries]:
+[?2004l[?2004h>                     bad_entries.append((idx, "BAD_TERM_REGRESSION"))
+[?2004l[?2004h>                 break
+[?2004l[?2004h>         
+[?2004l[?2004h>         # Extract operations
+[?2004l[?2004h>         appends = [(e[0], e[4]) for e in index_entries if e[3] == 'APPEND']
+[?2004l[?2004h>         votes_here = [(e[0], e[2]) for e in index_entries if e[3] == 'VOTE']
+[?2004l[?2004h>         commits = [(e[0], e[2]) for e in index_entries if e[3] == 'COMMIT']
+[?2004l[?2004h>         leaders_here = [(e[0], e[2]) for e in index_entries if e[3] == 'LEADER']
+[?2004l[?2004h>         
+[?2004l[?2004h>         # Rule 5: Conflict detection (same term, different data)
+[?2004l[?2004h>         has_conflict = False
+[?2004l[?2004h>         term_data = {}
+[?2004l[?2004h>         for term, data in appends:
+[?2004l[?2004h>             if term in term_data:
+[?2004l[?2004h>                 if term_data[term] != data:
+[?2004l[?2004h>                     has_conflict = True
+[?2004l[?2004h>                     break
+[?2004l[?2004h>             else:
+[?2004l[?2004h>                 term_data[term] = data
+[?2004l[?2004h>         
+[?2004l[?2004h>         if has_conflict:
+[?2004l[?2004h>             if idx not in [b[0] for b in bad_entries]:
+[?2004l[?2004h>                 bad_entries.append((idx, "BAD_CONFLICT"))
+[?2004l[?2004h>         
+[?2004l[?2004h>         # Rule 4: COMMIT order
+[?2004l[?2004h>         has_append = len(appends) > 0
+[?2004l[?2004h>         commit_violation = False
+[?2004l[?2004h>         
+[?2004l[?2004h>         if not has_append:
+[?2004l[?2004h>             if commits:
+[?2004l[?2004h>                 commit_violation = True
+[?2004l[?2004h>         else:
+[?2004l[?2004h>             # Winning term = highest term
+[?2004l[?2004h>             winning_term = max(appends, key=lambda x: x[0])[0] if appends else None
+[?2004l[?2004h>             if winning_term is not None:
+[?2004l[?2004h>                 for commit_term, _ in commits:
+[?2004l[?2004h>                     if commit_term != winning_term:
+[?2004l[?2004h>                         commit_violation = True
+[?2004l[?2004h>                         break
+[?2004l[?2004h>         
+[?2004l[?2004h>         if commit_violation:
+[?2004l[?2004h>             if idx not in [b[0] for b in bad_entries]:
+[?2004l[?2004h>                 bad_entries.append((idx, "BAD_COMMIT_ORDER"))
+[?2004l[?2004h>         
+[?2004l[?2004h>         # Rule 3: Duplicate vote detection
+[?2004l[?2004h>         for commit_term, node in votes_here:
+[?2004l[?2004h>             key = (node, commit_term)
+[?2004l[?2004h>             if key in votes:
+[?2004l[?2004h>                 if idx not in [b[0] for b in bad_entries]:
+[?2004l[?2004h>                     bad_entries.append((idx, "BAD_DUPLICATE_VOTE"))
+[?2004l[?2004h>                 break
+[?2004l[?2004h>             else:
+[?2004l[?2004h>                 votes[key] = idx
+[?2004l[?2004h>         
+[?2004l[?2004h>         # Rule 3: Leader order
+[?2004l[?2004h>         for leader_term, node in leaders_here:
+[?2004l[?2004h>             if leader_term in leaders:
+[?2004l[?2004h>                 if idx not in [b[0] for b in bad_entries]:
+[?2004l[?2004h>                     bad_entries.append((idx, "BAD_LEADER_ORDER"))
+[?2004l[?2004h>                 break
+[?2004l[?2004h>             else:
+[?2004l[?2004h>                 leaders[leader_term] = idx
+[?2004l[?2004h>         
+[?2004l[?2004h>         # Record winning APPEND term for log matching
+[?2004l[?2004h>         if appends:
+[?2004l[?2004h>             winning_terms[idx] = max(appends, key=lambda x: x[0])[0]
+[?2004l[?2004h>     
+[?2004l[?2004h>     # Rule 2: Log matching (need winning APPEND terms from previous indices)
+[?2004l[?2004h>     prev_committed = 0
+[?2004l[?2004h>     for idx in indices:
+[?2004l[?2004h>         if idx in winning_terms:
+[?2004l[?2004h>             if prev_committed > winning_terms[idx]:
+[?2004l[?2004h>                 if idx not in [b[0] for b in bad_entries]:
+[?2004l[?2004h>                     bad_entries.append((idx, "BAD_LOG_MATCH"))
+[?2004l[?2004h>             prev_committed = winning_terms[idx]
+[?2004l[?2004h>     
+[?2004l[?2004h>     # Collect repair entries (missing COMMITs)
+[?2004l[?2004h>     ins_entries = []
+[?2004l[?2004h>     bad_indices = set(b[0] for b in bad_entries)
+[?2004l[?2004h>     
+[?2004l[?2004h>     for idx in indices:
+[?2004l[?2004h>         if idx in bad_indices:
+[?2004l[?2004h>             continue
+[?2004l[?2004h>         index_entries = by_index[idx]
+[?2004l[?2004h>         appends = [e for e in index_entries if e[3] == 'APPEND']
+[?2004l[?2004h>         commits = [e for e in index_entries if e[3] == 'COMMIT']
+[?2004l[?2004h>         
+[?2004l[?2004h>         if appends and not commits:
+[?2004l[?2004h>             winning_term = max(appends, key=lambda x: x[0])[0]
+[?2004l[?2004h>             ins_entries.append((idx, winning_term))
+[?2004l[?2004h>     
+[?2004l[?2004h>     # Build output
+[?2004l[?2004h>     output = []
+[?2004l[?2004h>     for idx, reason in sorted(bad_entries, key=lambda x: x[0]):
+[?2004l[?2004h>         output.append(f"BAD {idx} {reason}")
+[?2004l[?2004h>     for idx, term in sorted(ins_entries, key=lambda x: (x[0], x[1])):
+[?2004l[?2004h>         output.append(f"INS {term} {idx} COMMIT")
+[?2004l[?2004h>     
+[?2004l[?2004h>     if not output:
+[?2004l[?2004h>         return "OK"
+[?2004l[?2004h>     return "\n".join(output)
+[?2004l[?2004h> 
+[?2004l[?2004h> 
+[?2004l[?2004h> if __name__ == "__main__":
+[?2004l[?2004h>     import sys
+[?2004l[?2004h>     if len(sys.argv) > 1:
+[?2004l[?2004h>         with open(sys.argv[1]) as f:
+[?2004l[?2004h>             lines = f.read().strip().split('\n')
+[?2004l[?2004h>     else:
+[?2004l[?2004h>         lines = [l.strip() for l in sys.stdin if l.strip()]
+[?2004l[?2004h>     print(solve(lines))
+[?2004l[?2004h> EOF
+[?2004l[?2004hroot@b26515120965:/app# python3 -c "from solution import solve; print(repr(solve(['2 1 n0 APPEND data1', '2 1 n0 COMMIT', '1 2 n1 APPEND data2'])))"
+[?2004l'BAD 2 BAD_LOG_MATCH'
+[?2004hroot@b26515120965:/app# python3 -c "from solution import solve; tests = [([], 'OK'), (['1 1 n0 APPEND data1', 'X bad', '2 2 n1 APPEND data2'], 'INS 1 1 COMMIT'), (['2 1 n0 APPEND data1', '1 1 n1 APPEND data2'], 'BAD 1 BAD_TERM_REGRESSION'), (['1 1 n0 APPEND data1'], 'INS 1 1 COMMIT'), (['1 1 n0 COMMIT'], 'BAD 1 BAD_COMMIT_ORDER'), (['1 1 n0 APPEND data1', '2 1 n0 COMMIT'], 'BAD 1 BAD_COMMIT_ORDER'), (['1 1 n0 VOTE', '1 2 n0 VOTE'], 'BAD 2 BAD_DUPLICATE_VOTE'), (['1 1 n0 APPEND data1', '1 1 n1 APPEND data2'], 'BAD 1 BAD_CONFLICT'), (['1 1 n0 APPEND data1', '2 1 n1 APPEND data2'], 'INS 2 1 COMMIT'), (['2 1 n0 APPEND data1', '2 1 n0 COMMIT', '1 2 n1 APPEND data2'], 'BAD 2 BAD_LOG_MATCH')]; all_pass = True; [print(f'Test {i+1}: PASS' if solve(t[0]) == t[1] else f'Test {i+1}: FAIL - got {repr(solve(t[0]))}, expected {repr(t[1])}') or (all_pass := False) for i, t in enumerate(tests)]; print(f'\nAll tests passed: {all_pass}')"
+[?2004lTest 1: PASS
+Test 2: PASS
+Test 3: PASS
+Test 4: PASS
+Test 5: PASS
+Test 6: PASS
+Test 7: PASS
+Test 8: PASS
+Test 9: PASS
+Test 10: PASS
+
+All tests passed: False
+[?2004hroot@b26515120965:/app# python3 << 'PYEOF'
+[?2004l[?2004h> from solution import solve
+[?2004lf"Test {i}: {status}")
+
+print(f"\nAll tests passed: {all_pass}")
+PYEOF
+[?2004h> 
+[?2004l[?2004h> tests = [
+[?2004l[?2004h>     ([], "OK"),
+[?2004l[?2004h>     (["1 1 n0 APPEND data1", "X bad", "2 2 n1 APPEND data2"], "INS 1 1 COMMIT"),
+[?2004l[?2004h>     (["2 1 n0 APPEND data1", "1 1 n1 APPEND data2"], "BAD 1 BAD_TERM_REGRESSION"),
+[?2004l[?2004h>     (["1 1 n0 APPEND data1"], "INS 1 1 COMMIT"),
+[?2004l[?2004h>     (["1 1 n0 COMMIT"], "BAD 1 BAD_COMMIT_ORDER"),
+[?2004l[?2004h>     (["1 1 n0 APPEND data1", "2 1 n0 COMMIT"], "BAD 1 BAD_COMMIT_ORDER"),
+[?2004l[?2004h>     (["1 1 n0 VOTE", "1 2 n0 VOTE"], "BAD 2 BAD_DUPLICATE_VOTE"),
+[?2004l[?2004h>     (["1 1 n0 APPEND data1", "1 1 n1 APPEND data2"], "BAD 1 BAD_CONFLICT"),
+[?2004l[?2004h>     (["1 1 n0 APPEND data1", "2 1 n1 APPEND data2"], "INS 2 1 COMMIT"),
+[?2004l[?2004h>     (["2 1 n0 APPEND data1", "2 1 n0 COMMIT", "1 2 n1 APPEND data2"], "BAD 2 BAD_LOG_MATCH"),
+[?2004l[?2004h> ]
+[?2004l[?2004h> 
+[?2004l[?2004h> all_pass = True
+[?2004l[?2004h> for i, (inp, expected) in enumerate(tests, 1):
+[?2004l[?2004h>     result = solve(inp)
+[?2004l[?2004h>     status = "PASS" if result == expected else "FAIL"
+[?2004l[?2004h>     if result != expected:
+[?2004l[?2004h>         print(f"Test {i}: {status} - got {repr(result)}, expected {repr(expected)}")
+[?2004l[?2004h>         all_pass = False
+[?2004l[?2004h>     else:
+[?2004l[?2004h>         print(f"Test {i}: {status}")
+[?2004l[?2004h> 
+[?2004l[?2004h> print(f"\nAll tests passed: {all_pass}")
+[?2004l[?2004h> PYEOF
+[?2004lTest 1: PASS
+Test 2: PASS
+Test 3: PASS
+Test 4: PASS
+Test 5: PASS
+Test 6: PASS
+Test 7: PASS
+Test 8: PASS
+Test 9: PASS
+Test 10: PASS
+
+All tests passed: True
+[?2004hroot@b26515120965:/app# python3 << 'PYEOF'
+[?2004l[?2004h> from solution import solve
+[?2004l[?2004h> 
+[?2004l[?2004h> # Test duplicates
+[?2004l[?2004h> print("Duplicate test:", repr(solve(["1 1 n0 APPEND data1", "1 1 n0 APPEND data1"])))
+[?2004l[?2004h> 
+[?2004l[?2004h> # Test comments
+[?2004l[?2004h> print("Comment test:", repr(solve(["# comment", "1 1 n0 APPEND data1"])))
+[?2004l[?2004h> 
+[?2004l[?2004h> # Test multiple indices with no issues
+[?2004l[?2004h> print("Multiple indices OK:", repr(solve(["1 1 n0 APPEND data1", "1 1 n0 COMMIT", "1 2 n0 APPEND data2", "1 2 n0 COMMIT"])))
+[?2004l[?2004h> 
+[?2004l[?2004h> # Test leader order violation
+[?2004l[?2004h> print("Leader order:", repr(solve(["1 2 n0 LEADER", "1 1 n0 LEADER"])))
+[?2004l[?2004h> 
+[?2004l[?2004h> # Test malformed node
+[?2004l[?2004h> print("Malformed node:", repr(solve(["1 1 node0 APPEND data1"])))
+[?2004l[?2004h> 
+[?2004l[?2004h> # Test negative term
+[?2004l[?2004h> print("Negative term:", repr(solve(["-1 1 n0 APPEND data1"])))
+[?2004l[?2004h> 
+[?2004l[?2004h> # Test zero index
+[?2004l[?2004h> print("Zero index:", repr(solve(["1 0 n0 APPEND data1"])))
+[?2004l[?2004h> 
+[?2004l[?2004h> # Test unknown op
+[?2004l[?2004h> print("Unknown op:", repr(solve(["1 1 n0 READ data1"])))
+[?2004l[?2004h> 
+[?2004l[?2004h> # Test APPEND with 4 fields
+[?2004l[?2004h> print("APPEND 4 fields:", repr(solve(["1 1 n0 APPEND"])))
+[?2004l[?2004h> 
+[?2004l[?2004h> # Test VOTE with 5 fields
+[?2004l[?2004h> print("VOTE 5 fields:", repr(solve(["1 1 n0 VOTE extra"])))
+[?2004l[?2004h> PYEOF
+[?2004lDuplicate test: 'INS 1 1 COMMIT'
+Comment test: 'INS 1 1 COMMIT'
+Multiple indices OK: 'OK'
+Leader order: 'BAD 2 BAD_LEADER_ORDER'
+Malformed node: 'OK'
+Negative term: 'OK'
+Zero index: 'OK'
+Unknown op: 'OK'
+APPEND 4 fields: 'OK'
+VOTE 5 fields: 'OK'
+[?2004hroot@b26515120965:/app# python3 << 'PYEOF'
+[?2004l[?2004h> from solution import solve
+[?2004l[?2004h> 
+[?2004l[?2004h> # Comprehensive verification
+[?2004l[?2004h> tests = [
+[?2004l[?2004h>     # Original tests
+[?2004l[?2004h>     ([], "OK"),
+[?2004l[?2004h>     (["1 1 n0 APPEND data1", "X bad", "2 2 n1 APPEND data2"], "INS 1 1 COMMIT"),
+[?2004l[?2004h>     (["2 1 n0 APPEND data1", "1 1 n1 APPEND data2"], "BAD 1 BAD_TERM_REGRESSION"),
+[?2004l[?2004h>     (["1 1 n0 APPEND data1"], "INS 1 1 COMMIT"),
+[?2004l[?2004h>     (["1 1 n0 COMMIT"], "BAD 1 BAD_COMMIT_ORDER"),
+[?2004l[?2004h>     (["1 1 n0 APPEND data1", "2 1 n0 COMMIT"], "BAD 1 BAD_COMMIT_ORDER"),
+[?2004l[?2004h>     (["1 1 n0 VOTE", "1 2 n0 VOTE"], "BAD 2 BAD_DUPLICATE_VOTE"),
+[?2004l[?2004h>     (["1 1 n0 APPEND data1", "1 1 n1 APPEND data2"], "BAD 1 BAD_CONFLICT"),
+[?2004l[?2004h>     (["1 1 n0 APPEND data1", "2 1 n1 APPEND data2"], "INS 2 1 COMMIT"),
+[?2004l[?2004h>     (["2 1 n0 APPEND data1", "2 1 n0 COMMIT", "1 2 n1 APPEND data2"], "BAD 2 BAD_LOG_MATCH"),
+[?2004l[?2004h>     # Edge cases
+[?2004l[?2004h>     (["1 1 n0 APPEND data1", "1 1 n0 APPEND data1"], "INS 1 1 COMMIT"),  # duplicate skipped
+[?2004l[?2004h>     (["# comment", "1 1 n0 APPEND data1"], "INS 1 1 COMMIT"),  # comment ignored
+[?2004l[?2004h>     (["1 1 n0 APPEND data1", "1 1 n0 COMMIT", "1 2 n0 APPEND data2", "1 2 n0 COMMIT"], "OK"),  # multiple OK
+[?2004l[?2004h>     (["1 2 n0 LEADER", "1 1 n0 LEADER"], "BAD 2 BAD_LEADER_ORDER"),  # leader order
+[?2004l[?2004h> ]
+[?2004l[?2004h> 
+[?2004l[?2004h> all_pass = True
+[?2004l[?2004h> for i, (inp, expected) in enumerate(tests, 1):
+[?2004l[?2004h>     result = solve(inp)
+[?2004l[?2004h>     if result != expected:
+[?2004l[?2004h>         print(f"Test {i}: FAIL - got {repr(result)}, expected {repr(expected)}")
+[?2004l[?2004h>         all_pass = False
+[?2004l[?2004h> 
+[?2004l[?2004h> if all_pass:
+[?2004l[?2004h>     print(f"All {len(tests)} tests passed!")
+[?2004l[?2004h> else:
+[?2004l[?2004h>     print("Some tests failed!")
+[?2004l[?2004h> PYEOF
+[?2004lAll 14 tests passed!
+[?2004hroot@b26515120965:/app# 

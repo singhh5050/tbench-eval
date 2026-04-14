@@ -1,0 +1,30 @@
+New Terminal Output:
+
+root@85192a4178f3:/workdir# python3 << 'EOF'
+> from PIL import Image
+> import os
+>
+> for i in range(1, 7):
+>     filepath = f'/workdir/data/cards/card_{i}.png'
+>     img = Image.open(filepath)
+>
+>     # Convert RGBA to RGB
+>     rgb_img = img.convert('RGB')
+>     rgb_img.save(f'/tmp/card_{i}_rgb.jpg')
+>
+>     w, h = img.size
+>     top_left = img.crop((10, 10, 80, 80))
+>     top_left.convert('RGB').save(f'/tmp/top_left_{i}.jpg')
+>
+>     center = img.crop((w//2-50, h//2-50, w//2+50, h//2+50))
+>     center.convert('RGB').save(f'/tmp/center_{i}.jpg')
+>
+>     print(f'card_{i}.png processed')
+> EOF
+card_1.png processed
+card_2.png processed
+card_3.png processed
+card_4.png processed
+card_5.png processed
+card_6.png processed
+root@85192a4178f3:/workdir#

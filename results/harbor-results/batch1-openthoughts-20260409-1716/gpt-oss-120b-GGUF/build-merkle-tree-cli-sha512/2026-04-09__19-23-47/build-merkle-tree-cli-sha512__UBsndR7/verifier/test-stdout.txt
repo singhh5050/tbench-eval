@@ -1,0 +1,170 @@
+Hit:1 http://deb.debian.org/debian bookworm InRelease
+Hit:2 http://deb.debian.org/debian bookworm-updates InRelease
+Hit:3 http://deb.debian.org/debian-security bookworm-security InRelease
+Reading package lists...
+Reading package lists...
+Building dependency tree...
+Reading state information...
+curl is already the newest version (7.88.1-10+deb12u14).
+0 upgraded, 0 newly installed, 0 to remove and 0 not upgraded.
+downloading uv 0.9.5 x86_64-unknown-linux-gnu
+no checksums to verify
+installing to /root/.local/bin
+  uv
+  uvx
+everything's installed!
+
+To add $HOME/.local/bin to your PATH, either restart your shell or run:
+
+    source $HOME/.local/bin/env (sh, bash, zsh)
+    source $HOME/.local/bin/env.fish (fish)
+Downloading pygments (1.2MiB)
+ Downloading pygments
+Installed 6 packages in 10ms
+============================= test session starts ==============================
+platform linux -- Python 3.13.13, pytest-8.4.1, pluggy-1.6.0
+rootdir: /tests
+plugins: json-ctrf-0.3.5
+collected 9 items
+
+../tests/test_outputs.py .....F...                                       [100%]
+
+=================================== FAILURES ===================================
+___________________________ test_proof_verification ____________________________
+
+    def test_proof_verification():
+        """Test that verify command works with valid proof."""
+        data_path = Path("/app/merkle_data.json")
+        with open(data_path, 'r') as f:
+            data = json.load(f)
+    
+        test_file = "file1.txt"
+        if test_file not in data['file_hashes']:
+            test_file = list(data['file_hashes'].keys())[0]
+    
+        proof_result = subprocess.run(
+            ["python", "/app/merkle_cli.py", "proof", test_file],
+            capture_output=True,
+            text=True
+        )
+    
+        assert proof_result.returncode == 0, f"Proof generation failed: {proof_result.stderr}"
+    
+        proof_data = json.loads(proof_result.stdout)
+        proof_file_path = Path("/tmp/test_proof.json")
+        with open(proof_file_path, 'w') as f:
+            json.dump(proof_data, f)
+    
+        verify_result = subprocess.run(
+            ["python", "/app/merkle_cli.py", "verify", test_file, str(proof_file_path)],
+            capture_output=True,
+            text=True
+        )
+    
+        assert verify_result.returncode == 0, f"Verification failed: {verify_result.stderr}"
+    
+        stdout = verify_result.stdout.strip()
+        stdout_lower = stdout.lower()
+    
+        try:
+>           verify_data = json.loads(stdout)
+                          ^^^^^^^^^^^^^^^^^^
+
+/tests/test_outputs.py:145: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/usr/local/lib/python3.13/json/__init__.py:352: in loads
+    return _default_decoder.decode(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.13/json/decoder.py:345: in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <json.decoder.JSONDecoder object at 0x716017fc86e0>
+s = 'Verification succeeded.', idx = 0
+
+    def raw_decode(self, s, idx=0):
+        """Decode a JSON document from ``s`` (a ``str`` beginning with
+        a JSON document) and return a 2-tuple of the Python
+        representation and the index in ``s`` where the document ended.
+    
+        This can be used to decode a JSON document from a string that may
+        have extraneous data at the end.
+    
+        """
+        try:
+            obj, end = self.scan_once(s, idx)
+        except StopIteration as err:
+>           raise JSONDecodeError("Expecting value", s, err.value) from None
+E           json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+
+/usr/local/lib/python3.13/json/decoder.py:363: JSONDecodeError
+
+During handling of the above exception, another exception occurred:
+
+    def test_proof_verification():
+        """Test that verify command works with valid proof."""
+        data_path = Path("/app/merkle_data.json")
+        with open(data_path, 'r') as f:
+            data = json.load(f)
+    
+        test_file = "file1.txt"
+        if test_file not in data['file_hashes']:
+            test_file = list(data['file_hashes'].keys())[0]
+    
+        proof_result = subprocess.run(
+            ["python", "/app/merkle_cli.py", "proof", test_file],
+            capture_output=True,
+            text=True
+        )
+    
+        assert proof_result.returncode == 0, f"Proof generation failed: {proof_result.stderr}"
+    
+        proof_data = json.loads(proof_result.stdout)
+        proof_file_path = Path("/tmp/test_proof.json")
+        with open(proof_file_path, 'w') as f:
+            json.dump(proof_data, f)
+    
+        verify_result = subprocess.run(
+            ["python", "/app/merkle_cli.py", "verify", test_file, str(proof_file_path)],
+            capture_output=True,
+            text=True
+        )
+    
+        assert verify_result.returncode == 0, f"Verification failed: {verify_result.stderr}"
+    
+        stdout = verify_result.stdout.strip()
+        stdout_lower = stdout.lower()
+    
+        try:
+            verify_data = json.loads(stdout)
+            assert isinstance(verify_data, dict), "Verification output JSON must be an object"
+            assert verify_data.get('root_matches') is True, "Verification failed: root_matches must be True"
+            assert verify_data.get('file_hash_matches_storage') is True, "Verification failed: file_hash_matches_storage must be True"
+            assert verify_data.get('added_files') == [], "Verification failed: no files should be added"
+            assert verify_data.get('deleted_files') == [], "Verification failed: no files should be deleted"
+            assert verify_data.get('modified_files') == [], "Verification failed: no files should be modified"
+        except json.JSONDecodeError:
+>           assert ("successful" in stdout_lower or
+                    "confirmed" in stdout_lower or
+                    "verification ok" in stdout_lower or
+                    ("ok" in stdout_lower and "failed" not in stdout_lower)), (
+                f"Verification output does not indicate success: {verify_result.stdout}"
+            )
+E           AssertionError: Verification output does not indicate success: Verification succeeded.
+E             
+E           assert ('successful' in 'verification succeeded.' or 'confirmed' in 'verification succeeded.' or 'verification ok' in 'verification succeeded.' or ('ok' in 'verification succeeded.'))
+
+/tests/test_outputs.py:153: AssertionError
+==================================== PASSES ====================================
+=========================== short test summary info ============================
+PASSED ../tests/test_outputs.py::test_merkle_cli_exists
+PASSED ../tests/test_outputs.py::test_scan_command
+PASSED ../tests/test_outputs.py::test_root_hash_format
+PASSED ../tests/test_outputs.py::test_file_hashes_match
+PASSED ../tests/test_outputs.py::test_proof_generation
+PASSED ../tests/test_outputs.py::test_verification_detects_tampering
+PASSED ../tests/test_outputs.py::test_all_files_have_proofs
+PASSED ../tests/test_outputs.py::test_hash_lengths_are_128
+FAILED ../tests/test_outputs.py::test_proof_verification - AssertionError: Ve...
+========================= 1 failed, 8 passed in 0.25s ==========================

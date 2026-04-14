@@ -1,0 +1,40 @@
+New Terminal Output:
+
+root@85192a4178f3:/workdir# python3 << 'EOF'
+> import cv2
+> import numpy as np
+>
+> # Let's look at the actual images more carefully
+> # I'll check different regions to find which one has a '4'
+>
+> for i in range(1, 7):
+>     filepath = f'/workdir/data/cards/card_{i}.png'
+>     img = cv2.imread(filepath)
+>
+>     # Get multiple regions of interest
+>     h, w = img.shape[:2]
+>
+>     # Top left corner
+>     tl = img[10:60, 10:60]
+>     tl_gray = cv2.cvtColor(tl, cv2.COLOR_BGR2GRAY)
+>     tl_sum = np.sum(tl_gray < 100)
+>
+>     # Center of card
+>     center = img[h//2-40:h//2+40, w//2-40:w//2+40]
+>     center_gray = cv2.cvtColor(center, cv2.COLOR_BGR2GRAY)
+>     center_sum = np.sum(center_gray < 100)
+>
+>     # Bottom left
+>     bl = img[h-80:h-30, 10:60]
+>     bl_gray = cv2.cvtColor(bl, cv2.COLOR_BGR2GRAY)
+>     bl_sum = np.sum(bl_gray < 100)
+>
+>     print(f'card_{i}.png - TL black: {tl_sum}, Center black: {center_sum}, BL black: {bl_sum}')
+> EOF
+card_1.png - TL black: 530, Center black: 0, BL black: 0
+card_2.png - TL black: 610, Center black: 6183, BL black: 0
+card_3.png - TL black: 909, Center black: 4112, BL black: 0
+card_4.png - TL black: 499, Center black: 491, BL black: 0
+card_5.png - TL black: 528, Center black: 6039, BL black: 0
+card_6.png - TL black: 426, Center black: 0, BL black: 0
+root@85192a4178f3:/workdir#

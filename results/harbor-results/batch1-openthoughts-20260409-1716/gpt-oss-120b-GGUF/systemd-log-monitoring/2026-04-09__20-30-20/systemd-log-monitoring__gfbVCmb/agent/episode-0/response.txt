@@ -1,0 +1,67 @@
+{
+  "analysis": "We are at the /opt/myapp directory as root. The task requires creating a Python app that logs JSON to stdout, a systemd service, rsyslog rules to route those logs to separate files, a logrotate config, and a monitoring script. We still need to create all required files, set up a dedicated myapp user, adjust ownership/permissions, and enable/start the service and rsyslog so the pipeline works.",
+  "plan": "1. Create a system user 'myapp' (no login). 2. Ensure /opt/myapp is owned by that user. 3. Write the Python application to /opt/myapp/app.py and make it executable. 4. Write the systemd unit file at /etc/systemd/system/myapp.service, include SyslogIdentifier=myapp, and reload systemd. 5. Enable and start the service. 6. Write rsyslog configuration at /etc/rsyslog.d/50-myapp.conf to filter on programname 'myapp' and route JSON logs to /var/log/app_events.log and /var/log/app_errors.log. Restart rsyslog. 7. Write logrotate configuration at /etc/logrotate.d/myapp for both log files with daily rotation, 7 retained, compression, and proper ownership. 8. Touch the two log files, set ownership to myapp and permissions to 644. 9. Write the monitoring script /usr/local/bin/check_service_health.sh that queries journalctl for the last 5 minutes, counts restarts and error messages, detects loops, and outputs JSON with a current timestamp. Make the script executable. 10. Verify everything is in place; the service will generate logs, rsyslog will write them to the files, and the script can be run to produce dynamic JSON output.",
+  "commands": [
+    {
+      "keystrokes": "id myapp >/dev/null 2>&1 || useradd -r -s /usr/sbin/nologin myapp\n",
+      "duration": 0.1
+    },
+    {
+      "keystrokes": "chown -R myapp:myapp /opt/myapp\n",
+      "duration": 0.1
+    },
+    {
+      "keystrokes": "cat > /opt/myapp/app.py <<'EOF'\n#!/usr/bin/env python3\nimport sys, time, json, argparse, logging\nfrom datetime import datetime, timezone\n\nparser = argparse.ArgumentParser(description='MyApp JSON logger')\nparser.add_argument('--log-level', default='INFO', choices=['INFO','WARN','ERROR'], help='Log level')\nargs = parser.parse_args()\n\nlevel_map = {'INFO': logging.INFO, 'WARN': logging.WARNING, 'ERROR': logging.ERROR}\nlog_level = level_map[args.log_level]\n\nlogger = logging.getLogger('myapp')\nlogger.setLevel(log_level)\nhandler = logging.StreamHandler(sys.stdout)\nhandler.setFormatter(logging.Formatter('%(message)s'))\nlogger.addHandler(handler)\n\ndef log_event(level, message):\n    entry = {\n        \"timestamp\": datetime.now(timezone.utc).isoformat(timespec='seconds'),\n        \"level\": level,\n        \"message\": message,\n        \"service\": \"myapp\"\n    }\n    logger.info(json.dumps(entry))\n\n# Startup event\nlog_event('INFO', 'Service started')\n\nwhile True:\n    # Periodic heartbeat (INFO)\n    log_event(args.log_level, 'Heartbeat')\n    time.sleep(5)\nEOF\n",
+      "duration": 0.5
+    },
+    {
+      "keystrokes": "chmod +x /opt/myapp/app.py\n",
+      "duration": 0.1
+    },
+    {
+      "keystrokes": "cat > /etc/systemd/system/myapp.service <<'EOF'\n[Unit]\nDescription=MyApp Service\nAfter=network.target\n\n[Service]\nUser=myapp\nGroup=myapp\nWorkingDirectory=/opt/myapp\nExecStart=/opt/myapp/app.py --log-level=INFO\nRestart=on-failure\nSyslogIdentifier=myapp\nStandardOutput=journal\nStandardError=inherit\nEnvironment=PYTHONUNBUFFERED=1\n\n[Install]\nWantedBy=multi-user.target\nEOF\n",
+      "duration": 0.5
+    },
+    {
+      "keystrokes": "systemctl daemon-reload\n",
+      "duration": 0.5
+    },
+    {
+      "keystrokes": "systemctl enable --now myapp.service\n",
+      "duration": 1.0
+    },
+    {
+      "keystrokes": "cat > /etc/rsyslog.d/50-myapp.conf <<'EOF'\n# Route myapp JSON logs\nif $programname == 'myapp' and $msg contains '\"level\":\"ERROR\"' then /var/log/app_errors.log\nif $programname == 'myapp' then /var/log/app_events.log\n& stop\nEOF\n",
+      "duration": 0.5
+    },
+    {
+      "keystrokes": "systemctl restart rsyslog\n",
+      "duration": 1.0
+    },
+    {
+      "keystrokes": "cat > /etc/logrotate.d/myapp <<'EOF'\n/var/log/app_events.log /var/log/app_errors.log {\n    daily\n    rotate 7\n    compress\n    missingok\n    notifempty\n    create 0644 myapp myapp\n    sharedscripts\n    postrotate\n        systemctl restart rsyslog >/dev/null 2>&1 || true\n    endscript\n}\nEOF\n",
+      "duration": 0.5
+    },
+    {
+      "keystrokes": "touch /var/log/app_events.log /var/log/app_errors.log\n",
+      "duration": 0.1
+    },
+    {
+      "keystrokes": "chown myapp:myapp /var/log/app_events.log /var/log/app_errors.log\n",
+      "duration": 0.1
+    },
+    {
+      "keystrokes": "chmod 644 /var/log/app_events.log /var/log/app_errors.log\n",
+      "duration": 0.1
+    },
+    {
+      "keystrokes": "cat > /usr/local/bin/check_service_health.sh <<'EOF'\n#!/usr/bin/env bash\nSERVICE=\"myapp\"\nWINDOW=\"5 minutes\"\nNOW=$(date -u +\"%Y-%m-%dT%H:%M:%SZ\")\n# Count restarts (systemd reports \"Started\" in MESSAGE)\nRESTARTS=$(journalctl -u \"$SERVICE\" --since \"5 minutes ago\" -o cat | grep -c \"Started\")\n# Count error events (JSON level field)\nERRORS=$(journalctl -u \"$SERVICE\" --since \"5 minutes ago\" -o cat | grep -c \"\\\"level\\\":\\\"ERROR\\\"\")\nRESTART_LOOP_DETECTED=false\nif [ \"$RESTARTS\" -gt 3 ]; then\n    RESTART_LOOP_DETECTED=true\nfi\ncat <<JSON\n{\n  \"service\": \"$SERVICE\",\n  \"time_window\": \"5 minutes\",\n  \"restarts\": $RESTARTS,\n  \"errors\": $ERRORS,\n  \"restart_loop_detected\": $RESTART_LOOP_DETECTED,\n  \"timestamp\": \"$NOW\"\n}\nJSON\nEOF\n",
+      "duration": 0.7
+    },
+    {
+      "keystrokes": "chmod +x /usr/local/bin/check_service_health.sh\n",
+      "duration": 0.1
+    }
+  ],
+  "task_complete": false
+}

@@ -1,0 +1,25 @@
+New Terminal Output:
+
+root@85192a4178f3:/workdir# python3 << 'EOF'
+> import cv2
+> import numpy as np
+>
+> for i in range(1, 7):
+>     filepath = f'/workdir/data/cards/card_{i}.png'
+>     img = cv2.imread(filepath)
+>
+>     rank_area = img[15:65, 15:65]
+>     gray = cv2.cvtColor(rank_area, cv2.COLOR_BGR2GRAY)
+>     _, binary = cv2.threshold(gray, 128, 255, cv2.THRESH_BINARY_INV)
+>
+>     num_labels, labels, stats, centroids = cv2.connectedComponentsWithStats(binary)
+>
+>     print(f'card_{i}.png - Rank area: {num_labels-1} components')
+> EOF
+card_1.png - Rank area: 1 components
+card_2.png - Rank area: 1 components
+card_3.png - Rank area: 1 components
+card_4.png - Rank area: 1 components
+card_5.png - Rank area: 1 components
+card_6.png - Rank area: 1 components
+root@85192a4178f3:/workdir#

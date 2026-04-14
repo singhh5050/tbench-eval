@@ -1,0 +1,147 @@
+[?2004hroot@083b1cf53ca0:/app# asciinema rec --stdin /logs/agent/recording.cast
+[?2004l[0;32masciinema: recording asciicast to /logs/agent/recording.cast[0m
+[0;32masciinema: press <ctrl-d> or type "exit" when you're done[0m
+[?2004hroot@083b1cf53ca0:/app# clear
+[?2004l[H[J[3J[?2004hroot@083b1cf53ca0:/app# ls -1 /app
+[?2004lrecords_1.jsonl
+records_2.jsonl
+records_3.jsonl
+records_4.jsonl
+records_5.jsonl
+[?2004hroot@083b1cf53ca0:/app# head -n 5 /app/records_1.jsonl
+[?2004l{"user": "user143", "amount": 25.57, "items": 9, "tags": []}
+{"user": "user402_dev", "amount": 1.91, "items": 1, "tags": []}
+{"user": "user302", "amount": 47.67, "items": 10, "tags": ["free", "category1", "normal", "orange", "enhancement"]}
+{"user": "user139", "amount": 319.85, "items": 5, "tags": ["brown", "category2", "dev", "security", "database", "backend"]}
+{"user": "user159_42", "amount": 8.97, "items": 10, "tags": ["stable"]}
+[?2004hroot@083b1cf53ca0:/app# cat > /app/aggregate.py <<'PY'
+[?2004l[?2004h> import json, glob, collections
+[?2004l[?2004h> 
+[?2004l[?2004h> user_totals = {}
+[?2004l[?2004h> tag_counts = collections.Counter()
+[?2004l[?2004h> 
+[?2004l[?2004h> for fname in glob.glob('/app/records_*.jsonl'):
+[?2004l[?2004h>     with open(fname, 'r') as f:
+[?2004l[?2004h>         for line in f:
+[?2004l[?2004h>             line = line.strip()
+[?2004l[?2004h>             if not line:
+[?2004l[?2004h>                 continue
+[?2004l[?2004h>             rec = json.loads(line)
+[?2004l[?2004h>             user = rec.get('user')
+[?2004l[?2004h>             amount = float(rec.get('amount', 0))
+[?2004l[?2004h>             items = int(rec.get('items', 0))
+[?2004l[?2004h>             # accumulate per‑user totals
+[?2004l[?2004h>             if user not in user_totals:
+[?2004l[?2004h>                 user_totals[user] = {'total_amount': 0.0, 'total_items': 0}
+[?2004l[?2004h>             user_totals[user]['total_amount'] += amount
+[?2004l[?2004h>             user_totals[user]['total_items'] += items
+[?2004l[?2004h>             # accumulate tag counts
+[?2004l[?2004h>             for tag in rec.get('tags', []):
+[?2004l[?2004h>                 tag_counts[tag] += 1
+[?2004l[?2004h> 
+[?2004l[?2004h> # top 5 users by total amount (descending)
+[?2004l[?2004h> top_users = sorted(user_totals.items(), key=lambda kv: kv[1]['total_amount'], reverse=True)[:5]
+[?2004l[?2004h> top_users_dict = {
+[?2004l[?2004h>     user: {
+[?2004l[?2004h>         'total_amount': round(data['total_amount'] + 1e-8, 2),
+[?2004l[?2004h>         'total_items': data['total_items']
+[?2004l[?2004h>     } for user, data in top_users
+[?2004l[?2004h> }
+[?2004l[?2004h> 
+[?2004l[?2004h> # top 5 tags by count (descending)
+[?2004l[?2004h> top_tags = tag_counts.most_common(5)
+[?2004l[?2004h> top_tags_dict = {tag: {'count': cnt} for tag, cnt in top_tags}
+[?2004l[?2004h> 
+[?2004l[?2004h> output = {
+[?2004l[?2004h>     'top_5_users_by_amount': top_users_dict,
+[?2004l[?2004h>     'top_5_tags_by_count': top_tags_dict
+[?2004l[?2004h> }
+[?2004l[?2004h> 
+[?2004l[?2004h> with open('/app/aggregates.json', 'w') as out_f:
+[?2004l[?2004h>     json.dump(output, out_f, indent=2)
+[?2004l[?2004h> PY
+[?2004l[?2004hroot@083b1cf53ca0:/app# python3 /app/aggregate.py
+[?2004lcat /app/aggregates.json
+[?2004hroot@083b1cf53ca0:/app# cat /app/aggregates.json
+[?2004l{
+  "top_5_users_by_amount": {
+    "user211": {
+      "total_amount": 2131992.47,
+      "total_items": 149035
+    },
+    "user220_dev": {
+      "total_amount": 2084232.55,
+      "total_items": 151865
+    },
+    "chloe_test": {
+      "total_amount": 2054175.28,
+      "total_items": 147752
+    },
+    "user260_123": {
+      "total_amount": 2035431.62,
+      "total_items": 149640
+    },
+    "user271": {
+      "total_amount": 2034668.79,
+      "total_items": 131998
+    }
+  },
+  "top_5_tags_by_count": {
+    "lime": {
+      "count": 28874
+    },
+    "type_a": {
+      "count": 28793
+    },
+    "reporting": {
+      "count": 28781
+    },
+    "frontend": {
+      "count": 28694
+    },
+    "approved": {
+      "count": 28665
+    }
+  }
+}[?2004hroot@083b1cf53ca0:/app# cat /app/aggregates.json
+[?2004l{
+  "top_5_users_by_amount": {
+    "user211": {
+      "total_amount": 2131992.47,
+      "total_items": 149035
+    },
+    "user220_dev": {
+      "total_amount": 2084232.55,
+      "total_items": 151865
+    },
+    "chloe_test": {
+      "total_amount": 2054175.28,
+      "total_items": 147752
+    },
+    "user260_123": {
+      "total_amount": 2035431.62,
+      "total_items": 149640
+    },
+    "user271": {
+      "total_amount": 2034668.79,
+      "total_items": 131998
+    }
+  },
+  "top_5_tags_by_count": {
+    "lime": {
+      "count": 28874
+    },
+    "type_a": {
+      "count": 28793
+    },
+    "reporting": {
+      "count": 28781
+    },
+    "frontend": {
+      "count": 28694
+    },
+    "approved": {
+      "count": 28665
+    }
+  }
+}[?2004hroot@083b1cf53ca0:/app# 

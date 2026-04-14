@@ -1,0 +1,72 @@
+New Terminal Output:
+
+root@8884a9b806ea:/app# cat > /app/setup_ca.sh << 'EOF'
+> #!/bin/bash
+> set -e
+>
+> # Create directory structure
+> mkdir -p /app/ca /app/signing /app/signed
+>
+> # Create Root CA private key
+> openssl genpkey -algorithm EC -pkeyopt ec_paramgen_curve:prime256v1 -out /app/ca/root-ca-key.pem
+>
+> # Create Root CA self-signed certificate with proper extensions
+> cat > /app/ca/root-ca.cnf << 'CONFIG'
+> [ req ]
+> distinguished_name = req_distinguished_name
+> req_extensions = v3_ca
+> [ req_distinguished_name ]
+> commonName = Software Signing Root CA
+> [v3_ca]
+> basicConstraints = critical,CA:true
+> keyUsage = certificateSign,crlSign
+> subjectKeyIdentifier = hash
+> authorityKeyIdentifier = keyid:always,issuer
+> CONFIG
+>
+> openssl req -x509 -new -nodes -key /app/ca/root-ca-key.pem -sha256 -days 3650 -out /app/ca/root-ca.pem -config /app/ca/root-ca.cnf -extensions v3_ca -subj "/C
+N=Software Signing Root CA/O=SecureBuild/C=US"
+>
+> # Create Intermediate CA private key
+> openssl genpkey -algorithm EC -pkeyopt ec_paramgen_curve:prime256v1 -out /app/ca/intermediate-ca-key.pem
+>
+> # Create Intermediate CA CSR with extensions
+> cat > /app/ca/intermediate-ca.cnf << 'CONFIG'
+> [ req ]
+> distinguished_name = req_distinguished_name
+> req_extensions = v3_ca
+> [ req_distinguished_name ]
+> commonName = Build Pipeline Intermediate CA
+> [v3_ca]
+> basicConstraints = critical,CA:true,pathlen:0
+> keyUsage = certificateSign, digitalSignature
+> subjectKeyIdentifier = hash
+> authorityKeyIdentifier = keyid,issuer
+> CONFIG
+>
+> openssl req -new -key /app/ca/intermediate-ca-key.pem -out /app/ca/intermediate-ca.csr -config /app/ca/intermediate-ca.cnf -extensions v3_ca -subj "/CN=Build
+Pipeline Intermediate CA/O=SecureBuild/C=US"
+>
+> # Sign Intermediate CA with Root CA
+> openssl x509 -req -in /app/ca/intermediate-ca.csr -CA /app/ca/root-ca.pem -CAkey /app/ca/root-ca-key.pem -CAcreateserial -out /app/ca/intermediate-ca.pem -day
+s 1825 -sha256 -extfile /app/ca/intermediate-ca.cnf -extensions v3_ca -reqexts v3_ca
+>
+> # Clean up temporary files
+> rm -f /app/ca/intermediate-ca.csr /app/ca/root-ca.cnf /app/ca/intermediate-ca.cnf
+>
+> # Create serial file
+> echo 01 > /app/ca/serial
+>
+> # Verify certificates exist
+> if [ ! -f /app/ca/root-ca.pem ] || [ ! -f /app/ca/intermediate-ca.pem ]; then
+>     echo "Error: CA certificates not created properly" >&2
+>     exit 1
+> fi
+> EOF
+root@8884a9b806ea:/app# chmod +x /app/setup_ca.sh
+root@8884a9b806ea:/app# /app/setup_ca.sh
+Error checking x509 extension section v3_ca
+4017856D22760000:error:1100006F:X509 V3 routines:v2i_ASN1_BIT_STRING:unknown bit string argument:../crypto/x509/v3_bitst.c:82:certificateSign
+4017856D22760000:error:11000080:X509 V3 routines:X509V3_EXT_nconf_int:error in extension:../crypto/x509/v3_conf.c:48:section=v3_ca, name=keyUsage, value=certifi
+cateSign,crlSign
+root@8884a9b806ea:/app#

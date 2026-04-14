@@ -1,0 +1,41 @@
+Current Terminal Screen:
+    return script
+endfunction
+
+function! s:LayoutQuineImpl(path)
+    let layout = s:CaptureLayout()
+    let script = s:GenerateLayoutScript(layout, 0)
+
+    call writefile(script, a:path)
+
+    echo 'Layout saved to: ' . a:path
+endfunction
+
+command! -nargs=1 LayoutQuine call s:LayoutQuineImpl(<f-args>)
+root@8d526f641b03:/app# vim -u /app/plugin/layout_quine.vim -c 'vsplit' -c 'split' -c 'tabnew' -c 'vsplit' -c 'LayoutQuine /tmp/test_layout.vim' -c 'q'
+root@8d526f641b03:/app# cat /tmp/test_layout.vim
+" Recreate tabs and windows
+" Active tab was: 2
+
+
+" Window 2 - buffer:
+split
+
+" Window 3 - buffer:
+split
+
+" Tab 2
+tabnew
+
+
+" Window 2 - buffer:
+split
+
+" Restore active tab
+if 2 > 1
+    tabnext 2
+endif
+root@8d526f641b03:/app# echo 'test1' > /tmp/file1.txt && echo 'test2' > /tmp/file2.txt && echo 'test3' > /tmp/file3.txt
+root@8d526f641b03:/app# vim -u /app/plugin/layout_quine.vim /tmp/file1.txt -c 'vsplit /tmp/file2.txt' -c 'split /tmp/file3.txt' -c 'tabnew' -c 'edit /tmp/file1.
+txt' -c 'vsplit /tmp/file2.txt' -c 'LayoutQuine /tmp/test_layout.vim' -c 'q'
+root@8d526f641b03:/app#

@@ -1,0 +1,21 @@
+New Terminal Output:
+
+root@e931943a84b2:/workspace# cat > plus_comm.v <<'EOF'
+> Require Import Arith.
+>
+> Theorem plus_comm : forall n m : nat,
+>   n + m = m + n.
+> Proof.
+>   intros n m.
+>   induction n as [|n' IHn'].
+>   - simpl. apply Nat.add_0_r. reflexivity.
+>   - simpl. apply Nat.succ_inj. rewrite IHn'. reflexivity.
+> Qed.
+> EOF
+root@e931943a84b2:/workspace# coqc plus_comm.v
+File "./plus_comm.v", line 8, characters 17-28:
+Error: In environment
+m : nat
+Unable to unify "?M1094 + 0 = ?M1094" with "m = m + 0".
+
+root@e931943a84b2:/workspace#

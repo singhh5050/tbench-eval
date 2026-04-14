@@ -1,0 +1,104 @@
+{
+    "results": {
+        "tool": {
+            "name": "pytest",
+            "version": "8.4.1"
+        },
+        "summary": {
+            "tests": 9,
+            "passed": 8,
+            "failed": 1,
+            "skipped": 0,
+            "pending": 0,
+            "other": 0,
+            "start": 1775784389.6887572,
+            "stop": 1775784389.942309
+        },
+        "tests": [
+            {
+                "name": "test_outputs.py::test_merkle_cli_exists",
+                "status": "passed",
+                "duration": 0.00033089506905525923,
+                "start": 1775784389.7542305,
+                "stop": 1775784389.7547412,
+                "retries": 0,
+                "file_path": "test_outputs.py"
+            },
+            {
+                "name": "test_outputs.py::test_scan_command",
+                "status": "passed",
+                "duration": 0.029654735000804067,
+                "start": 1775784389.7548606,
+                "stop": 1775784389.7847152,
+                "retries": 0,
+                "file_path": "test_outputs.py"
+            },
+            {
+                "name": "test_outputs.py::test_root_hash_format",
+                "status": "passed",
+                "duration": 0.0002975030802190304,
+                "start": 1775784389.7848995,
+                "stop": 1775784389.7852874,
+                "retries": 0,
+                "file_path": "test_outputs.py"
+            },
+            {
+                "name": "test_outputs.py::test_file_hashes_match",
+                "status": "passed",
+                "duration": 0.00042881211265921593,
+                "start": 1775784389.7853851,
+                "stop": 1775784389.7859015,
+                "retries": 0,
+                "file_path": "test_outputs.py"
+            },
+            {
+                "name": "test_outputs.py::test_proof_generation",
+                "status": "passed",
+                "duration": 0.02584881486836821,
+                "start": 1775784389.7860034,
+                "stop": 1775784389.812007,
+                "retries": 0,
+                "file_path": "test_outputs.py"
+            },
+            {
+                "name": "test_outputs.py::test_proof_verification",
+                "status": "failed",
+                "raw_status": "call_failed",
+                "duration": 0.054802434984594584,
+                "start": 1775784389.8121777,
+                "stop": 1775784389.8843088,
+                "retries": 0,
+                "file_path": "test_outputs.py",
+                "trace": "def test_proof_verification():\n        \"\"\"Test that verify command works with valid proof.\"\"\"\n        data_path = Path(\"/app/merkle_data.json\")\n        with open(data_path, 'r') as f:\n            data = json.load(f)\n    \n        test_file = \"file1.txt\"\n        if test_file not in data['file_hashes']:\n            test_file = list(data['file_hashes'].keys())[0]\n    \n        proof_result = subprocess.run(\n            [\"python\", \"/app/merkle_cli.py\", \"proof\", test_file],\n            capture_output=True,\n            text=True\n        )\n    \n        assert proof_result.returncode == 0, f\"Proof generation failed: {proof_result.stderr}\"\n    \n        proof_data = json.loads(proof_result.stdout)\n        proof_file_path = Path(\"/tmp/test_proof.json\")\n        with open(proof_file_path, 'w') as f:\n            json.dump(proof_data, f)\n    \n        verify_result = subprocess.run(\n            [\"python\", \"/app/merkle_cli.py\", \"verify\", test_file, str(proof_file_path)],\n            capture_output=True,\n            text=True\n        )\n    \n        assert verify_result.returncode == 0, f\"Verification failed: {verify_result.stderr}\"\n    \n        stdout = verify_result.stdout.strip()\n        stdout_lower = stdout.lower()\n    \n        try:\n>           verify_data = json.loads(stdout)\n                          ^^^^^^^^^^^^^^^^^^\n\n/tests/test_outputs.py:145: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n/usr/local/lib/python3.13/json/__init__.py:352: in loads\n    return _default_decoder.decode(s)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^\n/usr/local/lib/python3.13/json/decoder.py:345: in decode\n    obj, end = self.raw_decode(s, idx=_w(s, 0).end())\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nself = <json.decoder.JSONDecoder object at 0x716017fc86e0>\ns = 'Verification succeeded.', idx = 0\n\n    def raw_decode(self, s, idx=0):\n        \"\"\"Decode a JSON document from ``s`` (a ``str`` beginning with\n        a JSON document) and return a 2-tuple of the Python\n        representation and the index in ``s`` where the document ended.\n    \n        This can be used to decode a JSON document from a string that may\n        have extraneous data at the end.\n    \n        \"\"\"\n        try:\n            obj, end = self.scan_once(s, idx)\n        except StopIteration as err:\n>           raise JSONDecodeError(\"Expecting value\", s, err.value) from None\nE           json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)\n\n/usr/local/lib/python3.13/json/decoder.py:363: JSONDecodeError\n\nDuring handling of the above exception, another exception occurred:\n\n    def test_proof_verification():\n        \"\"\"Test that verify command works with valid proof.\"\"\"\n        data_path = Path(\"/app/merkle_data.json\")\n        with open(data_path, 'r') as f:\n            data = json.load(f)\n    \n        test_file = \"file1.txt\"\n        if test_file not in data['file_hashes']:\n            test_file = list(data['file_hashes'].keys())[0]\n    \n        proof_result = subprocess.run(\n            [\"python\", \"/app/merkle_cli.py\", \"proof\", test_file],\n            capture_output=True,\n            text=True\n        )\n    \n        assert proof_result.returncode == 0, f\"Proof generation failed: {proof_result.stderr}\"\n    \n        proof_data = json.loads(proof_result.stdout)\n        proof_file_path = Path(\"/tmp/test_proof.json\")\n        with open(proof_file_path, 'w') as f:\n            json.dump(proof_data, f)\n    \n        verify_result = subprocess.run(\n            [\"python\", \"/app/merkle_cli.py\", \"verify\", test_file, str(proof_file_path)],\n            capture_output=True,\n            text=True\n        )\n    \n        assert verify_result.returncode == 0, f\"Verification failed: {verify_result.stderr}\"\n    \n        stdout = verify_result.stdout.strip()\n        stdout_lower = stdout.lower()\n    \n        try:\n            verify_data = json.loads(stdout)\n            assert isinstance(verify_data, dict), \"Verification output JSON must be an object\"\n            assert verify_data.get('root_matches') is True, \"Verification failed: root_matches must be True\"\n            assert verify_data.get('file_hash_matches_storage') is True, \"Verification failed: file_hash_matches_storage must be True\"\n            assert verify_data.get('added_files') == [], \"Verification failed: no files should be added\"\n            assert verify_data.get('deleted_files') == [], \"Verification failed: no files should be deleted\"\n            assert verify_data.get('modified_files') == [], \"Verification failed: no files should be modified\"\n        except json.JSONDecodeError:\n>           assert (\"successful\" in stdout_lower or\n                    \"confirmed\" in stdout_lower or\n                    \"verification ok\" in stdout_lower or\n                    (\"ok\" in stdout_lower and \"failed\" not in stdout_lower)), (\n                f\"Verification output does not indicate success: {verify_result.stdout}\"\n            )\nE           AssertionError: Verification output does not indicate success: Verification succeeded.\nE             \nE           assert ('successful' in 'verification succeeded.' or 'confirmed' in 'verification succeeded.' or 'verification ok' in 'verification succeeded.' or ('ok' in 'verification succeeded.'))\n\n/tests/test_outputs.py:153: AssertionError",
+                "message": "The test failed in the call phase due to an assertion error"
+            },
+            {
+                "name": "test_outputs.py::test_verification_detects_tampering",
+                "status": "passed",
+                "duration": 0.05645832302980125,
+                "start": 1775784389.8844798,
+                "stop": 1775784389.941146,
+                "retries": 0,
+                "file_path": "test_outputs.py"
+            },
+            {
+                "name": "test_outputs.py::test_all_files_have_proofs",
+                "status": "passed",
+                "duration": 0.0003218750935047865,
+                "start": 1775784389.9413576,
+                "stop": 1775784389.9417644,
+                "retries": 0,
+                "file_path": "test_outputs.py"
+            },
+            {
+                "name": "test_outputs.py::test_hash_lengths_are_128",
+                "status": "passed",
+                "duration": 0.0002338660415261984,
+                "start": 1775784389.9418666,
+                "stop": 1775784389.9421673,
+                "retries": 0,
+                "file_path": "test_outputs.py"
+            }
+        ]
+    }
+}

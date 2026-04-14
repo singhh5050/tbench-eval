@@ -1,0 +1,93 @@
+New Terminal Output:
+
+root@2928fe68ba2e:/app# cat > /app/setup_ca.sh << 'EOF'
+> #!/bin/bash
+> # CA Hierarchy Setup Script
+> # Creates Root CA and Intermediate CA for the signing pipeline
+>
+> set -e
+>
+> # Create directory structure
+> mkdir -p /app/ca /app/signing /app/signed
+>
+> # Root CA configuration
+> ROOT_CA_CONFIG=$(cat << 'CNF'
+> [req]
+> distinguished_name = req_distinguished_name
+> x509_extensions = v3_ca
+> prompt = no
+>
+> [req_distinguished_name]
+> CN = Software Signing Root CA
+> O = SecureBuild
+> C = US
+>
+> [v3_ca]
+> subjectKeyIdentifier = hash
+> authorityKeyIdentifier = keyid:always,issuer
+> basicConstraints = critical, CA:TRUE
+> keyUsage = critical, keyCertSign, cRLSign
+> CNF
+> )
+>
+> # Intermediate CA configuration
+> INT_CA_CONFIG=$(cat << 'CNF'
+> [req]
+> distinguished_name = req_distinguished_name
+> prompt = no
+>
+> [req_distinguished_name]
+> CN = Build Pipeline Intermediate CA
+> O = SecureBuild
+> C = US
+>
+> [v3_intermediate_ca]
+> subjectKeyIdentifier = hash
+> authorityKeyIdentifier = keyid:always,issuer
+> basicConstraints = critical, CA:TRUE, pathlen:0
+> keyUsage = critical, keyCertSign, digitalSignature
+> CNF
+> )
+>
+> # Generate Root CA private key (4096-bit RSA)
+> echo "Generating Root CA private key..."
+> openssl genrsa -out /app/ca/root-ca-key.pem 4096
+>
+> # Generate Root CA self-signed certificate
+> openssl req -new -x509 -days 3650 -key /app/ca/root-ca-key.pem \
+>     -out /app/ca/root-ca.pem \
+>     -subj "/CN=Software Signing Root CA/O=SecureBuild/C=US" \
+>     -addext "basicConstraints=critical,CA:TRUE" \
+>     -addext "keyUsage=critical,keyCertSign,cRLSign"
+>
+> echo "Root CA certificate created: /app/ca/root-ca.pem"
+>
+> # Generate Intermediate CA private key
+> echo "Generating Intermediate CA private key..."
+> openssl genrsa -out /app/ca/intermediate-ca-key.pem 4096
+>
+> # Generate Intermediate CA CSR
+> openssl req -new -key /app/ca/intermediate-ca-key.pem \
+>     -out /app/ca/intermediate-ca.csr \
+>     -subj "/CN=Build Pipeline Intermediate CA/O=SecureBuild/C=US"
+>
+> # Sign Intermediate CA with Root CA
+> openssl x509 -req -days 1825 -in /app/ca/intermediate-ca.csr \
+>     -CA /app/ca/root-ca.pem \
+>     -CAkey /app/ca/root-ca-key.pem \
+>     -CAcreateserial \
+>     -out /app/ca/intermediate-ca.pem \
+>     -extfile <(echo -e "basicConstraints=critical,CA:TRUE,pathlen:0\nkeyUsage=critical,keyCertSign,digitalSignature\nsubjectKeyIdentifier=hash\nauthorityKeyId
+entifier=keyid:always,issuer")
+>
+> echo "Intermediate CA certificate created: /app/ca/intermediate-ca.pem"
+>
+> # Clean up CSR file
+> rm -f /app/ca/intermediate-ca.csr
+>
+> echo "CA hierarchy setup complete!"
+> echo "Root CA: /app/ca/root-ca.pem"
+> echo "Intermediate CA: /app/ca/intermediate-ca.pem"
+> EOF
+root@2928fe68ba2e:/app# chmod +x /app/setup_ca.sh
+root@2928fe68ba2e:/app#

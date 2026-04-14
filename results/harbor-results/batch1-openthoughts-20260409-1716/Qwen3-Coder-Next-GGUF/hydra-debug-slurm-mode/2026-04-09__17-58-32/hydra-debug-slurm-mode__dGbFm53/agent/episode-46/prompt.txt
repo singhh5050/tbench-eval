@@ -1,0 +1,33 @@
+New Terminal Output:
+
+root@0683b4795d80:/app/src# cat > /app/src/config/slurm.yaml << 'EOF'
+> # @package _global_
+>
+> hydra:
+>   launcher:
+>     _target_: hydra_plugins.hydra_submitit_launcher.submitit_launcher.SlurmLauncher
+>     folder: /tmp/${hydra:run.dir}/slurm
+>     submitit_folder: /tmp/${hydra:run.dir}/submitit
+>     max_num_timeout: 3
+>     cpus_per_task: 4
+>     gpus_per_node: 0
+>     tasks_per_node: 1
+>     nodes: 1
+>     mem_gb: 8
+>     partition: null
+>     additional_parameters:
+>       wckey: ''
+>     srun_args:
+>       - '--cpu-bind=none'
+>     comment: ''
+>
+> _debug: false
+> EOF
+root@0683b4795d80:/app/src# python /app/src/main.py -cn=slurm --cfg job 2>&1
+In 'slurm': ConfigKeyError raised while composing config:
+Key 'folder' not in 'BasicLauncherConf'
+    full_key: hydra.launcher.folder
+    object_type=BasicLauncherConf
+
+Set the environment variable HYDRA_FULL_ERROR=1 for a complete stack trace.
+root@0683b4795d80:/app/src#

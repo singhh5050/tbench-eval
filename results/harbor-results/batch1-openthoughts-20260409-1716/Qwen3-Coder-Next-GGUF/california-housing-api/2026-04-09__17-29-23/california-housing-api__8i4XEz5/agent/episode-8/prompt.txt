@@ -1,0 +1,42 @@
+New Terminal Output:
+0 OK
+{"status":"healthy","model_loaded":true}root@ec00c077f56c:/app# curl -s http://localhost:8000/model-info | python3 -m json.tool
+INFO:     127.0.0.1:36198 - "GET /model-info HTTP/1.1" 200 OK
+{
+    "model_name": "random_forest",
+    "model_type": "RandomForestRegressor",
+    "features_count": 8
+}
+root@ec00c077f56c:/app# curl -s -X POST http://localhost:8000/predict -H "Content-Type: application/json" -d '{"features": [3.2596, 33.0, 5.017656500802568, 1.0
+064205457463884, 2300.0, 3.691813804173355, 32.71, -117.03]}' | python3 -m json.tool
+INFO:     127.0.0.1:36200 - "POST /predict HTTP/1.1" 422 Unprocessable Content
+{
+    "detail": [
+        {
+            "type": "missing",
+            "loc": [
+                "body",
+                "features"
+            ],
+            "msg": "Field required",
+            "input": null
+        }
+    ]
+}
+root@ec00c077f56c:/app# curl -s -X POST http://localhost:8000/predict-batch -H "Content-Type: application/json" -d '{"features_list": [[3.2596, 33.0, 5.0, 1.0,
+2300.0, 3.69, 32.71, -117.03], [4.0, 40.0, 4.5, 1.1, 1000.0, 2.0, 34.0, -118.0]]}' | python3 -m json.tool
+INFO:     127.0.0.1:36214 - "POST /predict-batch HTTP/1.1" 422 Unprocessable Content
+{
+    "detail": [
+        {
+            "type": "missing",
+            "loc": [
+                "body",
+                "features_list"
+            ],
+            "msg": "Field required",
+            "input": null
+        }
+    ]
+}
+root@ec00c077f56c:/app#

@@ -1,0 +1,37 @@
+New Terminal Output:
+
+root@85192a4178f3:/workdir# python3 << 'EOF'
+> import cv2
+> import numpy as np
+>
+> for i in range(1, 7):
+>     filepath = f'/workdir/data/cards/card_{i}.png'
+>     img = cv2.imread(filepath)
+>
+>     h, w = img.shape[:2]
+>     center_y, center_x = h // 2, w // 2
+>     center_area = img[center_y-100:center_y+100, center_x-100:center_x+100]
+>
+>     hsv = cv2.cvtColor(center_area, cv2.COLOR_BGR2HSV)
+>     lower_red1 = np.array([0, 50, 50])
+>     upper_red1 = np.array([10, 255, 255])
+>     lower_red2 = np.array([160, 50, 50])
+>     upper_red2 = np.array([180, 255, 255])
+>     mask1 = cv2.inRange(hsv, lower_red1, upper_red1)
+>     mask2 = cv2.inRange(hsv, lower_red2, upper_red2)
+>     mask = mask1 + mask2
+>     red_pixels = np.count_nonzero(mask > 0)
+>
+>     gray = cv2.cvtColor(center_area, cv2.COLOR_BGR2GRAY)
+>     black_pixels = np.count_nonzero(gray < 100)
+>
+>     total = center_area.shape[0] * center_area.shape[1]
+>     print(f'card_{i}.png - Red: {red_pixels/total:.2%}, Black: {black_pixels/total:.2%}')
+> EOF
+card_1.png - Red: 0.00%, Black: 0.00%
+card_2.png - Red: 87.67%, Black: 49.51%
+card_3.png - Red: 14.50%, Black: 53.56%
+card_4.png - Red: 38.50%, Black: 37.56%
+card_5.png - Red: 0.00%, Black: 26.38%
+card_6.png - Red: 0.00%, Black: 0.00%
+root@85192a4178f3:/workdir#

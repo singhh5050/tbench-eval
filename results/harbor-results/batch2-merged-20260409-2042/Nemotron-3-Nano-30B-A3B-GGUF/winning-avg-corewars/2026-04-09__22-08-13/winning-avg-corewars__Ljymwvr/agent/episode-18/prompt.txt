@@ -1,0 +1,18 @@
+New Terminal Output:
+
+root@77bd7acbed24:/app# printf ';redcode-94\n;name MyWarrior\n;assert CORESIZE == 8000\n\nstart   jmp init\n\ninit    spl 1\n    mov copy, *ptr\n    add #57, pt
+r\n    mov copy, @ptr\n    jmp loop\n\ncopy    spl 0, 0\nptr     dat 1, 1\n\nloop    djn copy, 2\n      spl 0\n      djn loop, 7\n\n; Bombing sequence\nbomb_sta
+rt equ 1500\nbomb_loop spl bomb_target, @bomb_start\n      add #277, bomb_start\n      jmp bomb_loop\n\nbomb_target dat bomb_target, 0\nbomb_equ    dat #277, #2
+77\n\n; Protection\nprotect_start equ 2500\norg protect_start\n    spl 0, 0\n    djn protect, 11\n\nprotect spl 0, 0\n    dat 0, 0\n\nend start\n' > my_warrior.
+red
+root@77bd7acbed24:/app# pmars -b -r 100 -f my_warrior.red warriors/stone.red
+Warning:
+        Execution starts from outside of the program
+
+Source: filename 'my_warrior.red'
+Number of warnings: 1
+
+MyWarrior by Anonymous scores 0
+Stone by mzvince (Everything2) scores 300
+Results: 0 100 0
+root@77bd7acbed24:/app#

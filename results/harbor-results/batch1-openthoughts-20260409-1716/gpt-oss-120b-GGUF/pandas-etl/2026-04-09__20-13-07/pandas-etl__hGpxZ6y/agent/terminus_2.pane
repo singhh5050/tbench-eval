@@ -1,0 +1,161 @@
+[?2004hroot@56569b42ebe9:/app# asciinema rec --stdin /logs/agent/recording.cast
+[?2004l[0;32masciinema: recording asciicast to /logs/agent/recording.cast[0m
+[0;32masciinema: press <ctrl-d> or type "exit" when you're done[0m
+[?2004hroot@56569b42ebe9:/app# clear
+[?2004l[H[J[3J[?2004hroot@56569b42ebe9:/app# ls -l /app
+[?2004ltotal 4
+-rw-r--r-- 1 root root 1065 Apr 10 00:28 data.csv
+[?2004hroot@56569b42ebe9:/app# head -n 20 /app/data.csv
+[?2004lparticipant_id,first_name,last_name,birth_date,address,phone_number,country,institute,occupation,register_time
+bd9b6f88-b84f-4c4d-90f8-b67fe2f1a29a,Citra,Nurdiyanti,05 Feb 1991,"Gg. Monginsidi No. 08
+Medan, Aceh 80734",(0151) 081 2706,Georgia,UD Prakasa Mandasari,Business Intelligence Engineer,1617634046.0
+7dfe3391-6f40-47b6-b4db-0c76ebaf5fc3,Aris,Setiawan,11 Jan 1993,"Gg. Rajawali Timur No. 7
+Prabumulih, MA 09434",+62 (036) 461 7027,Korea Utara,Universitas Diponegoro,Frontend Engineer,1617634018.0
+19582d7f-b824-4fe5-a517-d5bf573fc768,Cornelia,Handayani,31 Jul 1993,"Jalan Kebonjati No. 0
+Ambon, SS 57739",089 833 6695,Komoro,UD Hardiansyah Puspasari,Business Analyst,1617634035.0
+aeb6d817-25f3-4867-8a74-8d92e0a0f633,Soleh,Rajasa,04 Nov 1991,"Jl. Yos Sudarso No. 109
+Lubuklinggau, SR 76156",+62 (418) 329-4756,Eritrea,Perum Tampubolon Yuliarti,DevOps Engineer,1617634034.0
+1fdabdd9-5444-4c97-87b2-fe8833ad0d27,Vivi,Astuti,22 Jan 2003,"Jalan Gardujati No. 53
+Kediri, Sulawesi Tengah 70074",0812511835,Aljazair,PT Hardiansyah Rahimah,Data Analyst,1617634010.0
+[?2004hroot@56569b42ebe9:/app# python - <<'PY'
+[?2004l[?2004h> import pandas as pd, re, datetime
+[?2004l[?2004h> df = pd.read_csv('/app/data.csv', dtype=str)
+[?2004l[?2004h> 
+[?2004l[?2004h> def extract_postal(addr):
+[?2004l[?2004h>     m = re.search(r'(\d{5,})\s*$', str(addr).strip())
+[?2004l[?2004h>     return m.group(1) if m else ''
+[?2004l[?2004h> 
+[?2004l[?2004h> def extract_city(addr):
+[?2004l[?2004h>     parts = str(addr).split('\n')
+[?2004l[?2004h>     if len(parts) >= 2:
+[?2004l[?2004h>         return parts[1].split(',')[0].strip()
+[?2004l[?2004h>     return ''
+[?2004l[?2004h> 
+[?2004l[?2004h> def format_birth(b):
+[?2004l[?2004h>     try:
+[?2004l[?2004h>         dt = datetime.datetime.strptime(b.strip(), '%d %b %Y')
+[?2004l[?2004h>         return dt.strftime('%Y-%m-%d')
+[?2004l[?2004h>     except Exception:
+[?2004l[?2004h>         return b
+[?2004l[?2004h> 
+[?2004l[?2004h> def make_team(row):
+[?2004l[?2004h>     fl = (row['first_name'][0] + row['last_name'][0]).upper()
+[?2004l[?2004h>     country = row['country']
+[?2004l[?2004h>     institute = row['institute']
+[?2004l[?2004h>     i_letters = ''.join([w[0].upper() for w in str(institute).split() if w])
+[?2004l[?2004h>     return f"{fl}-{country}-{i_letters}"
+[?2004l[?2004h> 
+[?2004l[?2004h> df['postal_code'] = df['address'].apply(extract_postal)
+[?2004l[?2004h> df['city'] = df['address'].apply(extract_city)
+[?2004l[?2004h> df['birth_date'] = df['birth_date'].apply(format_birth)
+[?2004l[?2004h> df['team_name'] = df.apply(make_team, axis=1)
+[?2004l[?2004h> cols = ['participant_id','first_name','last_name','birth_date','address','phone_number','country','institute','occupation','register_time','postal_code','city','team_name']
+[?2004l[?2004h> df = df[cols]
+[?2004l[?2004h> df.to_csv('/app/result.csv', index=False)
+[?2004l[?2004h> PY
+[?2004lTraceback (most recent call last):
+  File [35m"<stdin>"[0m, line [35m1[0m, in [35m<module>[0m
+[1;35mModuleNotFoundError[0m: [35mNo module named 'pandas'[0m
+[?2004hroot@56569b42ebe9:/app# head -n 5 /app/result.csv
+[?2004lhead: cannot open '/app/result.csv' for reading: No such file or directory
+[?2004hroot@56569b42ebe9:/app# python -m pip install --quiet pandas
+[?2004lpython - <<'PY'
+import pandas as pd, re, datetime
+
+df = pd.read_csv('/app/data.csv', dtype=str)
+
+def extract_postal(addr):
+    m = re.search(r'(\d{5,})\s*$', str(addr).strip())
+    return m.group(1) if m else ''
+
+def extract_city(addr):
+    parts = str(addr).split('\n')
+    if len(parts) >= 2:
+        return parts[1].split(',')[0].strip()
+    return ''
+
+def format_birth(b):
+    try:
+        dt = datetime.datetime.strptime(b.strip(), '%d %b %Y')
+        return dt.strftime('%Y-%m-%d')
+    except Exception:
+        return b
+
+def make_team(row):
+    fl = (row['first_name'][0] + row['last_name'][0]).upper()
+    country = row['country']
+    institute = row['institute']
+    i_letters = ''.join([w[0].upper() for w in str(institute).split() if w])
+    return f"{fl}-{country}-{i_letters}"
+
+# Apply transformations
+df['postal_code'] = df['address'].apply(extract_postal)
+df['city'] = df['address'].apply(extract_city)
+df['birth_date'] = df['birth_date'].apply(format_birth)
+df['team_name'] = df.apply(make_team, axis=1)
+
+# Desired column order
+cols = [
+    'participant_id', 'first_name', 'last_name', 'birth_date', 'address',
+    'phone_number', 'country', 'institute', 'occupation', 'register_time',
+    'postal_code', 'city', 'team_name'
+]
+
+df = df[cols]
+
+df.to_csv('/app/result.csv', index=False)
+PY
+[33mWARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager, possibly rendering your system unusable. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv. Use the --root-user-action option if you know what you are doing and want to suppress this warning.[0m[33m
+[0m[?2004hroot@56569b42ebe9:/app# python - <<'PY'
+[?2004l[?2004h> import pandas as pd, re, datetime
+[?2004l[?2004h> 
+[?2004l[?2004h> df = pd.read_csv('/app/data.csv', dtype=str)
+[?2004l[?2004h> 
+[?2004l[?2004h> def extract_postal(addr):
+[?2004l[?2004h>     m = re.search(r'(\d{5,})\s*$', str(addr).strip())
+[?2004l[?2004h>     return m.group(1) if m else ''
+[?2004l[?2004h> 
+[?2004l[?2004h> def extract_city(addr):
+[?2004l[?2004h>     parts = str(addr).split('\n')
+[?2004l[?2004h>     if len(parts) >= 2:
+[?2004l[?2004h>         return parts[1].split(',')[0].strip()
+[?2004l[?2004h>     return ''
+[?2004l[?2004h> 
+[?2004l[?2004h> def format_birth(b):
+[?2004l[?2004h>     try:
+[?2004l[?2004h>         dt = datetime.datetime.strptime(b.strip(), '%d %b %Y')
+[?2004l[?2004h>         return dt.strftime('%Y-%m-%d')
+[?2004l[?2004h>     except Exception:
+[?2004l[?2004h>         return b
+[?2004l[?2004h> 
+[?2004l[?2004h> def make_team(row):
+[?2004l[?2004h>     fl = (row['first_name'][0] + row['last_name'][0]).upper()
+[?2004l[?2004h>     country = row['country']
+[?2004l[?2004h>     institute = row['institute']
+[?2004l[?2004h>     i_letters = ''.join([w[0].upper() for w in str(institute).split() if w])
+[?2004l[?2004h>     return f"{fl}-{country}-{i_letters}"
+[?2004l[?2004h> 
+[?2004l[?2004h> # Apply transformations
+[?2004l[?2004h> df['postal_code'] = df['address'].apply(extract_postal)
+[?2004l[?2004h> df['city'] = df['address'].apply(extract_city)
+[?2004l[?2004h> df['birth_date'] = df['birth_date'].apply(format_birth)
+[?2004l[?2004h> df['team_name'] = df.apply(make_team, axis=1)
+[?2004l[?2004h> 
+[?2004l[?2004h> # Desired column order
+[?2004l[?2004h> cols = [
+[?2004l[?2004h>     'participant_id', 'first_name', 'last_name', 'birth_date', 'address',
+[?2004l[?2004h>     'phone_number', 'country', 'institute', 'occupation', 'register_time',
+[?2004l[?2004h>     'postal_code', 'city', 'team_name'
+[?2004l[?2004h> ]
+[?2004l[?2004h> 
+[?2004l[?2004h> df = df[cols]
+[?2004l[?2004h> 
+[?2004l[?2004h> df.to_csv('/app/result.csv', index=False)
+[?2004l[?2004h> PY
+[?2004l[?2004hroot@56569b42ebe9:/app# head -n 5 /app/result.csv
+[?2004lparticipant_id,first_name,last_name,birth_date,address,phone_number,country,institute,occupation,register_time,postal_code,city,team_name
+bd9b6f88-b84f-4c4d-90f8-b67fe2f1a29a,Citra,Nurdiyanti,1991-02-05,"Gg. Monginsidi No. 08
+Medan, Aceh 80734",(0151) 081 2706,Georgia,UD Prakasa Mandasari,Business Intelligence Engineer,1617634046.0,80734,Medan,CN-Georgia-UPM
+7dfe3391-6f40-47b6-b4db-0c76ebaf5fc3,Aris,Setiawan,1993-01-11,"Gg. Rajawali Timur No. 7
+Prabumulih, MA 09434",+62 (036) 461 7027,Korea Utara,Universitas Diponegoro,Frontend Engineer,1617634018.0,09434,Prabumulih,AS-Korea Utara-UD
+[?2004hroot@56569b42ebe9:/app# 

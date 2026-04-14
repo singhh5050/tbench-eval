@@ -1,0 +1,18 @@
+{
+  "analysis": "Now I see `mode: debug` at root level instead of nested. This is because the mode config group doesn't exist anymore (I deleted it). The `+mode=debug` just adds `mode: debug` as a simple value.\n\nLet me recreate the mode directory and try with `# @package _global_` which should place the config at the root level.",
+  "plan": "1. Create the mode directory\n2. Create the debug.yaml with `# @package _global_` to place values at root level\n3. Test the configuration",
+  "commands": [
+    {
+      "keystrokes": "mkdir -p /app/src/config/mode\n",
+      "duration": 0.1
+    },
+    {
+      "keystrokes": "cat > /app/src/config/mode/debug.yaml << 'EOF'\n# @package _global_\n\ndebug: true\n\ntrain:\n  max_num_epochs: 1\nEOF\n",
+      "duration": 0.1
+    },
+    {
+      "keystrokes": "python /app/src/main.py +mode=debug --cfg job\n",
+      "duration": 2
+    }
+  ]
+}

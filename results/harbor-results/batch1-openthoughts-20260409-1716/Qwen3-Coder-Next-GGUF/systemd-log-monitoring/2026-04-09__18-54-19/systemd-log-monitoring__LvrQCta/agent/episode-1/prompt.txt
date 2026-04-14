@@ -1,0 +1,62 @@
+New Terminal Output:
+root@ac4d5de4c098:/opt/myapp# mkdir -p /opt/myapp
+root@ac4d5de4c098:/opt/myapp# cat > /opt/myapp/app.py << 'EOF'
+> #!/usr/bin/env python3
+> import argparse
+> import json
+> import logging
+> import sys
+> import time
+> import datetime
+>
+> def setup_logging(log_level):
+>     # Configure logging to output JSON to stdout
+>     root = logging.getLogger()
+>     root.setLevel(getattr(logging, log_level))
+>
+>     # Create a handler that outputs to stdout
+>     handler = logging.StreamHandler(sys.stdout)
+>     handler.setLevel(getattr(logging, log_level))
+>
+>     # Create a custom formatter that outputs JSON
+>     class JSONFormatter(logging.Formatter):
+>         def format(self, record):
+>             log_entry = {
+>                 "timestamp": datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
+>                 "level": record.levelname,
+>                 "message": record.getMessage(),
+>                 "service": "myapp"
+>             }
+>             return json.dumps(log_entry)
+>
+>     handler.setFormatter(JSONFormatter())
+>     root.addHandler(handler)
+>
+>     return root
+>
+> def main():
+>     parser = argparse.ArgumentParser(description='MyApp - JSON logging service')
+>     parser.add_argument('--log-level', default='INFO', choices=['INFO', 'ERROR', 'WARN'],
+>                         help='Logging level (INFO, ERROR, WARN)')
+>     args = parser.parse_args()
+>
+>     logger = setup_logging(args.log_level)
+>
+>     logger.info("Service started")
+>
+>     try:
+>         while True:
+>             logger.info("Processing batch")
+>             time.sleep(5)
+>             logger.warn("Memory usage high")
+>             time.sleep(5)
+>             logger.error("Connection timeout")
+>             time.sleep(5)
+>     except KeyboardInterrupt:
+>         logger.info("Service stopped gracefully")
+>
+> if __name__ == '__main__':
+>     main()
+> EOF
+root@ac4d5de4c098:/opt/myapp# chmod +x /opt/myapp/app.py
+root@ac4d5de4c098:/opt/myapp#

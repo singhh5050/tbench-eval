@@ -1,0 +1,41 @@
+Current Terminal Screen:
+        generate_unique_id_function=current_generate_unique_id,
+    )
+  File "/usr/local/lib/python3.13/site-packages/fastapi/routing.py", line 554, in __init__
+    self.dependant = get_dependant(path=self.path_format, call=self.endpoint)
+                     ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.13/site-packages/fastapi/dependencies/utils.py", line 285, in get_dependant
+    param_details = analyze_param(
+        param_name=param_name,
+    ...<2 lines>...
+        is_path_param=is_path_param,
+    )
+  File "/usr/local/lib/python3.13/site-packages/fastapi/dependencies/utils.py", line 482, in analyze_param
+    ensure_multipart_is_installed()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/usr/local/lib/python3.13/site-packages/fastapi/dependencies/utils.py", line 115, in ensure_multipart_is_installed
+    raise RuntimeError(multipart_not_installed_error) from None
+RuntimeError: Form data requires "python-multipart" to be installed.
+You can install "python-multipart" with:
+
+pip install python-multipart
+
+sleep 2 && curl -s http://localhost:8000/health
+[1]+  Exit 1                  cd /app && uvicorn api.app:app --host 0.0.0.0 --port 8000
+root@ec00c077f56c:/app# pip install python-multipart -q
+WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager, possibly rendering your syst
+em unusable.It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv. Use the --root-user-action option if you know what you ar
+e doing and want to suppress this warning.
+
+[notice] A new release of pip is available: 24.3.1 -> 26.0.1
+[notice] To update, run: pip install --upgrade pip
+root@ec00c077f56c:/app# cd /app && uvicorn api.app:app --host 0.0.0.0 --port 8000 &
+[1] 500
+root@ec00c077f56c:/app# INFO:     Started server process [501]
+INFO:     Waiting for application startup.
+Model loaded: RandomForestRegressor
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+sleep 2 && curl -s http://localhost:8000/health
+INFO:     127.0.0.1:37544 - "GET /health HTTP/1.1" 200 OK
+{"status":"healthy","model_loaded":true}root@ec00c077f56c:/app#

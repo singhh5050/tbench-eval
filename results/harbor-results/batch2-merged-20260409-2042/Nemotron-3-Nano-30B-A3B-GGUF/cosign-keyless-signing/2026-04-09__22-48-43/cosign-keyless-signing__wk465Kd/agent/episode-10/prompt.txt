@@ -1,0 +1,114 @@
+New Terminal Output:
+
+root@8884a9b806ea:/app# cat > /app/verify_artifact.sh << 'EOF'
+> #!/bin/bash
+> set -e
+>
+> # Check if artifact path is provided
+> if [ $# -ne 1 ]; then
+>     echo "Usage: $0 <artifact-path>" >&2
+>     exit 1
+> fi
+>
+> ARTIFACT_PATH="$1"
+> ARTIFACT_NAME=$(basename "$ARTIFACT_PATH")
+>
+> # Check if artifact exists
+> if [ ! -f "$ARTIFACT_PATH" ]; then
+>     echo "VERIFICATION_FAILED: Artifact $ARTIFACT_PATH does not exist" >&2
+>     exit 1
+> fi
+>
+> # Check if signature file exists
+> SIG_FILE="/app/signed/${ARTIFACT_NAME}.sig"
+> if [ ! -f "$SIG_FILE" ]; then
+>     echo "VERIFICATION_FAILED: Signature file $SIG_FILE does not exist" >&2
+>     exit 1
+> fi
+>
+> # Check if provenance file exists
+> PROVENANCE_FILE="/app/signed/${ARTIFACT_NAME}.provenance.json"
+> if [ ! -f "$PROVENANCE_FILE" ]; then
+>     echo "VERIFICATION_FAILED: Provenance file $PROVENANCE_FILE does not exist" >&2
+>     exit 1
+> fi
+>
+> # Check if provenance signature exists
+> PROVENANCE_SIG_FILE="/app/signed/${ARTIFACT_NAME}.provenance.sig"
+> if [ ! -f "$PROVENANCE_SIG_FILE" ]; then
+>     echo "VERIFICATION_FAILED: Provenance signature file $PROVENANCE_SIG_FILE does not exist" >&2
+>     exit 1
+> fi
+>
+> # Check if certificate chain exists
+> CHAIN_FILE="/app/signed/${ARTIFACT_NAME}.chain.pem"
+> if [ ! -f "$CHAIN_FILE" ]; then
+>     echo "VERIFICATION_FAILED: Certificate chain file $CHAIN_FILE does not exist" >&2
+>     exit 1
+> fi
+>
+> # Extract signing certificate from chain
+> SIGNING_CERT="/app/signing/cert_$(grep -o 'build-[0-9]\+' <<< "$ARTIFACT_NAME").pem"
+> if [ ! -f "$SIGNING_CERT" ]; then
+>     echo "VERIFICATION_FAILED: Signing certificate not found" >&2
+>     exit 1
+> fi
+>
+> # Verify certificate chain
+> if ! openssl verify -CAfile <(cat "$CHAIN_FILE" | grep -A 1000 "-----BEGIN CERTIFICATE" | grep -m 1 "-----END CERTIFICATE" -A 1000 | awk 'BEGIN{cert=1} /-----
+BEGIN CERTIFICATE/{if(cert) print} /-----END CERTIFICATE/{cert=0}' | tr -d '\n') -untrusted "$CHAIN_FILE" "$SIGNING_CERT"; then
+>     echo "VERIFICATION_FAILED: Certificate chain verification failed" >&2
+>     exit 1
+> fi
+>
+> # Extract public key from signing certificate
+> PUBKEY=$(openssl x509 -in "$SIGNING_CERT" -pubkey -noout)
+>
+> # Verify artifact signature
+> if ! echo "$PUBKEY" | openssl pkey -pubin -outform DER | openssl dgst -sha256 -verify - -signature "$SIG_FILE" "$ARTIFACT_PATH"; then
+>     echo "VERIFICATION_FAILED: Artifact signature verification failed" >&2
+>     exit 1
+> fi
+>
+> # Verify provenance signature
+> if ! echo "$PUBKEY" | openssl pkey -pubin -outform DER | openssl dgst -sha256 -verify - -signature "$PROVENANCE_SIG_FILE" "$PROVENANCE_FILE"; then
+>     echo "VERIFICATION_FAILED: Provenance signature verification failed" >&2
+>     exit 1
+> fi
+>
+> # Validate provenance content
+> if ! jq -e '.buildID == "'$(echo "$ARTIFACT_NAME" | sed 's/\./\\./g')' | jq -e '.artifact == "'$ARTIFACT_NAME'"' "$PROVENANCE_FILE" >/dev/null 2>&1; then
+>     echo "VERIFICATION_FAILED: Provenance content validation failed" >&2
+>     exit 1
+> fi
+>
+> # Verify SHA256 checksum
+> EXPECTED_SHA256=$(jq -r '.sha256' "$PROVENANCE_FILE")
+> ACTUAL_SHA256=$(sha256sum "$ARTIFACT_PATH" | cut -d' ' -f1)
+> if [ "$EXPECTED_SHA256" != "$ACTUAL_SHA256" ]; then
+>     echo "VERIFICATION_FAILED: SHA256 checksum mismatch" >&2
+>     exit 1
+> fi
+>
+> # Check required fields exist
+> REQUIRED_FIELDS="buildID artifact sha256 signedAt signer certificateChain"
+> for field in $REQUIRED_FIELDS; do
+>     if ! jq -e ".$field" "$PROVENANCE_FILE" >/dev/null 2>&1; then
+>         echo "VERIFICATION_FAILED: Missing required field $field in provenance" >&2
+>         exit 1
+>     fi
+> done
+>
+> # All verifications passed
+> echo "VERIFICATION_PASSED"
+> exit 0
+> EOF
+root@8884a9b806ea:/app# chmod +x /app/verify_artifact.sh
+root@8884a9b806ea:/app# /app/sign_artifact.sh /app/artifacts/test.txt build-001
+Certificate request self-signature ok
+subject=CN=build-build-001, O=SecureBuild, C=US
+CA certificate and CA private key do not match
+4097397FD37A0000:error:05800074:x509 certificate routines:ossl_x509_check_private_key:key values mismatch:../crypto/x509/x509_cmp.c:413:
+root@8884a9b806ea:/app# /app/verify_artifact.sh /app/artifacts/test.txt
+VERIFICATION_FAILED: Signature file /app/signed/test.txt.sig does not exist
+root@8884a9b806ea:/app#

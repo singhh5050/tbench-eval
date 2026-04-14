@@ -1,0 +1,72 @@
+New Terminal Output:
+
+root@ec00c077f56c:/app# python3 << 'EOF'
+> import pickle
+> import numpy as np
+> import pandas as pd
+> import json
+> import requests
+>
+> # Load the best model
+> with open('/app/models/best_model.pkl', 'rb') as f:
+>     model = pickle.load(f)
+>
+> # Load validation data
+> train_df = pd.read_csv('/app/data/train.csv')
+> X = train_df.drop('target', axis=1)
+> y = train_df['target']
+> X = X.reset_index(drop=True)
+> y = y.reset_index(drop=True)
+>
+> with open('/app/output/split_info.json') as f:
+>     split_info = json.load(f)
+>
+> val_indices = split_info['validation_indices']
+> X_val = X.loc[val_indices].reset_index(drop=True)
+> y_val = y.loc[val_indices].reset_index(drop=True)
+>
+> # Get direct model predictions for first 5 samples
+> direct_preds = model.predict(X_val.iloc[:5])
+>
+> # Get API predictions for first 5 samples
+> api_preds = []
+> for i in range(5):
+>     resp = requests.post('http://localhost:8000/predict', json={'features': X_val.iloc[i].tolist()})
+>     api_preds.append(resp.json()['prediction'])
+>
+> print("Direct model predictions:", [round(p, 6) for p in direct_preds])
+> print("API predictions:", [round(p, 6) for p in api_preds])
+> print("Match:", np.allclose(direct_preds, api_preds))
+>
+> # Verify API predictions file
+> api_df = pd.read_csv('/app/output/api_predictions.csv')
+> print(f"\nAPI predictions CSV has {len(api_df)} rows")
+> print(f"First prediction: {api_df.iloc[0]['y_pred']}")
+> EOF
+/usr/local/lib/python3.13/site-packages/sklearn/utils/validation.py:2739: UserWarning: X does not have valid feature names, but RandomForestRegressor was fitted
+ with feature names
+  warnings.warn(
+INFO:     127.0.0.1:56658 - "POST /predict HTTP/1.1" 200 OK
+/usr/local/lib/python3.13/site-packages/sklearn/utils/validation.py:2739: UserWarning: X does not have valid feature names, but RandomForestRegressor was fitted
+ with feature names
+  warnings.warn(
+INFO:     127.0.0.1:56670 - "POST /predict HTTP/1.1" 200 OK
+/usr/local/lib/python3.13/site-packages/sklearn/utils/validation.py:2739: UserWarning: X does not have valid feature names, but RandomForestRegressor was fitted
+ with feature names
+  warnings.warn(
+INFO:     127.0.0.1:56684 - "POST /predict HTTP/1.1" 200 OK
+/usr/local/lib/python3.13/site-packages/sklearn/utils/validation.py:2739: UserWarning: X does not have valid feature names, but RandomForestRegressor was fitted
+ with feature names
+  warnings.warn(
+INFO:     127.0.0.1:56696 - "POST /predict HTTP/1.1" 200 OK
+/usr/local/lib/python3.13/site-packages/sklearn/utils/validation.py:2739: UserWarning: X does not have valid feature names, but RandomForestRegressor was fitted
+ with feature names
+  warnings.warn(
+INFO:     127.0.0.1:56700 - "POST /predict HTTP/1.1" 200 OK
+Direct model predictions: [np.float64(1.33117), np.float64(0.91499), np.float64(1.77787), np.float64(2.12431), np.float64(1.60627)]
+API predictions: [1.33117, 0.91499, 1.77787, 2.12431, 1.60627]
+Match: True
+
+API predictions CSV has 3303 rows
+First prediction: 1.3311700000000002
+root@ec00c077f56c:/app#

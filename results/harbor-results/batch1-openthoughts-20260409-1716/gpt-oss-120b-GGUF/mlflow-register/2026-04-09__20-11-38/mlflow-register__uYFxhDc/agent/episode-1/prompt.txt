@@ -1,0 +1,45 @@
+Current terminal state:
+New Terminal Output:
+root@e561d9a06ffd:/app# pip install --quiet mlflow scikit-learn pandas numpy
+WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager, possibly rendering your syst
+em unusable. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv. Use the --root-user-action option if you know what you a
+re doing and want to suppress this warning.
+root@e561d9a06ffd:/app# mlflow server --backend-store-uri sqlite:///mlflow.db --default-artifact-root ./mlruns --host 0.0.0.0 --port 8080 > mlflow_server.log 2>
+&1 &
+[1] 600
+root@e561d9a06ffd:/app# sleep 2
+root@e561d9a06ffd:/app# cat > train.py <<'PYTHON'
+> import mlflow
+> import mlflow.sklearn
+> import numpy as np
+> from sklearn.linear_model import LinearRegression
+>
+> mlflow.set_tracking_uri('http://localhost:8080')
+> mlflow.set_experiment('default')
+>
+> with mlflow.start_run() as run:
+>     # Random dataset with 100 samples and 3 features
+>     X = np.random.rand(100, 3)
+>     y = np.random.rand(100)
+>     model = LinearRegression()
+>     model.fit(X, y)
+>     # Log the model and register it as gpt-5
+>     mlflow.sklearn.log_model(model, 'model', registered_model_name='gpt-5')
+>     # Log a simple metric (RMSE) for demonstration
+>     predictions = model.predict(X)
+>     rmse = np.sqrt(((predictions - y) ** 2).mean())
+>     mlflow.log_metric('rmse', rmse)
+> PYTHON
+root@e561d9a06ffd:/app# python3 train.py
+
+
+
+
+
+
+
+
+
+
+
+Are you sure you want to mark the task as complete? This will trigger your solution to be graded and you won't be able to make any further corrections. If so, include "task_complete": true in your JSON response again.

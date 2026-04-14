@@ -1,0 +1,189 @@
+Current terminal state:
+New Terminal Output:
+root@cf0e6d7292d0:/app# cat > /app/merkle_cli.py <<'PY'
+> #!/usr/bin/env python3
+> import argparse, os, json, hashlib, sys
+>
+> def sha512_hex(data: bytes) -> str:
+>     return hashlib.sha512(data).hexdigest()
+>
+> def compute_file_hash(path: str) -> str:
+>     h = hashlib.sha512()
+>     with open(path, 'rb') as f:
+>         while True:
+>             chunk = f.read(8192)
+>             if not chunk:
+>                 break
+>             h.update(chunk)
+>     return h.hexdigest()
+>
+> def build_merkle_tree(file_hashes):
+>     """Build Merkle tree and return root hash and proofs.
+>     file_hashes: list of (relative_path, leaf_hash) in deterministic order.
+>     Returns (root_hash, proofs_dict) where proofs_dict maps path -> list of [direction, sibling_hash].
+>     """
+>     if not file_hashes:
+>         return "", {}
+>     leaf_paths = [p for p, _ in file_hashes]
+>     leaf_hashes = [h for _, h in file_hashes]
+>     proofs = {p: [] for p in leaf_paths}
+>     # each element: (hash, [leaf_indices])
+>     level = [(leaf_hashes[i], [i]) for i in range(len(leaf_hashes))]
+>     while len(level) > 1:
+>         if len(level) % 2 == 1:
+>             # duplicate last element for odd count
+>             level.append(level[-1])
+>         new_level = []
+>         for i in range(0, len(level), 2):
+>             left_hash, left_idxs = level[i]
+>             right_hash, right_idxs = level[i + 1]
+>             parent_hash = sha512_hex((left_hash + right_hash).encode())
+>             # update proofs for leaves in left subtree
+>             for idx in left_idxs:
+>                 path = leaf_paths[idx]
+>                 proofs[path].append(["right", right_hash])
+>             # update proofs for leaves in right subtree
+>             for idx in right_idxs:
+>                 path = leaf_paths[idx]
+>                 proofs[path].append(["left", left_hash])
+>             new_level.append((parent_hash, left_idxs + right_idxs))
+>         level = new_level
+>     root_hash = level[0][0]
+>     return root_hash, proofs
+>
+> def load_data():
+>     if not os.path.exists('/app/merkle_data.json'):
+>         return None
+>     with open('/app/merkle_data.json', 'r') as f:
+>         return json.load(f)
+>
+> def save_data(data):
+>     with open('/app/merkle_data.json', 'w') as f:
+>         json.dump(data, f, indent=2)
+>
+> def cmd_scan(args):
+>     target_dir = os.path.abspath(args.directory)
+>     file_entries = []
+>     for root, dirs, files in os.walk(target_dir):
+>         # ignore symlinks and non-regular files
+>         for name in files:
+>             full_path = os.path.join(root, name)
+>             if not os.path.islink(full_path) and os.path.isfile(full_path):
+>                 rel_path = os.path.relpath(full_path, start=target_dir)
+>                 rel_path = rel_path.replace(os.sep, '/')                file_hash = compute_file_hash(full_path)
+>                 file_entries.append((rel_path, file_hash))
+>     # sort entries for deterministic order
+>     file_entries.sort(key=lambda x: x[0])
+>     root_hash, proofs = build_merkle_tree(file_entries)
+>     file_hashes_dict = {p: h for p, h in file_entries}
+>     data = {
+>         "root_hash": root_hash,
+>         "proofs": proofs,
+>         "file_hashes": file_hashes_dict,
+>         "scanned_directory": target_dir,
+>     }
+>     save_data(data)
+>     print(f"Scanned {len(file_entries)} files. Root hash: {root_hash}")
+>
+> def cmd_proof(args):
+>     data = load_data()
+>     if data is None:
+>         print("Error: merkle_data.json not found. Run scan first.", file=sys.stderr)
+>         sys.exit(1)
+>     proof = data.get("proofs", {}).get(args.file_path)
+>     if proof is None:
+>         print(f"Error: No proof found for '{args.file_path}'.", file=sys.stderr)
+>         sys.exit(1)
+>     output = {"file_path": args.file_path, "proof": proof}
+>     print(json.dumps(output, indent=2))
+>
+> def reconstruct_root_from_proof(leaf_hash, proof):
+>     cur = leaf_hash
+>     for direction, sibling in proof:
+>         if direction == "right":
+>             combined = cur + sibling
+>         else:  # left
+>             combined = sibling + cur
+>         cur = sha512_hex(combined.encode())
+>     return cur
+>
+> def cmd_verify(args):
+>     data = load_data()
+>     if data is None:
+>         print("Error: merkle_data.json not found. Run scan first.", file=sys.stderr)
+>         sys.exit(1)
+>     # Load proof JSON
+>     try:
+>         with open(args.proof_file, 'r') as f:
+>             proof_json = json.load(f)
+>     except Exception as e:
+>         print(f"Error reading proof file: {e}", file=sys.stderr)
+>         sys.exit(1)
+>     proof = proof_json.get("proof")
+>     if proof is None:
+>         print("Invalid proof file: missing 'proof' field.", file=sys.stderr)
+>         sys.exit(1)
+>     # Resolve file path
+>     file_path = args.file_path
+>     if not os.path.isabs(file_path):
+>         # relative to scanned directory
+>         scanned_dir = data.get("scanned_directory", "")
+>         file_path = os.path.join(scanned_dir, file_path)
+>     if not os.path.isfile(file_path):
+>         print(f"Verification failed: file '{args.file_path}' does not exist.")
+>         sys.exit(1)
+>     leaf_hash = compute_file_hash(file_path)
+>     computed_root = reconstruct_root_from_proof(leaf_hash, proof)
+>     stored_root = data.get("root_hash", "")
+>     if computed_root == stored_root:
+>         print("Verification succeeded.")
+>         sys.exit(0)
+>     else:
+>         print("Verification failed: computed root does not match stored root.")
+>         sys.exit(1)
+>
+> def main():
+>     parser = argparse.ArgumentParser(description="Merkle Tree CLI Tool with SHA-512")
+>     subparsers = parser.add_subparsers(dest="command", required=True)
+>     # scan
+>     scan_parser = subparsers.add_parser("scan", help="Scan a directory and build a Merkle tree")
+>     scan_parser.add_argument("directory", help="Target directory to scan")
+>     scan_parser.set_defaults(func=cmd_scan)
+>     # proof
+>     proof_parser = subparsers.add_parser("proof", help="Generate Merkle proof for a file")
+>     proof_parser.add_argument("file_path", help="Relative path of the file as stored in merkle_data.json")
+>     proof_parser.set_defaults(func=cmd_proof)
+>     # verify
+>     verify_parser = subparsers.add_parser("verify", help="Verify a file against a Merkle proof")
+>     verify_parser.add_argument("file_path", help="Path to the file to verify (relative or absolute)")
+>     verify_parser.add_argument("proof_file", help="JSON file containing the proof (output of proof command)")
+>     verify_parser.set_defaults(func=cmd_verify)
+>     args = parser.parse_args()
+>     args.func(args)
+>
+> if __name__ == "__main__":
+>     main()
+> PY
+root@cf0e6d7292d0:/app# chmod +x /app/merkle_cli.py
+root@cf0e6d7292d0:/app# mkdir -p /app/test_data/subdir
+root@cf0e6d7292d0:/app# echo 'Hello World' > /app/test_data/file1.txt
+root@cf0e6d7292d0:/app# echo 'Another file' > /app/test_data/subdir/file2.txt
+root@cf0e6d7292d0:/app# python3 /app/merkle_cli.py scan /app/test_data
+  File "/app/merkle_cli.py", line 70
+    rel_path = rel_path.replace(os.sep, '/')                file_hash = compute_file_hash(full_path)
+                                                            ^^^^^^^^^
+SyntaxError: invalid syntax
+root@cf0e6d7292d0:/app# python3 /app/merkle_cli.py proof file1.txt > /app/proof_file1.json
+  File "/app/merkle_cli.py", line 70
+    rel_path = rel_path.replace(os.sep, '/')                file_hash = compute_file_hash(full_path)
+                                                            ^^^^^^^^^
+SyntaxError: invalid syntax
+root@cf0e6d7292d0:/app# python3 /app/merkle_cli.py verify file1.txt /app/proof_file1.json
+  File "/app/merkle_cli.py", line 70
+    rel_path = rel_path.replace(os.sep, '/')                file_hash = compute_file_hash(full_path)
+                                                            ^^^^^^^^^
+SyntaxError: invalid syntax
+root@cf0e6d7292d0:/app#
+
+
+Are you sure you want to mark the task as complete? This will trigger your solution to be graded and you won't be able to make any further corrections. If so, include "task_complete": true in your JSON response again.

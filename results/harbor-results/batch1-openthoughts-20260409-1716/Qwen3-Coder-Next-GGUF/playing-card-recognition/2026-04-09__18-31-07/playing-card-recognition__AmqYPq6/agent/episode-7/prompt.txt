@@ -1,0 +1,34 @@
+New Terminal Output:
+
+root@85192a4178f3:/workdir# python3 << 'EOF'
+> import cv2
+> import numpy as np
+> from PIL import Image
+>
+> for i in range(1, 7):
+>     filepath = f'/workdir/data/cards/card_{i}.png'
+>     img = cv2.imread(filepath)
+>
+>     # Get center region where rank is typically displayed
+>     h, w = img.shape[:2]
+>     # Try to detect the top-left corner where rank usually appears
+>     roi = img[50:150, 50:150]
+>
+>     # Convert to grayscale and threshold
+>     gray = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
+>     _, thresh = cv2.threshold(gray, 127, 255, cv2.THRESH_BINARY)
+>
+>     # Count non-white pixels (black content)
+>     black_pixels = np.sum(thresh < 127)
+>     total_pixels = thresh.size
+>     black_ratio = black_pixels / total_pixels
+>
+>     print(f'card_{i}.png - Black pixel ratio in ROI: {black_ratio:.4f}')
+> EOF
+card_1.png - Black pixel ratio in ROI: 0.2855
+card_2.png - Black pixel ratio in ROI: 0.2165
+card_3.png - Black pixel ratio in ROI: 0.4042
+card_4.png - Black pixel ratio in ROI: 0.2441
+card_5.png - Black pixel ratio in ROI: 0.2633
+card_6.png - Black pixel ratio in ROI: 0.2086
+root@85192a4178f3:/workdir#

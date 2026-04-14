@@ -1,0 +1,68 @@
+New Terminal Output:
+
+[2026-04-10 00:27:30 +0000] [635] [INFO] Booting worker with pid: 635
+cat > train_and_register.py << 'EOF'
+> import mlflow
+> import mlflow.sklearn
+> from sklearn.linear_model import LinearRegression
+> from sklearn.datasets import make_regression
+> import numpy as np
+>
+> # Set tracking URI
+> mlflow.set_tracking_uri("http://localhost:8080")
+>
+> # Set experiment
+> mlflow.set_experiment("linear_regression_experiment")
+>
+> # Create random dataset with 3 features
+> X, y = make_regression(n_samples=100, n_features=3, random_state=42)
+>
+> # Create and train the model
+> model = LinearRegression()
+> model.fit(X, y)
+>
+> # Start MLflow run and log the model
+> with mlflow.start_run(run_name="linear_regression_run"):
+>     # Log parameters
+>     mlflow.log_param("n_features", 3)
+>     mlflow.log_param("n_samples", 100)
+>
+>     # Log model metrics
+>     train_score = model.score(X, y)
+>     mlflow.log_metric("r2_score", train_score)
+>
+>     # Log the model as 'gpt-5'
+>     mlflow.sklearn.log_model(model, "model", registered_model_name="gpt-5")
+>
+>     print(f"Model trained with R2 score: {train_score}")
+>     print("Model registered as 'gpt-5' in MLflow")
+> EOF
+root@3b9cc5c86e58:/app# python3 train_and_register.py
+2026/04/10 00:27:48 INFO mlflow.tracking.fluent: Experiment with name 'linear_regression_experiment' does not exist. Creating a new experiment.
+2026/04/10 00:27:48 WARNING mlflow.utils.git_utils: Failed to import Git (the Git executable is probably not on your PATH), so Git SHA is not available. Error:
+Failed to initialize: Bad git executable.
+The git executable must be specified in one of the following ways:
+    - be included in your $PATH
+    - be set via $GIT_PYTHON_GIT_EXECUTABLE
+    - explicitly set via git.refresh(<full-path-to-git-executable>)
+
+All git commands will error until this is rectified.
+
+This initial message can be silenced or aggravated in the future by setting the
+$GIT_PYTHON_REFRESH environment variable. Use one of the following values:
+    - quiet|q|silence|s|silent|none|n|0: for no message or exception
+    - warn|w|warning|log|l|1: for a warning message (logging level CRITICAL, displayed by default)
+    - error|e|exception|raise|r|2: for a raised exception
+
+Example:
+    export GIT_PYTHON_REFRESH=quiet
+
+2026/04/10 00:27:51 WARNING mlflow.models.model: Model logged without a signature and input example. Please set `input_example` parameter when logging the model
+ to auto infer the model signature.
+Successfully registered model 'gpt-5'.
+2026/04/10 00:27:51 INFO mlflow.store.model_registry.abstract_store: Waiting up to 300 seconds for model version to finish creation. Model name: gpt-5, version
+1
+Created version '1' of model 'gpt-5'.
+Model trained with R2 score: 1.0
+Model registered as 'gpt-5' in MLflow
+

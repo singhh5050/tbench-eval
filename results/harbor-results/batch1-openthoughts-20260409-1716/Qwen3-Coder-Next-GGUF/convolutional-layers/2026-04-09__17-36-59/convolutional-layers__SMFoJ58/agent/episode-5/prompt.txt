@@ -1,0 +1,119 @@
+New Terminal Output:
+
+root@b05171444938:/app# cat > /app/src/conv.py << 'EOF'
+> import numpy as np
+> from .base import BaseLayer
+> from .padding import zero_pad, get_output_shape
+>
+>
+> class Conv2D(BaseLayer):
+>     """2D Convolution layer."""
+>
+>     def __init__(self, in_channels: int, out_channels: int, kernel_size: int,
+>                  stride: int = 1, padding: int = 0, dilation: int = 1):
+>         """
+>         Args:
+>             in_channels: number of input channels (positive integer)
+>             out_channels: number of output filters (positive integer)
+>             kernel_size: size of square kernel (positive integer)
+>             stride: stride of convolution (positive integer, default 1)
+>             padding: zero-padding added to both sides (non-negative integer, default 0)
+>             dilation: spacing between kernel elements (positive integer, default 1)
+>         """
+>         super().__init__()
+>         self.in_channels = in_channels
+>         self.out_channels = out_channels
+>         self.kernel_size = kernel_size
+>         self.stride = stride
+>         self.padding = padding
+>         self.dilation = dilation
+>
+>         # Xavier/Glorot uniform initialization
+>         fan_in = in_channels * kernel_size * kernel_size
+>         fan_out = out_channels * kernel_size * kernel_size
+>         limit = np.sqrt(6.0 / (fan_in + fan_out))
+>
+>         # Weights shape: (out_channels, in_channels, kernel_size, kernel_size)
+>         self.weights = np.random.uniform(-limit, limit,
+>                                           (out_channels, in_channels, kernel_size, kernel_size)).astype(np.float64)
+>         # Bias shape: (out_channels,)
+>         self.bias = np.zeros(out_channels, dtype=np.float64)
+>
+>     def forward(self, x: np.ndarray) -> np.ndarray:
+>         """
+>         Args:
+>             x: input of shape (batch_size, height, width, in_channels), dtype float64
+>
+>         Returns:
+>             output of shape (batch_size, out_height, out_width, out_channels), dtype float64
+>         """
+>         batch_size, height, width, _ = x.shape
+>
+>         # Calculate output dimensions using the formula
+>         # out_dim = (input_dim + 2*padding - dilation*(kernel_size-1) - 1) // stride + 1
+>         out_h = (height + 2 * self.padding - self.dilation * (self.kernel_size - 1) - 1) // self.stride + 1
+>         out_w = (width + 2 * self.padding - self.dilation * (self.kernel_size - 1) - 1) // self.stride + 1
+>
+>         output = np.zeros((batch_size, out_h, out_w, self.out_channels), dtype=np.float64)
+>
+>         # Apply padding
+>         x_padded = zero_pad(x, self.padding)
+>
+>         # Perform convolution
+>         for b in range(batch_size):
+>             for c_out in range(self.out_channels):
+>                 for i in range(out_h):
+>                     for j in range(out_w):
+>                         # Calculate input position
+>                         h_start = i * self.stride
+>                         w_start = j * self.stride
+>
+>                         # Extract region (with dilation) - now using padded input
+>                         region = np.zeros((self.kernel_size, self.kernel_size, self.in_channels), dtype=np.float64)
+>                         for ki in range(self.kernel_size):
+>                             for kj in range(self.kernel_size):
+>                                 h_idx = h_start + ki * self.dilation
+>                                 w_idx = w_start + kj * self.dilation
+>                                 region[ki, kj, :] = x_padded[b, h_idx, w_idx, :]
+>
+>                         # Convolution: sum over in_channels, kernel_h, kernel_w
+>                         kernel = self.weights[c_out]  # (in_channels, kernel_size, kernel_size)
+>                         conv_sum = np.sum(region * kernel.transpose(1, 2, 0))  # transpose to match region shape
+>
+>                         output[b, i, j, c_out] = conv_sum + self.bias[c_out]
+>
+>         return output
+> EOF
+root@b05171444938:/app# python3 << 'EOF'
+> import numpy as np
+> import sys
+> sys.path.insert(0, '/app')
+>
+> from src import *
+>
+> print("Testing Conv2D with stride=2...\n")
+>
+> conv = Conv2D(1, 1, 3, stride=2, padding=0, dilation=1)
+> conv.weights = np.ones((1, 1, 3, 3), dtype=np.float64)
+> conv.bias = np.zeros(1, dtype=np.float64)
+>
+> x = np.ones((1, 4, 4, 1), dtype=np.float64)
+> out = conv.forward(x)
+> print(f"Input shape: {x.shape}")
+> print(f"Output shape: {out.shape}")
+> print(f"Output: {out}")
+>
+> # With stride=2, padding=0, kernel=3, input=4:
+> # output = (4 + 0 - 1) // 2 + 1 = 2
+> assert out.shape == (1, 2, 2, 1), f"Expected (1, 2, 2, 1), got {out.shape}"
+> print("Stride verification: OK")
+> EOF
+Testing Conv2D with stride=2...
+
+Input shape: (1, 4, 4, 1)
+Output shape: (1, 1, 1, 1)
+Output: [[[[9.]]]]
+Traceback (most recent call last):
+  File "<stdin>", line 21, in <module>
+AssertionError: Expected (1, 2, 2, 1), got (1, 1, 1, 1)
+root@b05171444938:/app#

@@ -1,0 +1,189 @@
+Current terminal state:
+New Terminal Output:
+root@1f800a2710c8:/app# cat > /app/solution.py <<'PY'
+> import re
+> from collections import defaultdict
+>
+> def solve(lines: list[str]) -> str:
+>     # ---------- Helpers ----------
+>     node_pat = re.compile(r'^n[0-9]+$')
+>     allowed_ops = {'VOTE', 'APPEND', 'COMMIT', 'LEADER'}
+>
+ within the same index
+            # compare with previous term seen for this index (keep last term)
+            lst = appends_per_index[idx]
+            if lst:
+                if term < lst[-1]['term']:
+                    bad[idx].add('BAD_TERM_REGRESSION')
+            # conflict detection (same term, different data)
+            for prev in lst:
+                if prev['term'] == term and prev['data'] != e['data']:
+                    bad[idx].add('BAD_CONFLICT')
+                    break
+            lst.append(e)
+            appends_per_index[idx].append(e)
+        elif op == 'COMMIT':
+            # term regression detection similar to APPEND
+            lst = commits_per_index[idx]
+            if lst:
+                if term < lst[-1]['term']:
+                    bad[idx].add('BAD_TERM_REGRESSION')
+            commits_per_index[idx].append(e)
+        else:
+            bad[idx].add('BAD_OPERATION')
+    # ---------- Determine winning term per index ----------
+    winning_term = {}
+    for idx, app_list in appends_per_index.items():
+        if app_list:
+            winning_term[idx] = max(a['term'] for a in app_list)
+    # ---------- Validate COMMIT entries ----------
+    for idx, commit_list in commits_per_index.items():
+        if idx not in appe>     # ---------- Parsing ----------
+>     entries = []  # list of dicts preserving file order
+>     seen = set()  # exact duplicate detection
+        >     for raw in lines:
+>         line = raw.strip()
+>         if not line or line.startswith('#'):
+>             continue
+>         parts = line.split()
+>         # basic field count validation
+>         if len(parts) not in (4, 5):
+>             break  # malformed -> hard cutoff
+>         term_s, index_s, node, op = parts[0], parts[1], parts[2], parts[3]
+>         data = parts[4] if len(parts) == 5 else None
+>         # op‑specific field count check
+>         if op == 'APPEND' and data is None:
+>             break
+>         if op != 'APPEND' and data is not None:
+>             break
+>         # numeric checks
+>         if not term_s.isdigit() or int(term_s) < 0:
+>             break
+>         if not index_s.isdigit() or int(index_s) < 1:
+>             break
+>         term = int(term_s)
+>         index = int(index_s)
+>         # node pattern
+>         if not node_pat.fullmatch(node):
+>             break
+>         if op not in allowed_ops:
+>             break
+>         key = (term, index, node, op, data)
+>         if key in seen:
+>             continue  # exact duplicate, skip
+>         seen.add(key)
+>         entries.append({
+>             'term': term,
+>             'index': index,
+>             'node': node,
+>             'op': op,
+>             'data': data,
+>         })
+>     # ---------- Group by index ----------
+>     by_index = defaultdict(list)
+>     for e in entries:
+>         by_index[e['index']].append(e)
+>     # ---------- State tracking ----------
+>     bad = defaultdict(set)          # index -> set of reasons
+>     votes_per_term = defaultdict(set)   # term -> set of nodes that have voted
+>     leader_first = {}               # term -> first index where LEADER appeared
+>     appends_per_index = defaultdict(list)   # index -> list of APPEND entries
+>     commits_per_index = defaultdict(list)   # index -> list of COMMIT entries
+>     min_term_per_index = {}         # index -> minimal term seen at this index
+>     # Process entries in original order to catch term regression & vote/leader rules
+>     for e in entries:
+>         idx = e['index']
+>         term = e['term']
+>         op = e['op']
+>         # maintain minimal term per index
+>         if idx not in min_term_per_index or term < min_term_per_index[idx]:
+>             min_term_per_index[idx] = term
+>         if op == 'VOTE':
+>             if e['node'] in votes_per_term[term]:
+>                 bad[idx].add('BAD_DUPLICATE_VOTE')
+>             else:
+>                 votes_per_term[term].add(e['node'])
+>         elif op == 'LEADER':
+>             if term not in leader_first:
+>                 leader_first[term] = idx
+>             else:
+>                 if idx > leader_first[term]:
+>                     bad[idx].add('BAD_LEADER_ORDER')
+>         elif op == 'APPEND':
+>             # term regression detection within the same index
+>             # compare with previous term seen for this index (keep last term)
+>             lst = appends_per_index[idx]
+>             if lst:
+>                 if term < lst[-1]['term']:
+>                     bad[idx].add('BAD_TERM_REGRESSION')
+>             # conflict detection (same term, different data)
+>             for prev in lst:
+>                 if prev['term'] == term and prev['data'] != e['data']:
+>                     bad[idx].add('BAD_CONFLICT')
+>                     break
+>             lst.append(e)
+>             appends_per_index[idx].append(e)
+>         elif op == 'COMMIT':
+>             # term regression detection similar to APPEND
+>             lst = commits_per_index[idx]
+>             if lst:
+>                 if term < lst[-1]['term']:
+>                     bad[idx].add('BAD_TERM_REGRESSION')
+>             commits_per_index[idx].append(e)
+>         else:
+>             bad[idx].add('BAD_OPERATION')
+>     # ---------- Determine winning term per index ----------
+>     winning_term = {}
+>     for idx, app_list in appends_per_index.items():
+>         if app_list:
+>             winning_term[idx] = max(a['term'] for a in app_list)
+>     # ---------- Validate COMMIT entries ----------
+>     for idx, commit_list in commits_per_index.items():
+>         if idx not in appends_per_index or not appends_per_index[idx]:
+>             # no prior APPEND at this index
+>             for _ in commit_list:
+>                 bad[idx].add('BAD_COMMIT_ORDER')
+>             continue
+>         win_term = winning_term.get(idx)
+>         for c in commit_list:
+>             if c['term'] != win_term:
+>                 bad[idx].add('BAD_COMMIT_ORDER')
+>     # ---------- Log matching property ----------
+>     committed_indices = sorted([i for i, t in winning_term.items() if i in commits_per_index and not bad[i].intersection({'BAD_COMMIT_ORDER'})])
+>     for i in committed_indices:
+>         committed_term = winning_term[i]
+>         nxt = i + 1
+>         if nxt in min_term_per_index:
+>             if min_term_per_index[nxt] < committed_term:
+>                 bad[nxt].add('BAD_LOG_MATCH')
+>     # ---------- Determine missing commits for repairs ----------
+>     inserts = []
+>     for idx, apps in appends_per_index.items():
+>         if not apps:
+>             continue
+>         win_term = winning_term.get(idx)
+>         # check if there is a valid COMMIT (i.e., a COMMIT entry with correct term and not flagged BAD_COMMIT_ORDER)
+>         has_valid_commit = False
+>         for c in commits_per_index.get(idx, []):
+>             if c['term'] == win_term and 'BAD_COMMIT_ORDER' not in bad[idx]:
+>                 has_valid_commit = True
+>                 break
+>         if not has_valid_commit:
+>             inserts.append((idx, win_term))
+>     # ---------- Build output ----------
+>     bad_lines = []
+>     for idx in sorted(bad.keys()):
+>         for reason in sorted(bad[idx]):
+>             bad_lines.append(f"BAD {idx} {reason}")
+>     ins_lines = []
+>     for idx, term in sorted(inserts, key=lambda x: (x[0], x[1])):
+>         ins_lines.append(f"INS {term} {idx} COMMIT")
+>     if not bad_lines and not ins_lines:
+>         return "OK"
+>     return "\n".join(bad_lines + ins_lines)
+>
+> # The module exposes only the solve function as required.
+> PY
+
+
+Are you sure you want to mark the task as complete? This will trigger your solution to be graded and you won't be able to make any further corrections. If so, include "task_complete": true in your JSON response again.

@@ -1,0 +1,222 @@
+New Terminal Output:
+
+Press ENTER or type command to continue
+   script .= ind . '" Tab ' . (tab_idx + 1) . '\n'
+            script .= ind . 'tabnew\n'
+            script .= ind . '\n'
+        endif
+
+        let win_count = len(tab.windows)
+        let first_window = 1
+
+        for win_idx in range(0, win_count - 1)
+            let win = tab.windows[win_idx]
+
+            if first_window
+                let first_window = 0
+
+                if win.bufname != ''
+                    script .= ind . '" Window ' . (win_idx + 1) . ' - buffer: ' . win.bufname . '\n'
+                    script .= ind . 'edit ' . fnameescape(win.bufname) . '\n'
+                endif
+            else
+                script .= ind . '" Window ' . (win_idx + 1) . ' - buffer: ' . win.bufname . '\n'
+
+                if win.split_type == 'vsplit'
+                    script .= ind . 'vsplit\n'
+                elseif win.split_type == 'split'
+                    script .= ind . 'split\n'
+                endif
+
+                if win.bufname != ''
+                    script .= ind . 'edit ' . fnameescape(win.bufname) . '\n'
+                endif
+            endif
+
+            script .= ind . '\n'
+        endfor
+    endfor
+
+    script .= ind . '" Restore active tab\n'
+    script .= ind . 'if ' . tab_count . ' > 1\n'
+    script .= ind1 . 'tabnext ' . a:layout.active_tab . '\n'
+    script .= ind . 'endif\n'
+
+    return script
+endfunction
+
+function! s:LayoutQuineImpl(path)
+    let layout = s:CaptureLayout()
+    let script = s:GenerateLayoutScript(layout, 0)
+
+    call writefile(split(script, '\n'), a:path)
+
+    echo 'Layout saved to: ' . a:path
+endfunction
+
+command! -nargs=1 LayoutQuine call s:LayoutQuineImpl(<f-args>)
+ENDOFFILE
+root@8d526f641b03:/app# os(prev_win)[0] + winwidth(prev_win)
+bash: syntax error near unexpected token `prev_win'
+root@8d526f641b03:/app#                 let curr_left = win_screenpos(win_num)[0]
+bash: syntax error near unexpected token `('
+root@8d526f641b03:/app#
+root@8d526f641b03:/app#                 if prev_right == curr_left
+>                     let win_info.split_type = 'vsplit'
+>                 else
+bash: syntax error near unexpected token `else'
+root@8d526f641b03:/app#                     let win_info.split_type = 'split'
+bash: let: win_info.split_type: syntax error: invalid arithmetic operator (error token is ".split_type")
+root@8d526f641b03:/app#                 endif
+bash: endif: command not found
+root@8d526f641b03:/app#             else
+bash: syntax error near unexpected token `else'
+root@8d526f641b03:/app#                 let win_info.split_type = 'first'
+bash: let: win_info.split_type: syntax error: invalid arithmetic operator (error token is ".split_type")
+root@8d526f641b03:/app#             endif
+bash: endif: command not found
+root@8d526f641b03:/app#
+root@8d526f641b03:/app#             call add(tab_info.windows, win_info)
+bash: syntax error near unexpected token `('
+root@8d526f641b03:/app#         endfor
+bash: endfor: command not found
+root@8d526f641b03:/app#
+root@8d526f641b03:/app#         call add(layout.tabs, tab_info)
+bash: syntax error near unexpected token `('
+root@8d526f641b03:/app#     endfor
+bash: endfor: command not found
+root@8d526f641b03:/app#
+root@8d526f641b03:/app#     execute 'tabnext' layout.active_tab
+bash: execute: command not found
+root@8d526f641b03:/app#
+root@8d526f641b03:/app#     return layout
+bash: return: layout: numeric argument required
+bash: return: can only `return' from a function or sourced script
+root@8d526f641b03:/app# endfunction
+bash: endfunction: command not found
+root@8d526f641b03:/app#
+root@8d526f641b03:/app# function! s:GenerateLayoutScript(layout, indent)
+bash: syntax error near unexpected token `('
+root@8d526f641b03:/app#     let script = ''
+bash: let: =: syntax error: operand expected (error token is "=")
+root@8d526f641b03:/app#     let ind = repeat('    ', a:indent)
+bash: syntax error near unexpected token `('
+root@8d526f641b03:/app#     let ind1 = repeat('    ', a:indent + 1)
+bash: syntax error near unexpected token `('
+root@8d526f641b03:/app#
+root@8d526f641b03:/app#     script .= ind . '" Recreate tabs and windows\n'
+script: unexpected number of arguments
+Try 'script --help' for more information.
+root@8d526f641b03:/app#     script .= ind . '" Active tab was: ' . a:layout.active_tab . '\n'
+script: unexpected number of arguments
+Try 'script --help' for more information.
+root@8d526f641b03:/app#     script .= ind . '\n'
+script: unexpected number of arguments
+Try 'script --help' for more information.
+root@8d526f641b03:/app#
+root@8d526f641b03:/app#     let tab_count = len(a:layout.tabs)
+bash: syntax error near unexpected token `('
+root@8d526f641b03:/app#
+root@8d526f641b03:/app#     for tab_idx in range(0, tab_count - 1)
+bash: syntax error near unexpected token `('
+root@8d526f641b03:/app#         let tab = a:layout.tabs[tab_idx]
+bash: let: =: syntax error: operand expected (error token is "=")
+root@8d526f641b03:/app#
+root@8d526f641b03:/app#         if tab_idx > 0
+>             script .= ind . '" Tab ' . (tab_idx + 1) . '\n'
+bash: syntax error near unexpected token `('
+root@8d526f641b03:/app#             script .= ind . 'tabnew\n'
+script: unexpected number of arguments
+Try 'script --help' for more information.
+root@8d526f641b03:/app#             script .= ind . '\n'
+script: unexpected number of arguments
+Try 'script --help' for more information.
+root@8d526f641b03:/app#         endif
+bash: endif: command not found
+root@8d526f641b03:/app#
+root@8d526f641b03:/app#         let win_count = len(tab.windows)
+bash: syntax error near unexpected token `('
+root@8d526f641b03:/app#         let first_window = 1
+bash: let: =: syntax error: operand expected (error token is "=")
+root@8d526f641b03:/app#
+root@8d526f641b03:/app#         for win_idx in range(0, win_count - 1)
+bash: syntax error near unexpected token `('
+root@8d526f641b03:/app#             let win = tab.windows[win_idx]
+bash: let: =: syntax error: operand expected (error token is "=")
+root@8d526f641b03:/app#
+root@8d526f641b03:/app#             if first_window
+>                 let first_window = 0
+>
+>                 if win.bufname != ''
+>                     script .= ind . '" Window ' . (win_idx + 1) . ' - buffer: ' . win.bufname . '\n'
+bash: syntax error near unexpected token `('
+root@8d526f641b03:/app#                     script .= ind . 'edit ' . fnameescape(win.bufname) . '\n'
+bash: syntax error near unexpected token `('
+root@8d526f641b03:/app#                 endif
+bash: endif: command not found
+root@8d526f641b03:/app#             else
+bash: syntax error near unexpected token `else'
+root@8d526f641b03:/app#                 script .= ind . '" Window ' . (win_idx + 1) . ' - buffer: ' . win.bufname . '\n'
+bash: syntax error near unexpected token `('
+root@8d526f641b03:/app#
+root@8d526f641b03:/app#                 if win.split_type == 'vsplit'
+>                     script .= ind . 'vsplit\n'
+>                 elseif win.split_type == 'split'
+>                     script .= ind . 'split\n'
+>                 endif
+>
+>                 if win.bufname != ''
+>                     script .= ind . 'edit ' . fnameescape(win.bufname) . '\n'
+bash: syntax error near unexpected token `('
+root@8d526f641b03:/app#                 endif
+bash: endif: command not found
+root@8d526f641b03:/app#             endif
+bash: endif: command not found
+root@8d526f641b03:/app#
+root@8d526f641b03:/app#             script .= ind . '\n'
+script: unexpected number of arguments
+Try 'script --help' for more information.
+root@8d526f641b03:/app#         endfor
+bash: endfor: command not found
+root@8d526f641b03:/app#     endfor
+bash: endfor: command not found
+root@8d526f641b03:/app#
+root@8d526f641b03:/app#     script .= ind . '" Restore active tab\n'
+script: unexpected number of arguments
+Try 'script --help' for more information.
+root@8d526f641b03:/app#     script .= ind . 'if ' . tab_count . ' > 1\n'
+script: unexpected number of arguments
+Try 'script --help' for more information.
+root@8d526f641b03:/app#     script .= ind1 . 'tabnext ' . a:layout.active_tab . '\n'
+script: unexpected number of arguments
+Try 'script --help' for more information.
+root@8d526f641b03:/app#     script .= ind . 'endif\n'
+script: unexpected number of arguments
+Try 'script --help' for more information.
+root@8d526f641b03:/app#
+root@8d526f641b03:/app#     return script
+bash: return: script: numeric argument required
+bash: return: can only `return' from a function or sourced script
+root@8d526f641b03:/app# endfunction
+bash: endfunction: command not found
+root@8d526f641b03:/app#
+root@8d526f641b03:/app# function! s:LayoutQuineImpl(path)
+bash: syntax error near unexpected token `('
+root@8d526f641b03:/app#     let layout = s:CaptureLayout()
+bash: syntax error near unexpected token `('
+root@8d526f641b03:/app#     let script = s:GenerateLayoutScript(layout, 0)
+bash: syntax error near unexpected token `('
+root@8d526f641b03:/app#
+root@8d526f641b03:/app#     call writefile(split(script, '\n'), a:path)
+bash: syntax error near unexpected token `('
+root@8d526f641b03:/app#
+root@8d526f641b03:/app#     echo 'Layout saved to: ' . a:path
+Layout saved to:  . a:path
+root@8d526f641b03:/app# endfunction
+bash: endfunction: command not found
+root@8d526f641b03:/app#
+root@8d526f641b03:/app# command! -nargs=1 LayoutQuine call s:LayoutQuineImpl(<f-args>)
+bash: syntax error near unexpected token `('
+root@8d526f641b03:/app# ENDOFFILE
+bash: ENDOFFILE: command not found
+root@8d526f641b03:/app#

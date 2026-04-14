@@ -1,0 +1,36 @@
+New Terminal Output:
+
+root@8d75f47cee9b:/app# python3 /app/merkle_cli.py --help
+usage: merkle_cli.py [-h] {scan,proof,verify} ...
+
+Merkle Tree CLI Tool
+
+positional arguments:
+  {scan,proof,verify}
+    scan               Scan directory and build Merkle tree
+    proof              Generate Merkle proof for a file
+    verify             Verify file integrity
+
+options:
+  -h, --help           show this help message and exit
+root@8d75f47cee9b:/app# python3 /app/merkle_cli.py scan /app/test_data && python3 /app/merkle_cli.py proof file1.txt
+Scanned 4 files
+Root hash: a1cfd6d78fc8b26b91f2beafe334985326d2747ac068cd701b6fdbca6cfbfe08da584eb05f0fbe6b577c782fe499f546822537ec10f709213f4734dce17ff9cb
+{
+  "file_path": "file1.txt",
+  "proof": [
+    [
+      "right",
+      "7d0c8f3d3f4d1a577e6972a7a3fbf4687cb4ba33d7e72c0b96b8ff7f40663e6a40e5f5a68b49036cc1a7cc9792a1145db6219390910d833ab11e0a1635396f33"
+    ],
+    [
+      "right",
+      "c804c15589ee149f48215c65ba775f32ed224b200f49c499b4e4097173dc52c880db15a4213020da8c808d2369a56e1829dcde7efab2a56bac3d3550915432e1"
+    ]
+  ]
+}
+root@8d75f47cee9b:/app# python3 -c "import json; d=json.load(open('/app/merkle_data.json')); print('root_hash len:', len(d['root_hash']), 'hex:', all(c in '0123
+456789abcdef' for c in d['root_hash'])); print('file_hashes:', {k: len(v) for k,v in d['file_hashes'].items()})"
+root_hash len: 128 hex: True
+file_hashes: {'file1.txt': 128, 'file2.txt': 128, 'file3.txt': 128, 'subdir/nested.txt': 128}
+root@8d75f47cee9b:/app#

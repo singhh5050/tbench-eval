@@ -1,0 +1,311 @@
+[?2004hroot@710a10b7d8a0:/app# asciinema rec --stdin /logs/agent/recording.cast
+[?2004l[0;32masciinema: recording asciicast to /logs/agent/recording.cast[0m
+[0;32masciinema: press <ctrl-d> or type "exit" when you're done[0m
+[?2004hroot@710a10b7d8a0:/app# clear
+[?2004l[H[J[3J[?2004hroot@710a10b7d8a0:/app# cat > /app/merkle_cli.py << 'EOF'
+[?2004l[?2004h> #!/usr/bin/env python3
+[?2004l[?2004h> import argparse
+[?2004l[?2004h> import hashlib
+[?2004l[?2004h> import json
+[?2004l[?2004h> import os
+[?2004l[?2004h> import sys
+[?2004l[?2004h> from pathlib import Path
+[?2004l[?2004h> 
+[?2004l[?2004h> 
+[?2004l[?2004h> def sha512(data: bytes) -> str:
+[?2004l[?2004h>     return hashlib.sha512(data).hexdigest()
+[?2004l[?2004h> 
+[?2004l[?2004h> 
+[?2004l[?2004h> def build_merkle_tree(file_hashes):
+[?2004l[?2004h>     # file_hashes: dict mapping relative path to leaf hash
+[?2004l789abcdef' for c in entry[1]):
+            print(f"Error: invalid proof hash {entry[1]}", file=sys.stderr)
+            sys.exit(1)
+
+    # Output JSON to stdout
+    output = {
+        "file_path": file_path,
+        "proof": proof
+    }
+    json.dump(output, sys.stdout, indent=None)
+    sys.stdout.write('\n')
+
+
+def veri[?2004h>     # returns root_hash, proofs (dict mapping path to proof list), file_hashes (same as input)
+[?2004l[?2004h>     # proof list format: ["left", sibling_hash], ["right", sibling_hash], ... from leaf to root
+[?2004l[?2004h> 
+[?2004l[?2004h>     # Start with leaves
+[?2004l[?2004h>     nodes = [{'path': p, 'hash': h} for p, h in file_hashes.items()]
+[?2004l[?2004h>     proofs = {p: [] for p in file_hashes}
+[?2004l[?2004h> 
+[?2004l[?2004h>     while len(nodes) > 1:
+[?2004l[?2004h>         next_level = []
+[?2004l[?2004h>         for i in range(0, len(nodes), 2):
+[?2004l[?2004h>             left = nodes[i]
+[?2004l[?2004h>             right = nodes[i+1] if i+1 < len(nodes) else left  # duplicate last if odd
+[?2004l[?2004h> 
+[?2004l[?2004h>             # Compute parent hash
+[?2004l[?2004h>             combined = left['hash'].encode('utf-8') + right['hash'].encode('utf-8')
+[?2004l[?2004h>             parent_hash = sha512(combined)
+[?2004l[?2004h> 
+[?2004l[?2004h>             # Record sibling direction and hash for each child
+[?2004l[?2004h>             # If current index is even, left is left child, right is right child
+[?2004l[?2004h>             # So left's sibling is right -> direction "right"
+[?2004l[?2004h>             #     right's sibling is left -> direction "left"
+[?2004l[?2004h>             if i % 2 == 0:
+[?2004l[?2004h>                 # left child
+[?2004l[?2004h>                 proofs[left['path']].insert(0, ["right", right['hash']])
+[?2004l[?2004h>                 # right child (if different)
+[?2004l[?2004h>                 if i+1 < len(nodes):
+[?2004l[?2004h>                     proofs[right['path']].insert(0, ["left", left['hash']])
+[?2004l[?2004h>             else:
+[?2004l[?2004h>                 # This case should not happen as we process pairs sequentially
+[?2004l[?2004h>                 # but if it does, treat similarly
+[?2004l[?2004h>                 pass
+[?2004l[?2004h> 
+[?2004l[?2004h>             next_level.append({'hash': parent_hash})
+[?2004l[?2004h>         nodes = next_level
+[?2004l[?2004h> 
+[?2004l[?2004h>     root_hash = nodes[0]['hash'] if nodes else ''
+[?2004l[?2004h>     return root_hash, proofs, file_hashes
+[?2004l[?2004h> 
+[?2004l[?2004h> 
+[?2004l[?2004h> def scan_directory(directory_path):
+[?2004l[?2004h>     directory = Path(directory_path)
+[?2004l[?2004h>     if not directory.is_dir():
+[?2004l[?2004h>         print(f'Error: {directory_path} is not a directory', file=sys.stderr)
+[?2004l[?2004h>         sys.exit(1)
+[?2004l[?2004h> 
+[?2004l[?2004h>     file_hashes = {}
+[?2004l[?2004h>     # Walk all files recursively
+[?2004l[?2004h>     for file_path in directory.rglob('*'):
+[?2004l[?2004h>         if file_path.is_file():
+[?2004l[?2004h>             rel_path = file_path.relative_to(directory)
+[?2004l[?2004h>             # Read file in binary mode
+[?2004l[?2004h>             data = file_path.read_bytes()
+[?2004l[?2004h>             file_hash = sha512(data)
+[?2004l[?2004h>             file_hashes[rel_path.as_posix()] = file_hash
+[?2004l[?2004h> 
+[?2004l[?2004h>     if not file_hashes:
+[?2004l[?2004h>         # Empty directory
+[?2004l[?2004h>         root_hash = sha512(b'')  # hash of empty content
+[?2004l[?2004h>         proofs = {}
+[?2004l[?2004h>     else:
+[?2004l[?2004h>         root_hash, proofs, file_hashes = build_merkle_tree(file_hashes)
+[?2004l[?2004h> 
+[?2004l[?2004h>     # Store in merkle_data.json
+[?2004l[?2004h>     storage = {
+[?2004l[?2004h>         "root_hash": root_hash,
+[?2004l[?2004h>         "proofs": proofs,
+[?2004l[?2004h>         "file_hashes": file_hashes,
+[?2004l[?2004h>         "scanned_directory": str(Path(directory_path).resolve())
+[?2004l[?2004h>     }
+[?2004l[?2004h>     with open('/app/merkle_data.json', 'w') as f:
+[?2004l[?2004h>         json.dump(storage, f, indent=2)
+[?2004l[?2004h> 
+[?2004l[?2004h> 
+[?2004l[?2004h> def generate_proof(file_path):
+[?2004l[?2004h>     # Load merkle_data.json
+[?2004l[?2004h>     try:
+[?2004l[?2004h>         with open('/app/merkle_data.json', 'r') as f:
+[?2004l[?2004h>             storage = json.load(f)
+[?2004l[?2004h>     except FileNotFoundError:
+[?2004l[?2004h>         print("Error: merkle_data.json not found. Run 'scan' first.", file=sys.stderr)
+[?2004l[?2004h>         sys.exit(1)
+[?2004l[?2004h> 
+[?2004l[?2004h>     # Validate root_hash length
+[?2004l[?2004h>     if len(storage['root_hash']) != 128 or not all(c in '0123456789abcdef' for c in storage['root_hash']):
+[?2004l[?2004h>         print("Error: invalid root_hash format", file=sys.stderr)
+[?2004l[?2004h>         sys.exit(1)
+[?2004l[?2004h> 
+[?2004l[?2004h>     # Validate file_hashes entries
+[?2004l[?2004h>     for k, v in storage['file_hashes'].items():
+[?2004l[?2004h>         if len(v) != 128 or not all(c in '0123456789abcdef' for c in v):
+[?2004l[?2004h>             print(f"Error: invalid hash for {k}", file=sys.stderr)
+[?2004l[?2004h>             sys.exit(1)
+[?2004l[?2004h> 
+[?2004l[?2004h>     # Check if file_path exists in proofs
+[?2004l[?2004h>     if file_path not in storage['proofs']:
+[?2004l[?2004h>         print(f"Error: no proof found for {file_path}", file=sys.stderr)
+[?2004l[?2004h>         sys.exit(1)
+[?2004l[?2004h> 
+[?2004l[?2004h>     proof = storage['proofs'][file_path]
+[?2004l[?2004h>     # Validate each proof hash
+[?2004l[?2004h>     for entry in proof:
+[?2004l[?2004h>         if len(entry[1]) != 128 or not all(c in '0123456789abcdef' for c in entry[1]):
+[?2004l[?2004h>             print(f"Error: invalid proof hash {entry[1]}", file=sys.stderr)
+[?2004l[?2004h>             sys.exit(1)
+[?2004l[?2004h> 
+[?2004l[?2004h>     # Output JSON to stdout
+[?2004l[?2004h>     output = {
+[?2004l[?2004h>         "file_path": file_path,
+[?2004l[?2004h>         "proof": proof
+[?2004l[?2004h>     }
+[?2004l[?2004h>     json.dump(output, sys.stdout, indent=None)
+[?2004l[?2004h>     sys.stdout.write('\n')
+[?2004l[?2004h> 
+[?2004l[?2004h> 
+[?2004l[?2004h> def verify_file(file_path, proof_file):
+[?2004l[?2004h>     # Load merkle_data.json
+[?2004l[?2004h>     try:
+[?2004l[?2004h>         with open('/app/merkle_data.json', 'r') as f:
+[?2004l[?2004h>             storage = json.load(f)
+[?2004l[?2004h>     except FileNotFoundError:
+[?2004l[?2004h>         print("Error: merkle_data.json not found. Run 'scan' first.", file=sys.stderr)
+[?2004l[?2004h>         sys.exit(1)
+[?2004l[?2004h> 
+[?2004l[?2004h>     # Load proof JSON
+[?2004l[?2004h>     try:
+[?2004l[?2004h>         with open(proof_file, 'r') as f:
+[?2004l[?2004h>             proof_data = json.load(f)
+[?2004l[?2004h>     except FileNotFoundError:
+[?2004l[?2004h>         print(f"Error: proof file {proof_file} not found", file=sys.stderr)
+[?2004l[?2004h>         sys.exit(1)
+[?2004l[?2004h> 
+[?2004l[?2004h>     # Validate proof structure
+[?2004l[?2004h>     if 'proof' not in proof_data or not isinstance(proof_data['proof'], list):
+[?2004l[?2004h>         print("Error: invalid proof format", file=sys.stderr)
+[?2004l[?2004h>         sys.exit(1)
+[?2004l[?2004h>     proof = proof_data['proof']
+[?2004l[?2004h>     expected_file_path = proof_data.get('file_path')
+[?2004l[?2004h>     if expected_file_path is None:
+[?2004l[?2004h>         print("Error: proof file missing file_path", file=sys.stderr)
+[?2004l[?2004h>         sys.exit(1)
+[?2004l[?2004h> 
+[?2004l[?2004h>     # Resolve the file path
+[?2004l[?2004h>     # The file_path argument can be absolute or relative
+[?2004l[?2004h>     target_path = Path(file_path)
+[?2004lumentParser(des[?2004h>     if not target_path.exists():
+[?2004l[?2004h>         print(f"Error: file {file_path} does not exist", file=sys.stderr)
+[?2004l[?2004h>         sys.exit(1)
+[?2004l[?2004h> 
+[?2004l[?2004h>     # Compute current hash
+[?2004l[?2004h>     data = target_path.read_bytes()
+[?2004l[?2004h>     current_hash = sha512(data)
+[?2004l[?2004h> 
+[?2004l[?2004h>     # Check if current_hash matches stored file_hashes
+[?2004l[?2004h>     stored_hash = storage['file_hashes'].get(expected_file_path)
+[?2004l[?2004h>     if stored_hash is None:
+[?2004l[?2004h>         # Maybe the stored path is relative to scanned directory
+[?2004l[?2004h>         # Try resolving relative to scanned_directory
+[?2004l[?2004h>         scanned_dir = storage['scanned_directory']
+[?2004l[?2004h>         full_path = os.path.join(scanned_dir, expected_file_path)
+[?2004l[?2004h>         if os.path.exists(full_path):
+[?2004l[?2004h>             stored_hash = sha512(open(full_path, 'rb').read())
+[?2004l[?2004h>         else:
+[?2004l[?2004h>             print(f"Error: stored file path {expected_file_path} not found", file=sys.stderr)
+[?2004l[?2004h>             sys.exit(1)
+[?2004l[?2004h> 
+[?2004l[?2004h>     file_hash_matches = (current_hash == stored_hash)
+[?2004l[?2004h> 
+[?2004l[?2004h>     # Reconstruct root from proof
+[?2004l[?2004h>     reconstructed_hashes = {expected_file_path: current_hash}
+[?2004l[?2004h>     current_hashes = {expected_file_path: current_hash}
+[?2004l[?2004h>     # We need to rebuild the path using proof entries
+[?2004l[?2004h>     # Use the same method as build_merkle_tree but in reverse
+[?2004l[?2004h>     # We'll simulate the levels
+[?2004l[?2004h>     node_hash = current_hash
+[?2004l[?2004h>     temp_proof = proof[:]
+[?2004l[?2004h>     # Sort proof by direction? No, we need to process in order from leaf to root
+[?2004l[?2004h>     # We'll just iterate through proof entries
+[?2004l[?2004h>     # But we need to know sibling hashes; they are entry[1]
+[?2004l[?2004h>     # We'll treat each entry as sibling hash, and we need to combine with node_hash
+[?2004l[?2004h>     # However, we don't know whether current node was left or right child
+[?2004l[?2004h>     # We can use the direction to decide how to combine
+[?2004l[?2004h>     # Actually easier: during verification, we can recompute root by walking up using proof
+[?2004l[?2004h>     # We maintain a dict of known hashes, starting with the leaf hash
+[?2004l[?2004h>     known = {expected_file_path: current_hash}
+[?2004l[?2004h>     # We'll simulate up to root
+[?2004l[?2004h>     # At each step, we have a set of hashes at current level; we pair them
+[?2004l[?2004h>     # But since we only have one path, we can just use the proof entries directly
+[?2004l[?2004h>     # The proof entries give sibling hash and direction indicating position
+[?2004l[?2004h>     # We can reconstruct by: for each entry, if direction is "left", then current node is right child, so combine sibling_hash (left) + current_hash
+[?2004l[?2004h>     # If direction is "right", current node is left child, so combine current_hash + sibling_hash
+[?2004l[?2004h>     # Then hash the concatenation
+[?2004l[?2004h>     reconstructed_hash = current_hash
+[?2004l[?2004h>     for direction, sibling_hash in proof:
+[?2004l[?2004h>         if direction == "left":
+[?2004l[?2004h>             # current node is right child, sibling is on left
+[?2004l[?2004h>             # So the pair is [sibling_hash, reconstructed_hash]
+[?2004l[?2004h>             combined = sibling_hash.encode('utf-8') + reconstructed_hash.encode('utf-8')
+[?2004l[?2004h>         elif direction == "right":
+[?2004l[?2004h>             # current node is left child, sibling is on right
+[?2004l[?2004h>             combined = reconstructed_hash.encode('utf-8') + sibling_hash.encode('utf-8')
+[?2004l[?2004h>         else:
+[?2004l[?2004h>             print(f"Error: invalid direction {direction}", file=sys.stderr)
+[?2004l[?2004h>             sys.exit(1)
+[?2004l[?2004h>         reconstructed_hash = sha512(combined)
+[?2004l[?2004h>     root_matches = (reconstructed_hash == storage['root_hash'])
+[?2004l[?2004h> 
+[?2004l[?2004h>     # Prepare verification result
+[?2004l[?2004h>     result = {
+[?2004l[?2004h>         "root_matches": root_matches,
+[?2004l[?2004h>         "file_hash_matches_storage": file_hash_matches,
+[?2004l[?2004h>         "file_path": expected_file_path,
+[?2004l[?2004h>         "added_files": [],
+[?2004l[?2004h>         "deleted_files": [],
+[?2004l[?2004h>         "modified_files": []
+[?2004l[?2004h>     }
+[?2004l[?2004h> 
+[?2004l[?2004h>     # Since we are verifying a single file, added/deleted/modified are empty
+[?2004l[?2004h>     # But if the file is missing from storage, it would be a deletion
+[?2004l[?2004h>     if not file_hash_matches:
+[?2004l[?2004h>         result["modified_files"] = [expected_file_path]
+[?2004l[?2004h>     # If the file is not in storage at all, it would be added, but we already checked
+[?2004l[?2004h> 
+[?2004l[?2004h>     # Output result as JSON
+[?2004l[?2004h>     print(json.dumps(result))
+[?2004l[?2004h>     # If verification fails, ensure "failed" appears in stdout or exit non-zero
+[?2004l[?2004h>     if not (root_matches and file_hash_matches):
+[?2004l[?2004h>         # Already printed JSON, but we need to ensure exit code is non-zero
+[?2004l[?2004h>         sys.exit(1)
+[?2004l[?2004h> 
+[?2004l[?2004h> 
+[?2004l[?2004h> if __name__ == '__main__':
+[?2004l[?2004h>     parser = argparse.ArgumentParser(description='Merkle Tree CLI Tool')
+[?2004l[?2004h>     subparsers = parser.add_subparsers(dest='command', help='Available commands')
+[?2004l[?2004h> 
+[?2004l[?2004h>     # scan command
+[?2004l[?2004h>     scan_parser = subparsers.add_parser('scan', help='Scan a directory and build Merkle tree')
+[?2004l[?2004h>     scan_parser.add_argument('directory', help='Directory to scan')
+[?2004l[?2004h> 
+[?2004l[?2004h>     # proof command
+[?2004l[?2004h>     proof_parser = subparsers.add_parser('proof', help='Generate Merkle proof for a file')
+[?2004l[?2004h>     proof_parser.add_argument('file_path', help='Relative file path as stored in merkle_data.json')
+[?2004l[?2004h> 
+[?2004l[?2004h>     # verify command
+[?2004l[?2004h>     verify_parser = subparsers.add_parser('verify', help='Verify file integrity using proof')
+[?2004l[?2004h>     verify_parser.add_argument('file_path', help='File path to verify (relative or absolute)')
+[?2004l[?2004h>     verify_parser.add_argument('proof_file', help='JSON file containing proof data')
+[?2004l[?2004h> 
+[?2004l[?2004h>     args = parser.parse_args()
+[?2004l[?2004h> 
+[?2004l[?2004h>     if args.command == 'scan':
+[?2004l[?2004h>         scan_directory(args.directory)
+[?2004l[?2004h>     elif args.command == 'proof':
+[?2004l[?2004h>         generate_proof(args.file_path)
+[?2004l[?2004h>     elif args.command == 'verify':
+[?2004l[?2004h>         verify_file(args.file_path, args.proof_file)
+[?2004l[?2004h>     else:
+[?2004l[?2004h>         parser.print_help()
+[?2004l[?2004h>         sys.exit(1)
+[?2004l[?2004h> 
+[?2004l[?2004h> EOF
+[?2004l[?2004hroot@710a10b7d8a0:/app# chmod +x /app/merkle_cli.py
+[?2004l[?2004hroot@710a10b7d8a0:/app# sed -i "s/sys.stdout.write('\\\\n/&\\\\')/g" /app/merkle_cli.py
+[?2004l[?2004hroot@710a10b7d8a0:/app# grep -A 1 "sys.stdout.write" /app/merkle_cli.py
+[?2004l    sys.stdout.write('\n\')')
+
+[?2004hroot@710a10b7d8a0:/app# line=$(grep -n "sys.stdout.write" /app/merkle_cli.py | head -1 | cut -d: -f1) && sed -i "${line}s/.*/    sys.stdout.write('\\n')/" /app/merkle_cli.py
+[?2004l[?2004hroot@710a10b7d8a0:/app# grep -A 1 "sys.stdout.write" /app/merkle_cli.py
+[?2004l    sys.stdout.write('
+')
+[?2004hroot@710a10b7d8a0:/app# sed -i '/sys.stdout.write/c\\    sys.stdout.write(\\\\n\\)' /app/merkle_cli.py
+[?2004l[?2004hroot@710a10b7d8a0:/app# grep -A 1 "sys.stdout.write" /app/merkle_cli.py
+[?2004l    sys.stdout.write(\\n\)
+')
+[?2004hroot@710a10b7d8a0:/app# sed -i 's#sys.stdout.write.*#    sys.stdout.write(\\\\n\\)#' /app/merkle_cli.py
+[?2004l[?2004hroot@710a10b7d8a0:/app# grep -A 1 "sys.stdout.write" /app/merkle_cli.py
+[?2004l        sys.stdout.write(\\n\)
+')
+[?2004hroot@710a10b7d8a0:/app# 

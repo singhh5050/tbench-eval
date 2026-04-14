@@ -1,0 +1,23 @@
+New Terminal Output:
+
+root@2928fe68ba2e:/app# # Test exit code for successful verification
+root@2928fe68ba2e:/app# /app/verify_artifact.sh /app/artifacts/release.tar.gz
+Checking required files...
+All required files present.
+Validating certificate chain...
+Certificate will not expire
+Certificate chain valid.
+Extracting public key from signing certificate...
+Verifying artifact signature...
+VERIFICATION_FAILED
+root@2928fe68ba2e:/app# echo "Exit code: $?"
+Exit code: 1
+root@2928fe68ba2e:/app# # Test missing signature file scenario
+root@2928fe68ba2e:/app# mv /app/signed/release.tar.gz.sig /app/signed/release.tar.gz.sig.bak
+root@2928fe68ba2e:/app# /app/verify_artifact.sh /app/artifacts/release.tar.gz
+Checking required files...
+VERIFICATION_FAILED
+root@2928fe68ba2e:/app# echo "Exit code: $?"
+Exit code: 1
+root@2928fe68ba2e:/app# mv /app/signed/release.tar.gz.sig.bak /app/signed/release.tar.gz.sig
+root@2928fe68ba2e:/app#

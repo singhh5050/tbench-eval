@@ -1,0 +1,59 @@
+New Terminal Output:
+
+root@8884a9b806ea:/app# cat > /app/setup_ca.sh << 'EOF'
+> #!/bin/bash
+> set -e
+>
+> # Create directory structure
+> mkdir -p /app/ca /app/signing /app/signed
+>
+> # Create Root CA private key
+> openssl genpkey -algorithm EC -pkeyopt ec_paramgen_curve:prime256v1 -out /app/ca/root-ca-key.pem
+>
+> # Create Root CA self-signed certificate
+> openssl req -x509 -new -nodes -key /app/ca/root-ca-key.pem -sha256 -days 3650 -out /app/ca/root-ca.pem -subj "/CN=Software Signing Root CA/O=SecureBuild/C=US"
+>
+> # Create Intermediate CA private key
+> openssl genpkey -algorithm EC -pkeyopt ec_paramgen_curve:prime256v1 -out /app/ca/intermediate-ca-key.pem
+>
+> # Create Intermediate CA certificate signed by Root CA
+> cat > /app/ca/intermediate-ca.cnf << 'CONFIG'
+> [ req ]
+> distinguished_name = req_distinguished_name
+> req_extensions = v3_req
+> [ req_distinguished_name ]
+> commonName = Build Pipeline Intermediate CA
+> [v3_req]
+> basicConstraints = critical,CA:true,pathlen:0
+> keyUsage = certificateSign, digitalSignature
+> subjectKeyIdentifier = hash
+> authorityKeyIdentifier = keyid,issuer
+> CONFIG
+>
+> openssl req -new -key /app/ca/intermediate-ca-key.pem -out /app/ca/intermediate-ca.csr -config /app/ca/intermediate-ca.cnf -subj "/CN=Build Pipeline Intermedi
+ate CA/O=SecureBuild/C=US"
+>
+> openssl x509 -req -in /app/ca/intermediate-ca.csr -CA /app/ca/root-ca.pem -CAkey /app/ca/root-ca-key.pem -CAcreateserial -out /app/ca/intermediate-ca.pem -day
+s 1825 -sha256 -extensions v3_req -extfile /app/ca/intermediate-ca.cnf
+>
+> # Clean up
+> rm -f /app/ca/intermediate-ca.csr /app/ca/intermediate-ca.cnf
+>
+> # Create serial file
+> echo 01 > /app/ca/serial
+>
+> # Verify all required files exist
+> for f in /app/ca/root-ca.pem /app/ca/intermediate-ca.pem; do
+>     if [ ! -f "$f" ]; then
+>         echo "Error: $f not created" >&2
+>         exit 1
+>     fi
+> done
+> EOF
+root@8884a9b806ea:/app# chmod +x /app/setup_ca.sh
+root@8884a9b806ea:/app# /app/setup_ca.sh
+Error checking request extension section v3_req
+40C73C8843790000:error:1100006F:X509 V3 routines:v2i_ASN1_BIT_STRING:unknown bit string argument:../crypto/x509/v3_bitst.c:82:certificateSign
+40C73C8843790000:error:11000080:X509 V3 routines:X509V3_EXT_nconf_int:error in extension:../crypto/x509/v3_conf.c:48:section=v3_req, name=keyUsage, value=certif
+icateSign, digitalSignature
+root@8884a9b806ea:/app#

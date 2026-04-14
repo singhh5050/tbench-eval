@@ -1,0 +1,172 @@
+New Terminal Output:
+
+root@2928fe68ba2e:/app# cat > /app/verify_artifact.sh << 'EOF'
+> #!/bin/bash
+> # Artifact Verification Script
+> # Verifies signed artifacts using certificate chain and signatures
+>
+> set -e
+>
+> # Check arguments
+> if [ $# -ne 1 ]; then
+>     echo "Usage: $0 <artifact-path>"
+>     exit 1
+> fi
+>
+> ARTIFACT_PATH="$1"
+>
+> # Extract artifact name
+> ARTIFACT_NAME=$(basename "$ARTIFACT_PATH")
+>
+> # Define file paths
+> SIG_FILE="/app/signed/${ARTIFACT_NAME}.sig"
+> PROVENANCE_JSON="/app/signed/${ARTIFACT_NAME}.provenance.json"
+> PROVENANCE_SIG="/app/signed/${ARTIFACT_NAME}.provenance.sig"
+> CHAIN_FILE="/app/signed/${ARTIFACT_NAME}.chain.pem"
+>
+> # Step 1: File existence checks
+> echo "Checking required files..."
+>
+> if [ ! -f "$ARTIFACT_PATH" ]; then
+>     echo "VERIFICATION_FAILED"
+>     exit 1
+> fi
+>
+> if [ ! -f "$SIG_FILE" ]; then
+>     echo "VERIFICATION_FAILED"
+>     exit 1
+> fi
+>
+> if [ ! -f "$PROVENANCE_JSON" ]; then
+>     echo "VERIFICATION_FAILED"
+>     exit 1
+> fi
+>
+> if [ ! -f "$PROVENANCE_SIG" ]; then
+>     echo "VERIFICATION_FAILED"
+>     exit 1
+> fi
+>
+> if [ ! -f "$CHAIN_FILE" ]; then
+>     echo "VERIFICATION_FAILED"
+>     exit 1
+> fi
+>
+> echo "All required files present."
+>
+> # Step 2: Extract signing certificate from chain and validate
+> echo "Validating certificate chain..."
+>
+> # Extract the first certificate (signing certificate) from the chain
+> openssl x509 -in "$CHAIN_FILE" -noout > /tmp/signing_cert.pem 2>/dev/null
+>
+> # Verify the chain using OpenSSL's verify command
+> # We need to verify that:
+> # 1. The signing cert was signed by intermediate CA
+> # 2. The intermediate CA was signed by root CA
+>
+> # Create a CA bundle for verification
+> CA_BUNDLE="/tmp/ca-bundle.pem"
+> cat /app/ca/intermediate-ca.pem /app/ca/root-ca.pem > "$CA_BUNDLE"
+>
+> # Verify the chain
+> if ! openssl verify -CAfile "$CA_BUNDLE" /tmp/signing_cert.pem > /dev/null 2>&1; then
+>     echo "VERIFICATION_FAILED"
+>     exit 1
+> fi
+>
+> # Check certificate validity (not expired)
+> if ! openssl x509 -in /tmp/signing_cert.pem -noout -checkend 0 2>/dev/null; then
+>     echo "VERIFICATION_FAILED"
+>     exit 1
+> fi
+>
+> # Verify intermediate CA is signed by root CA
+> if ! openssl verify -CAfile /app/ca/root-ca.pem /app/ca/intermediate-ca.pem > /dev/null 2>&1; then
+>     echo "VERIFICATION_FAILED"
+>     exit 1
+> fi
+>
+> echo "Certificate chain valid."
+>
+> # Step 3: Extract public key from signing certificate
+> echo "Extracting public key from signing certificate..."
+> openssl x509 -in /tmp/signing_cert.pem -pubkey -noout > /tmp/pubkey.pem
+>
+> # Step 4: Verify artifact signature
+> echo "Verifying artifact signature..."
+> if ! openssl dgst -sha256 -verify /tmp/pubkey.pem -signature "$SIG_FILE" "$ARTIFACT_PATH" > /dev/null 2>&1; then
+>     echo "VERIFICATION_FAILED"
+>     exit 1
+> fi
+> echo "Artifact signature verified."
+>
+> # Step 5: Verify provenance signature
+> echo "Verifying provenance signature..."
+> if ! openssl dgst -sha256 -verify /tmp/pubkey.pem -signature "$PROVENANCE_SIG" "$PROVENANCE_JSON" > /dev/null 2>&1; then
+>     echo "VERIFICATION_FAILED"
+>     exit 1
+> fi
+> echo "Provenance signature verified."
+>
+> # Step 6: Validate provenance content
+> echo "Validating provenance content..."
+>
+> # Check required fields exist
+> if ! jq -e '.buildID' "$PROVENANCE_JSON" > /dev/null 2>&1; then
+>     echo "VERIFICATION_FAILED"
+>     exit 1
+> fi
+>
+> if ! jq -e '.artifact' "$PROVENANCE_JSON" > /dev/null 2>&1; then
+>     echo "VERIFICATION_FAILED"
+>     exit 1
+> fi
+>
+> if ! jq -e '.sha256' "$PROVENANCE_JSON" > /dev/null 2>&1; then
+>     echo "VERIFICATION_FAILED"
+>     exit 1
+> fi
+>
+> if ! jq -e '.signedAt' "$PROVENANCE_JSON" > /dev/null 2>&1; then
+>     echo "VERIFICATION_FAILED"
+>     exit 1
+> fi
+>
+> if ! jq -e '.signer' "$PROVENANCE_JSON" > /dev/null 2>&1; then
+>     echo "VERIFICATION_FAILED"
+>     exit 1
+> fi
+>
+> if ! jq -e '.certificateChain' "$PROVENANCE_JSON" > /dev/null 2>&1; then
+>     echo "VERIFICATION_FAILED"
+>     exit 1
+> fi
+>
+> # Verify artifact name matches
+> PROVENANCE_ARTIFACT=$(jq -r '.artifact' "$PROVENANCE_JSON")
+> if [ "$PROVENANCE_ARTIFACT" != "$ARTIFACT_NAME" ]; then
+>     echo "VERIFICATION_FAILED"
+>     exit 1
+> fi
+>
+> # Verify SHA256 checksum
+> ACTUAL_SHA256=$(sha256sum "$ARTIFACT_PATH" | awk '{print $1}')
+> PROVENANCE_SHA256=$(jq -r '.sha256' "$PROVENANCE_JSON")
+> if [ "$ACTUAL_SHA256" != "$PROVENANCE_SHA256" ]; then
+>     echo "VERIFICATION_FAILED"
+>     exit 1
+> fi
+>
+> echo "Provenance content validated."
+> echo "Artifact SHA256: $ACTUAL_SHA256"
+>
+> # Cleanup
+> rm -f /tmp/signing_cert.pem /tmp/pubkey.pem "$CA_BUNDLE"
+>
+> echo ""
+> echo "VERIFICATION_PASSED"
+> exit 0
+> EOF
+root@2928fe68ba2e:/app# chmod +x /app/verify_artifact.sh
+root@2928fe68ba2e:/app#

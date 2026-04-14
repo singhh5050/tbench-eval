@@ -1,0 +1,41 @@
+Current Terminal Screen:
+7,1.374,1.475070000000001,0.10107000000000088
+8,2.76,1.891749999999999,0.8682500000000009
+root@ec00c077f56c:/app# wc -l /app/output/api_predictions.csv
+3304 /app/output/api_predictions.csv
+root@ec00c077f56c:/app# ls -la /app/models/
+total 226592
+drwxr-xr-x 1 root root      4096 Apr  9 23:31 .
+drwxr-xr-x 1 root root      4096 Apr  9 23:33 ..
+-rw-r--r-- 1 root root 116002615 Apr  9 23:31 best_model.pkl
+-rw-r--r-- 1 root root       709 Apr  9 23:31 linear_regression.pkl
+-rw-r--r-- 1 root root 116002615 Apr  9 23:31 random_forest.pkl
+-rw-r--r-- 1 root root       681 Apr  9 23:31 ridge.pkl
+root@ec00c077f56c:/app# ls -la /app/output/
+total 340
+drwxr-xr-x 1 root root   4096 Apr  9 23:34 .
+drwxr-xr-x 1 root root   4096 Apr  9 23:33 ..
+-rw-r--r-- 1 root root    107 Apr  9 23:34 api_metrics.json
+-rw-r--r-- 1 root root 155362 Apr  9 23:34 api_predictions.csv
+-rw-r--r-- 1 root root    567 Apr  9 23:31 model_comparison.json
+-rw-r--r-- 1 root root 170671 Apr  9 23:31 split_info.json
+root@ec00c077f56c:/app# curl -s http://localhost:8000/health | python3 -m json.tool
+INFO:     127.0.0.1:59514 - "GET /health HTTP/1.1" 200 OK
+{
+    "status": "healthy",
+    "model_loaded": true
+}
+root@ec00c077f56c:/app# curl -s http://localhost:8000/model-info | python3 -m json.tool
+INFO:     127.0.0.1:57114 - "GET /model-info HTTP/1.1" 200 OK
+{
+    "model_name": "random_forest",
+    "model_type": "RandomForestRegressor",
+    "features_count": 8
+}
+root@ec00c077f56c:/app# python3 -c "import json; json.load(open('/app/output/api_metrics.json')); print('api_metrics.json is valid JSON')"
+api_metrics.json is valid JSON
+root@ec00c077f56c:/app# python3 -c "import json; json.load(open('/app/output/model_comparison.json')); print('model_comparison.json is valid JSON')"
+model_comparison.json is valid JSON
+root@ec00c077f56c:/app# python3 -c "import json; json.load(open('/app/output/split_info.json')); print('split_info.json is valid JSON')"
+split_info.json is valid JSON
+root@ec00c077f56c:/app#

@@ -1,0 +1,63 @@
+{
+  "analysis": "We need to identify which case directory corresponds to each summary. The previous grep for \"απάτη\" returned a large block of text about fraud, which matches **summary10** (fraud case). To capture the exact case number, we will repeat the grep with the `-H` flag (always print the filename) and extract the directory name. We will do the same for the other keywords representing the remaining summaries:\n- summary1 (late/untimely appeal): \"εκπρόθεσμη\" or \"απαράδεκτη\"\n- summary4 (compensation ceiling 15.000 €): \"15.000\" or \"ανώτατο όριο αποζημίωσης\"\n- summary5 (pent‑day work week/overtime): \"πενθήμερη\" or \"υπέρωρες\"\n- summary6 (criminal appeal refusal, reference to Ν. 3904/2010): \"3904/2010\" or \"άρθρο 34\"\n- summary7 (representation before the Supreme Court, non‑lawyer): \"Αρειος Πάγος\" or \"μη δικηγόρου\"\n- summary8 (seizure of a valuable object): \"υπεξαίρεση\" and \"μεγάλης αξίας\"\n- summary9 (false certificate): \"ψευδής βεβαίωση\"\n- summary10 (fraud): \"απάτη\"\n\nWe will run grep commands for each keyword, capture the filenames, and then use those filenames (which contain the case number) to build the final CSV.\n",
+  "plan": "1. For each keyword, run `grep -R -H \"keyword\" data/cases/*/content.txt | cut -d: -f1` to get the matching case directory paths.\n2. Record the case numbers (the directory name, e.g., data/cases/45) for each summary.\n3. After collecting all ten mappings (including the known summary2→6 and summary3→33), create `/workdir/sol.csv` with the required format.\n4. Verify the CSV content.\n",
+  "commands": [
+    {
+      "keystrokes": "grep -R -H \"εκπρόθεσμη\" data/cases/*/content.txt | cut -d: -f1\n",
+      "duration": 0.5
+    },
+    {
+      "keystrokes": "grep -R -H \"απαράδεκτη\" data/cases/*/content.txt | cut -d: -f1\n",
+      "duration": 0.5
+    },
+    {
+      "keystrokes": "grep -R -H \"15\\.000\" data/cases/*/content.txt | cut -d: -f1\n",
+      "duration": 0.5
+    },
+    {
+      "keystrokes": "grep -R -H \"ανώτατο όριο αποζημίωσης\" data/cases/*/content.txt | cut -d: -f1\n",
+      "duration": 0.5
+    },
+    {
+      "keystrokes": "grep -R -H \"πενθήμερη\" data/cases/*/content.txt | cut -d: -f1\n",
+      "duration": 0.5
+    },
+    {
+      "keystrokes": "grep -R -H \"υπέρωρες\" data/cases/*/content.txt | cut -d: -f1\n",
+      "duration": 0.5
+    },
+    {
+      "keystrokes": "grep -R -H \"3904/2010\" data/cases/*/content.txt | cut -d: -f1\n",
+      "duration": 0.5
+    },
+    {
+      "keystrokes": "grep -R -H \"άρθρο 34\" data/cases/*/content.txt | cut -d: -f1\n",
+      "duration": 0.5
+    },
+    {
+      "keystrokes": "grep -R -H \"Αρειος Πάγος\" data/cases/*/content.txt | cut -d: -f1\n",
+      "duration": 0.5
+    },
+    {
+      "keystrokes": "grep -R -H \"μη δικηγόρου\" data/cases/*/content.txt | cut -d: -f1\n",
+      "duration": 0.5
+    },
+    {
+      "keystrokes": "grep -R -H \"υπεξαίρεση\" data/cases/*/content.txt | cut -d: -f1\n",
+      "duration": 0.5
+    },
+    {
+      "keystrokes": "grep -R -H \"μεγάλης αξίας\" data/cases/*/content.txt | cut -d: -f1\n",
+      "duration": 0.5
+    },
+    {
+      "keystrokes": "grep -R -H \"ψευδής βεβαίωση\" data/cases/*/content.txt | cut -d: -f1\n",
+      "duration": 0.5
+    },
+    {
+      "keystrokes": "grep -R -H \"απάτη\" data/cases/*/content.txt | cut -d: -f1\n",
+      "duration": 0.5
+    }
+  ],
+  "task_complete": false
+}

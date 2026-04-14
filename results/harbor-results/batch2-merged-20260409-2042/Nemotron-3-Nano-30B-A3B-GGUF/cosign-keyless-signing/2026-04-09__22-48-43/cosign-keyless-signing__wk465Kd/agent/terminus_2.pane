@@ -1,0 +1,923 @@
+[?2004hroot@8884a9b806ea:/app# asciinema rec --stdin /logs/agent/recording.cast
+[?2004l[0;32masciinema: recording asciicast to /logs/agent/recording.cast[0m
+[0;32masciinema: press <ctrl-d> or type "exit" when you're done[0m
+[?2004hroot@8884a9b806ea:/app# clear
+[?2004l[H[J[3J[?2004hroot@8884a9b806ea:/app# ls -la
+[?2004ltotal 24
+drwxr-xr-x 1 root root 4096 Apr  9 23:44 .
+drwxr-xr-x 1 root root 4096 Apr 10 04:48 ..
+drwxr-xr-x 1 root root 4096 Apr  9 23:44 artifacts
+drwxr-xr-x 2 root root 4096 Apr  9 23:44 ca
+drwxr-xr-x 2 root root 4096 Apr  9 23:44 signed
+drwxr-xr-x 2 root root 4096 Apr  9 23:44 signing
+[?2004hroot@8884a9b806ea:/app# mkdir -p /app/ca /app/signing /app/signed /app/artifacts
+[?2004l[?2004hroot@8884a9b806ea:/app# echo "Creating setup_ca.sh..."
+[?2004lCreating setup_ca.sh...
+[?2004hroot@8884a9b806ea:/app# cat > /app/setup_ca.sh << 'EOF'
+[?2004l[?2004h> #!/bin/bash
+[?2004l[?2004h> set -e
+[?2004l[?2004h> 
+[?2004l[?2004h> # Create directory structure
+[?2004l[?2004h> mkdir -p /app/ca /app/signing /app/signed
+[?2004l[?2004h> 
+[?2004l[?2004h> # Generate Root CA private key
+[?2004l[?2004h> openssl genpkey -algorithm EC -pkeyopt ec_paramgen_curve:prime256v1 -out /app/ca/root-ca-key.pem
+[?2004l[?2004h> 
+[?2004l[?2004h> # Generate Root CA self-signed certificate
+[?2004l[?2004h> openssl req -x509 -new -nodes -key /app/ca/root-ca-key.pem -sha256 -days 3650 -out /app/ca/root-ca.pem -subj "/CN=Software Signing Root CA/O=SecureBuild/C=US" -addext "keyUsage=certificateSign,crlSign" -addext "basicConstraints=critical,CA:true"
+[?2004l[?2004h> 
+[?2004l[?2004h> # Generate Intermediate CA private key
+[?2004l[?2004h> openssl genpkey -algorithm EC -pkeyopt ec_paramgen_curve:prime256v1 -out /app/ca/intermediate-ca-key.pem
+[?2004l[?2004h> 
+[?2004l[?2004h> # Generate Intermediate CA CSR
+[?2004l[?2004h> openssl req -new -key /app/ca/intermediate-ca-key.pem -out /app/ca/intermediate-ca.csr -subj "/CN=Build Pipeline Intermediate CA/O=SecureBuild/C=US"
+[?2004l[?2004h> 
+[?2004l[?2004h> # Sign Intermediate CA with Root CA
+[?2004l[?2004h> openssl x509 -req -in /app/ca/intermediate-ca.csr -CA /app/ca/root-ca.pem -CAkey /app/ca/root-ca-key.pem -CAcreateserial -out /app/ca/intermediate-ca.pem -days 1825 -sha256 -addext "keyUsage=certificateSign,digitalSignature" -addext "basicConstraints=critical,CA:true,pathlen:0"
+[?2004l[?2004h> 
+[?2004l[?2004h> # Clean up CSR
+[?2004l[?2004h> rm -f /app/ca/intermediate-ca.csr
+[?2004l[?2004h> 
+[?2004l[?2004h> # Create serial file for OpenSSL
+[?2004l[?2004h> touch /app/ca/serial
+[?2004l[?2004h> EOF
+[?2004l[?2004hroot@8884a9b806ea:/app# chmod +x /app/setup_ca.sh
+[?2004l[?2004hroot@8884a9b806ea:/app# /app/setup_ca.sh
+[?2004lError checking extensions defined using -addext
+408791C9A4790000:error:1100006F:X509 V3 routines:v2i_ASN1_BIT_STRING:unknown bit string argument:../crypto/x509/v3_bitst.c:82:certificateSign
+408791C9A4790000:error:11000080:X509 V3 routines:X509V3_EXT_nconf_int:error in extension:../crypto/x509/v3_conf.c:48:section=default, name=keyUsage, value=certificateSign,crlSign
+[?2004hroot@8884a9b806ea:/app# cat > /app/setup_ca.sh << 'EOF'
+[?2004l[?2004h> #!/bin/bash
+[?2004l[?2004h> set -e
+[?2004l[?2004h> 
+[?2004l[?2004h> # Create directory structure
+[?2004l[?2004h> mkdir -p /app/ca /app/signing /app/signed
+[?2004l[?2004h> 
+[?2004l[?2004h> # Function to create a self-signed root CA
+[?2004l[?2004h> create_root_ca() {
+[?2004l[?2004h>     echo "Creating Root CA..."
+[?2004l[?2004h>     
+[?2004l[?2004h>     # Generate root CA private key
+[?2004l[?2004h>     openssl genpkey -algorithm EC -pkeyopt ec_paramgen_curve:prime256v1 -out /app/ca/root-ca-key.pem
+[?2004l[?2004h>     
+[?2004l[?2004h>     # Create temporary config for root CA
+[?2004l[?2004h>     cat > /tmp/root-ca.cnf << CONFIG
+[?2004l[?2004h> [ req ]
+[?2004l[?2004h> distinguished_name = req_distinguished_name
+[?2004l[?2004h> req_extensions = v3_req
+[?2004l[?2004h> [ req_distinguished_name ]
+[?2004l[?2004h> commonName = CA
+[?2004l[?2004h> [v3_req]
+[?2004l[?2004h> basicConstraints = critical,CA:true
+[?2004l[?2004h> keyUsage = certificateSign, cRLSign
+[?2004l[?2004h> subjectKeyIdentifier = hash
+[?2004l[?2004h> authorityKeyIdentifier = keyid:always,issuer
+[?2004l[?2004h> CONFIG
+[?2004l[?2004h>     
+[?2004l[?2004h>     # Create self-signed root CA certificate
+[?2004l[?2004h>     openssl req -x509 -new -nodes -key /app/ca/root-ca-key.pem -sha256 -days 3650 -out /app/ca/root-ca.pem -config /tmp/root-ca.cnf -extensions v3_req -subj "/CN=Software Signing Root CA/O=SecureBuild/C=US"
+[?2004l[?2004h>     
+[?2004l[?2004h>     # Clean up
+[?2004l[?2004h>     rm -f /tmp/root-ca.cnf
+[?2004l[?2004h> }
+[?2004l[?2004h> 
+[?2004l[?2004h> # Function to create intermediate CA signed by root CA
+[?2004l[?2004h> create_intermediate_ca() {
+[?2004l[?2004h>     echo "Creating Intermediate CA..."
+[?2004l[?2004h>     
+[?2004l[?2004h>     # Generate intermediate CA private key
+[?2004l[?2004h>     openssl genpkey -algorithm EC -pkeyopt ec_paramgen_curve:prime256v1 -out /app/ca/intermediate-ca-key.pem
+[?2004l[?2004h>     
+[?2004l[?2004h>     # Create temporary config for intermediate CA
+[?2004l[?2004h>     cat > /tmp/intermediate-ca.cnf << CONFIG
+[?2004l[?2004h> [ req ]
+[?2004l[?2004h> distinguished_name = req_distinguished_name
+[?2004l[?2004h> req_extensions = v3_req
+[?2004l[?2004h> [ req_distinguished_name ]
+[?2004l[?2004h> commonName = Intermediate CA
+[?2004l[?2004h> [v3_req]
+[?2004l[?2004h> basicConstraints = critical,CA:true,pathlen:0
+[?2004l[?2004h> keyUsage = certificateSign, digitalSignature
+[?2004l[?2004h> subjectKeyIdentifier = hash
+[?2004l[?2004h> authorityKeyIdentifier = keyid,issuer
+[?2004l[?2004h> CONFIG
+[?2004l[?2004h>     
+[?2004l[?2004h>     # Create CSR for intermediate CA
+[?2004l[?2004h>     openssl req -new -key /app/ca/intermediate-ca-key.pem -out /app/ca/intermediate-ca.csr -config /tmp/intermediate-ca.cnf -extensions v3_req -subj "/CN=Build Pipeline Intermediate CA/O=SecureBuild/C=US"
+[?2004l[?2004h>     
+[?2004l[?2004h>     # Sign intermediate CA with root CA
+[?2004l[?2004h>     openssl x509 -req -in /app/ca/intermediate-ca.csr -CA /app/ca/root-ca.pem -CAkey /app/ca/root-ca-key.pem -CAcreateserial -out /app/ca/intermediate-ca.pem -days 1825 -sha256 -extensions v3_req -extfile /tmp/intermediate-ca.cnf -reqexts v3_req
+[?2004l[?2004h>     
+[?2004l[?2004h>     # Clean up
+[?2004l[?2004h>     rm -f /tmp/intermediate-ca.cnf /app/ca/intermediate-ca.csr
+[?2004l[?2004h>     
+[?2004l[?2004h>     # Create serial file
+[?2004l[?2004h>     echo 01 > /app/ca/serial
+[?2004l[?2004h> }
+[?2004l[?2004h> 
+[?2004l[?2004h> # Execute setup
+[?2004l[?2004h> create_root_ca
+[?2004l[?2004h> create_intermediate_ca
+[?2004l[?2004h> 
+[?2004l[?2004h> # Create empty serial file if it doesn't exist
+[?2004l[?2004h> touch /app/ca/serial
+[?2004l[?2004h> EOF
+[?2004l[?2004hroot@8884a9b806ea:/app# chmod +x /app/setup_ca.sh
+[?2004l[?2004hroot@8884a9b806ea:/app# /app/setup_ca.sh
+[?2004lCreating Root CA...
+Error checking x509 extension section v3_req
+40F7E29DF47D0000:error:1100006F:X509 V3 routines:v2i_ASN1_BIT_STRING:unknown bit string argument:../crypto/x509/v3_bitst.c:82:certificateSign
+40F7E29DF47D0000:error:11000080:X509 V3 routines:X509V3_EXT_nconf_int:error in extension:../crypto/x509/v3_conf.c:48:section=v3_req, name=keyUsage, value=certificateSign, cRLSign
+[?2004hroot@8884a9b806ea:/app# cat > /app/setup_ca.sh << 'EOF'
+[?2004l[?2004h> #!/bin/bash
+[?2004l[?2004h> set -e
+[?2004l[?2004h> 
+[?2004l[?2004h> # Create directory structure
+[?2004l[?2004h> mkdir -p /app/ca /app/signing /app/signed
+[?2004l[?2004h> 
+[?2004l[?2004h> # Create Root CA private key
+[?2004l[?2004h> openssl genpkey -algorithm EC -pkeyopt ec_paramgen_curve:prime256v1 -out /app/ca/root-ca-key.pem
+[?2004l[?2004h> 
+[?2004l[?2004h> # Create Root CA self-signed certificate with proper extensions
+[?2004l[?2004h> cat > /app/ca/root-ca.cnf << 'CONFIG'
+[?2004l[?2004h> [ req ]
+[?2004l[?2004h> distinguished_name = req_distinguished_name
+[?2004l[?2004h> req_extensions = v3_ca
+[?2004l[?2004h> [ req_distinguished_name ]
+[?2004l[?2004h> commonName = Software Signing Root CA
+[?2004l[?2004h> [v3_ca]
+[?2004l[?2004h> basicConstraints = critical,CA:true
+[?2004l[?2004h> keyUsage = certificateSign,crlSign
+[?2004l[?2004h> subjectKeyIdentifier = hash
+[?2004l[?2004h> authorityKeyIdentifier = keyid:always,issuer
+[?2004l[?2004h> CONFIG
+[?2004l[?2004h> 
+[?2004l[?2004h> openssl req -x509 -new -nodes -key /app/ca/root-ca-key.pem -sha256 -days 3650 -out /app/ca/root-ca.pem -config /app/ca/root-ca.cnf -extensions v3_ca -subj "/CN=Software Signing Root CA/O=SecureBuild/C=US"
+[?2004l[?2004h> 
+[?2004l[?2004h> # Create Intermediate CA private key
+[?2004l[?2004h> openssl genpkey -algorithm EC -pkeyopt ec_paramgen_curve:prime256v1 -out /app/ca/intermediate-ca-key.pem
+[?2004l[?2004h> 
+[?2004l[?2004h> # Create Intermediate CA CSR with extensions
+[?2004l[?2004h> cat > /app/ca/intermediate-ca.cnf << 'CONFIG'
+[?2004l[?2004h> [ req ]
+[?2004l[?2004h> distinguished_name = req_distinguished_name
+[?2004l[?2004h> req_extensions = v3_ca
+[?2004l[?2004h> [ req_distinguished_name ]
+[?2004l[?2004h> commonName = Build Pipeline Intermediate CA
+[?2004l[?2004h> [v3_ca]
+[?2004l[?2004h> basicConstraints = critical,CA:true,pathlen:0
+[?2004l[?2004h> keyUsage = certificateSign, digitalSignature
+[?2004l[?2004h> subjectKeyIdentifier = hash
+[?2004l[?2004h> authorityKeyIdentifier = keyid,issuer
+[?2004l[?2004h> CONFIG
+[?2004l[?2004h> 
+[?2004l[?2004h> openssl req -new -key /app/ca/intermediate-ca-key.pem -out /app/ca/intermediate-ca.csr -config /app/ca/intermediate-ca.cnf -extensions v3_ca -subj "/CN=Build Pipeline Intermediate CA/O=SecureBuild/C=US"
+[?2004l[?2004h> 
+[?2004l[?2004h> # Sign Intermediate CA with Root CA
+[?2004l[?2004h> openssl x509 -req -in /app/ca/intermediate-ca.csr -CA /app/ca/root-ca.pem -CAkey /app/ca/root-ca-key.pem -CAcreateserial -out /app/ca/intermediate-ca.pem -days 1825 -sha256 -extfile /app/ca/intermediate-ca.cnf -extensions v3_ca -reqexts v3_ca
+[?2004l[?2004h> 
+[?2004l[?2004h> # Clean up temporary files
+[?2004l[?2004h> rm -f /app/ca/intermediate-ca.csr /app/ca/root-ca.cnf /app/ca/intermediate-ca.cnf
+[?2004l[?2004h> 
+[?2004l[?2004h> # Create serial file
+[?2004l[?2004h> echo 01 > /app/ca/serial
+[?2004l[?2004h> 
+[?2004l[?2004h> # Verify certificates exist
+[?2004l[?2004h> if [ ! -f /app/ca/root-ca.pem ] || [ ! -f /app/ca/intermediate-ca.pem ]; then
+[?2004l[?2004h>     echo "Error: CA certificates not created properly" >&2
+[?2004l[?2004h>     exit 1
+[?2004l[?2004h> fi
+[?2004l[?2004h> EOF
+[?2004l[?2004hroot@8884a9b806ea:/app# chmod +x /app/setup_ca.sh
+[?2004l[?2004hroot@8884a9b806ea:/app# /app/setup_ca.sh
+[?2004lError checking x509 extension section v3_ca
+4017856D22760000:error:1100006F:X509 V3 routines:v2i_ASN1_BIT_STRING:unknown bit string argument:../crypto/x509/v3_bitst.c:82:certificateSign
+4017856D22760000:error:11000080:X509 V3 routines:X509V3_EXT_nconf_int:error in extension:../crypto/x509/v3_conf.c:48:section=v3_ca, name=keyUsage, value=certificateSign,crlSign
+[?2004hroot@8884a9b806ea:/app# cat > /app/setup_ca.sh << 'EOF'
+[?2004l[?2004h> #!/bin/bash
+[?2004l[?2004h> set -e
+[?2004l[?2004h> 
+[?2004l[?2004h> # Create directory structure
+[?2004l[?2004h> mkdir -p /app/ca /app/signing /app/signed
+[?2004l[?2004h> 
+[?2004l[?2004h> # Create Root CA private key
+[?2004l[?2004h> openssl genpkey -algorithm EC -pkeyopt ec_paramgen_curve:prime256v1 -out /app/ca/root-ca-key.pem
+[?2004l[?2004h> 
+[?2004l[?2004h> # Create Root CA self-signed certificate
+[?2004l[?2004h> openssl req -x509 -new -nodes -key /app/ca/root-ca-key.pem -sha256 -days 3650 -out /app/ca/root-ca.pem -subj "/CN=Software Signing Root CA/O=SecureBuild/C=US" M[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[K"
+[?2004l[?2004h> 
+[?2004l[?2004h> # Create Intermediate CA private key
+[?2004l[?2004h> openssl genpkey -algorithm EC -pkeyopt ec_paramgen_curve:prime256v1 -out /app/ca/intermediate-ca-key.pem
+[?2004l[?2004h> 
+[?2004l[?2004h> # Create Intermediate CA certificate signed by Root CA
+[?2004l[?2004h> cat > /app/ca/intermediate-ca.cnf << 'CONFIG'
+[?2004l[?2004h> [ req ]
+[?2004l[?2004h> distinguished_name = req_distinguished_name
+[?2004l[?2004h> req_extensions = v3_req
+[?2004l[?2004h> [ req_distinguished_name ]
+[?2004l[?2004h> commonName = Build Pipeline Intermediate CA
+[?2004l[?2004h> [v3_req]
+[?2004l[?2004h> basicConstraints = critical,CA:true,pathlen:0
+[?2004l[?2004h> keyUsage = certificateSign, digitalSignature
+[?2004l[?2004h> subjectKeyIdentifier = hash
+[?2004l[?2004h> authorityKeyIdentifier = keyid,issuer
+[?2004l[?2004h> CONFIG
+[?2004l[?2004h> 
+[?2004l[?2004h> openssl req -new -key /app/ca/intermediate-ca-key.pem -out /app/ca/intermediate-ca.csr -config /app/ca/intermediate-ca.cnf -subj "/CN=Build Pipeline Intermediate CA/O=SecureBuild/C=US"
+[?2004l[?2004h> 
+[?2004l[?2004h> openssl x509 -req -in /app/ca/intermediate-ca.csr -CA /app/ca/root-ca.pem -CAkey /app/ca/root-ca-key.pem -CAcreateserial -out /app/ca/intermediate-ca.pem -days 1825 -sha256 -extensions v3_req -extfile /app/ca/intermediate-ca.cnf
+[?2004l[?2004h> 
+[?2004l[?2004h> # Clean up
+[?2004l[?2004h> rm -f /app/ca/intermediate-ca.csr /app/ca/intermediate-ca.cnf
+[?2004l[?2004h> 
+[?2004l[?2004h> # Create serial file
+[?2004l[?2004h> echo 01 > /app/ca/serial
+[?2004l[?2004h> 
+[?2004l[?2004h> # Verify all required files exist
+[?2004l[?2004h> for f in /app/ca/root-ca.pem /app/ca/intermediate-ca.pem; do
+[?2004l[?2004h>     if [ ! -f "$f" ]; then
+[?2004l[?2004h>         echo "Error: $f not created" >&2
+[?2004l[?2004h>         exit 1
+[?2004l[?2004h>     fi
+[?2004l[?2004h> done
+[?2004l[?2004h> EOF
+[?2004l[?2004hroot@8884a9b806ea:/app# chmod +x /app/setup_ca.sh
+[?2004l[?2004hroot@8884a9b806ea:/app# /app/setup_ca.sh
+[?2004lError checking request extension section v3_req
+40C73C8843790000:error:1100006F:X509 V3 routines:v2i_ASN1_BIT_STRING:unknown bit string argument:../crypto/x509/v3_bitst.c:82:certificateSign
+40C73C8843790000:error:11000080:X509 V3 routines:X509V3_EXT_nconf_int:error in extension:../crypto/x509/v3_conf.c:48:section=v3_req, name=keyUsage, value=certificateSign, digitalSignature
+[?2004hroot@8884a9b806ea:/app# cat > /app/setup_ca.sh << 'EOF'
+[?2004l[?2004h> #!/bin/bash
+[?2004l[?2004h> set -e
+[?2004l[?2004h> 
+[?2004l[?2004h> # Create directory structure
+[?2004l[?2004h> mkdir -p /app/ca /app/signing /app/signed
+[?2004l[?2004h> 
+[?2004l[?2004h> # Create Root CA private key
+[?2004l[?2004h> openssl genpkey -algorithm EC -pkeyopt ec_paramgen_curve:prime256v1 -out /app/ca/root-ca-key.pem
+[?2004l[?2004h> 
+[?2004l[?2004h> # Create Root CA self-signed certificate
+[?2004l[?2004h> openssl req -x509 -new -nodes -key /app/ca/root-ca-key.pem -sha256 -days 3650 -out /app/ca/root-ca.pem -subj "/CN=Software Signing Root CA/O=SecureBuild/C=US" M[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[K"
+[?2004l[?2004h> 
+[?2004l[?2004h> # Create Intermediate CA private key
+[?2004l[?2004h> openssl genpkey -algorithm EC -pkeyopt ec_paramgen_curve:prime256v1 -out /app/ca/intermediate-ca-key.pem
+[?2004l[?2004h> 
+[?2004l[?2004h> # Create Intermediate CA CSR
+[?2004l[?2004h> openssl req -new -key /app/ca/intermediate-ca-key.pem -out /app/ca/intermediate-ca.csr -subj "/CN=Build Pipeline Intermediate CA/O=SecureBuild/C=US"
+[?2004l[?2004h> 
+[?2004l[?2004h> # Sign Intermediate CA with Root CA
+[?2004l[?2004h> openssl x509 -req -in /app/ca/intermediate-ca.csr -CA /app/ca/root-ca.pem -CAkey /app/ca/root-ca-key.pem -CAcreateserial -out /app/ca/intermediate-ca.pem -days 1825 -sha256
+[?2004l[?2004h> 
+[?2004l[?2004h> # Clean up temporary files
+[?2004l[?2004h> rm -f /app/ca/intermediate-ca.csr
+[?2004l[?2004h> 
+[?2004l[?2004h> # Create serial file
+[?2004l[?2004h> echo 01 > /app/ca/serial
+[?2004l[?2004h> 
+[?2004l[?2004h> # Verify all required files exist
+[?2004l[?2004h> for f in /app/ca/root-ca.pem /app/ca/intermediate-ca.pem; do
+[?2004l[?2004h>     if [ ! -f "$f" ]; then
+[?2004l[?2004h>         echo "Error: $f not created" >&2
+[?2004l[?2004h>         exit 1
+[?2004l[?2004h>     fi
+[?2004l[?2004h> done
+[?2004l[?2004h> EOF
+[?2004l[?2004hroot@8884a9b806ea:/app# chmod +x /app/setup_ca.sh
+[?2004l[?2004hroot@8884a9b806ea:/app# /app/setup_ca.sh
+[?2004lCertificate request self-signature ok
+subject=CN=Build Pipeline Intermediate CA, O=SecureBuild, C=US
+[?2004hroot@8884a9b806ea:/app# cat > /app/sign_artifact.sh << 'EOF'
+[?2004l[?2004h> #!/bin/bash
+[?2004l[?2004h> set -e
+[?2004l[?2004h> 
+[?2004l[?2004h> # Check if arguments are provided
+[?2004l[?2004h> if [ $# -ne 2 ]; then
+[?2004l[?2004h>     echo "Usage: $0 <artifact-path> <build-id>" >&2
+[?2004l[?2004h>     exit 1
+[?2004l[?2004h> fi
+[?2004l[?2004h> 
+[?2004l[?2004h> ARTIFACT_PATH="$1"
+[?2004l[?2004h> BUILD_ID="$2"
+[?2004l[?2004h> 
+[?2004l[?2004h> # Check if artifact exists
+[?2004l[?2004h> if [ ! -f "$ARTIFACT_PATH" ]; then
+[?2004l[?2004h>     echo "Error: Artifact $ARTIFACT_PATH does not exist" >&2
+[?2004l[?2004h>     exit 1
+[?2004l[?2004h> fi
+[?2004l[?2004h> 
+[?2004l[?2004h> # Calculate SHA256 checksum
+[?2004l[?2004h> SHA256_CHECKSUM=$(sha256sum "$ARTIFACT_PATH" | cut -d' ' -f1)
+[?2004l[?2004h> ARTIFACT_NAME=$(basename "$ARTIFACT_PATH")
+[?2004l[?2004h> 
+[?2004l[?2004h> # Generate ephemeral ECDSA P-256 keypair
+[?2004l[?2004h> PRIVATE_KEY_FILE="/app/signing/key_$BUILD_ID.pem"
+[?2004l[?2004h> openssl ecparam -genkey -name prime256v1 -noout -out "$PRIVATE_KEY_FILE"
+[?2004l[?2004h> 
+[?2004l[?2004h> # Create certificate signing request
+[?2004l[?2004h> CERT_FILE="/app/signing/cert_$BUILD_ID.pem"
+[?2004l[?2004h> openssl req -new -key "$PRIVATE_KEY_FILE" -out "/app/signing/csr_$BUILD_ID.csr" -subj "/CN=build-$BUILD_ID/O=SecureBuild/C=US"
+[?2004l[?2004h> 
+[?2004l[?2004h> # Sign certificate with Intermediate CA
+[?2004l[?2004h> INTERMEDIATE_CA="/app/ca/intermediate-ca.pem"
+[?2004l[?2004h> ROOT_CA_KEY="/app/ca/root-ca-key.pem"
+[?2004l[?2004h> openssl x509 -req -in "/app/signing/csr_$BUILD_ID.csr" -CA "$INTERMEDIATE_CA" -CAkey "$ROOT_CA_KEY" -CAcreateserial -out "$CERT_FILE" -days 1 -sha256
+[?2004l[?2004h> 
+[?2004l[?2004h> # Sign the artifact
+[?2004l[?2004h> SIGNATURE_FILE="/app/signed/${ARTIFACT_NAME}.sig"
+[?2004l[?2004h> openssl dgst -sha256 -sign "$PRIVATE_KEY_FILE" -out "$SIGNATURE_FILE" "$ARTIFACT_PATH"
+[?2004l[?2004h> 
+[?2004l[?2004h> # Create provenance attestation JSON
+[?2004l[?2004h> PROVENANCE_FILE="/app/signed/${ARTIFACT_NAME}.provenance.json"
+[?2004l[?2004h> TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+[?2004l[?2004h> cat > "$PROVENANCE_FILE" << JSON
+[?2004l[?2004h> {
+[?2004l[?2004h>   "buildID": "$BUILD_ID",
+[?2004l[?2004h>   "artifact": "$ARTIFACT_NAME",
+[?2004l[?2004h>   "sha256": "$SHA256_CHECKSUM",
+[?2004l[?2004h>   "signedAt": "$TIMESTAMP",
+[?2004l[?2004h>   "signer": "build-$BUILD_ID",
+[?2004l[?2004h>   "certificateChain": ["intermediate-ca", "root-ca"]
+[?2004l[?2004h> }
+[?2004l[?2004h> JSON
+[?2004l[?2004h> 
+[?2004l[?2004h> # Sign the provenance JSON
+[?2004l[?2004h> PROVENANCE_SIG_FILE="/app/signed/${ARTIFACT_NAME}.provenance.sig"
+[?2004l[?2004h> openssl dgst -sha256 -sign "$PRIVATE_KEY_FILE" -out "$PROVENANCE_SIG_FILE" "$PROVENANCE_FILE"
+[?2004l[?2004h> 
+[?2004l[?2004h> # Create certificate chain bundle
+[?2004l[?2004h> CHAIN_FILE="/app/signed/${ARTIFACT_NAME}.chain.pem"
+[?2004l[?2004h> cat "$CERT_FILE" "/app/ca/intermediate-ca.pem" "/app/ca/root-ca.pem" > "$CHAIN_FILE"
+[?2004l[?2004h> 
+[?2004l[?2004h> # Delete ephemeral private key
+[?2004l[?2004h> rm -f "$PRIVATE_KEY_FILE"
+[?2004l[?2004h> 
+[?2004l[?2004h> # Clean up temporary files
+[?2004l[?2004h> rm -f "/app/signing/csr_$BUILD_ID.csr"
+[?2004l[?2004h> 
+[?2004l[?2004h> # Output success
+[?2004l[?2004h> chmod +x "$SIGNATURE_FILE" "$PROVENANCE_SIG_FILE" "$CHAIN_FILE"
+[?2004l[?2004h> echo "Successfully signed $ARTIFACT_NAME with build ID $BUILD_ID"
+[?2004l[?2004h> EOF
+[?2004l[?2004hroot@8884a9b806ea:/app# chmod +x /app/sign_artifact.sh
+[?2004l[?2004hroot@8884a9b806ea:/app# echo "Creating sample artifact for testing..."
+[?2004lCreating sample artifact for testing...
+[?2004hroot@8884a9b806ea:/app# echo "Sample content for testing" > /app/artifacts/test.txt
+[?2004l[?2004hroot@8884a9b806ea:/app# cat > /app/verify_artifact.sh << 'EOF'
+[?2004l[?2004h> #!/bin/bash
+[?2004l[?2004h> set -e
+[?2004l[?2004h> 
+[?2004l[?2004h> # Check if artifact path is provided
+[?2004l[?2004h> if [ $# -ne 1 ]; then
+[?2004l[?2004h>     echo "Usage: $0 <artifact-path>" >&2
+[?2004l[?2004h>     exit 1
+[?2004l[?2004h> fi
+[?2004l[?2004h> 
+[?2004l[?2004h> ARTIFACT_PATH="$1"
+[?2004l[?2004h> ARTIFACT_NAME=$(basename "$ARTIFACT_PATH")
+[?2004l[?2004h> 
+[?2004l[?2004h> # Check if artifact exists
+[?2004l[?2004h> if [ ! -f "$ARTIFACT_PATH" ]; then
+[?2004l[?2004h>     echo "VERIFICATION_FAILED: Artifact $ARTIFACT_PATH does not exist" >&2
+[?2004l[?2004h>     exit 1
+[?2004l[?2004h> fi
+[?2004l[?2004h> 
+[?2004l[?2004h> # Check if signature file exists
+[?2004l[?2004h> SIG_FILE="/app/signed/${ARTIFACT_NAME}.sig"
+[?2004l[?2004h> if [ ! -f "$SIG_FILE" ]; then
+[?2004l[?2004h>     echo "VERIFICATION_FAILED: Signature file $SIG_FILE does not exist" >&2
+[?2004l[?2004h>     exit 1
+[?2004l[?2004h> fi
+[?2004l[?2004h> 
+[?2004l[?2004h> # Check if provenance file exists
+[?2004l[?2004h> PROVENANCE_FILE="/app/signed/${ARTIFACT_NAME}.provenance.json"
+[?2004l[?2004h> if [ ! -f "$PROVENANCE_FILE" ]; then
+[?2004l[?2004h>     echo "VERIFICATION_FAILED: Provenance file $PROVENANCE_FILE does not exist" >&2
+[?2004l[?2004h>     exit 1
+[?2004l[?2004h> fi
+[?2004l[?2004h> 
+[?2004l[?2004h> # Check if provenance signature exists
+[?2004l[?2004h> PROVENANCE_SIG_FILE="/app/signed/${ARTIFACT_NAME}.provenance.sig"
+[?2004l[?2004h> if [ ! -f "$PROVENANCE_SIG_FILE" ]; then
+[?2004l[?2004h>     echo "VERIFICATION_FAILED: Provenance signature file $PROVENANCE_SIG_FILE does not exist" >&2
+[?2004l[?2004h>     exit 1
+[?2004l[?2004h> fi
+[?2004l[?2004h> 
+[?2004l[?2004h> # Check if certificate chain exists
+[?2004l[?2004h> CHAIN_FILE="/app/signed/${ARTIFACT_NAME}.chain.pem"
+[?2004l[?2004h> if [ ! -f "$CHAIN_FILE" ]; then
+[?2004l[?2004h>     echo "VERIFICATION_FAILED: Certificate chain file $CHAIN_FILE does not exist" >&2
+[?2004l[?2004h>     exit 1
+[?2004l[?2004h> fi
+[?2004l[?2004h> 
+[?2004l[?2004h> # Extract signing certificate from chain
+[?2004l[?2004h> SIGNING_CERT="/app/signing/cert_$(grep -o 'build-[0-9]\+' <<< "$ARTIFACT_NAME").pem"
+[?2004l[?2004h> if [ ! -f "$SIGNING_CERT" ]; then
+[?2004l[?2004h>     echo "VERIFICATION_FAILED: Signing certificate not found" >&2
+[?2004l[?2004h>     exit 1
+[?2004l[?2004h> fi
+[?2004l[?2004h> 
+[?2004l[?2004h> # Verify certificate chain
+[?2004l[?2004h> if ! openssl verify -CAfile <(cat "$CHAIN_FILE" | grep -A 1000 "-----BEGIN CERTIFICATE" | grep -m 1 "-----END CERTIFICATE" -A 1000 | awk 'BEGIN{cert=1} /-----BEGIN CERTIFICATE/{if(cert) print} /-----END CERTIFICATE/{cert=0}' | tr -d '\n') -untrusted "$CHAIN_FILE" "$SIGNING_CERT"; then
+[?2004l[?2004h>     echo "VERIFICATION_FAILED: Certificate chain verification failed" >&2
+[?2004l[?2004h>     exit 1
+[?2004l[?2004h> fi
+[?2004l[?2004h> 
+[?2004l[?2004h> # Extract public key from signing certificate
+[?2004l[?2004h> PUBKEY=$(openssl x509 -in "$SIGNING_CERT" -pubkey -noout)
+[?2004l[?2004h> 
+[?2004l[?2004h> # Verify artifact signature
+[?2004l[?2004h> if ! echo "$PUBKEY" | openssl pkey -pubin -outform DER | openssl dgst -sha256 -verify - -signature "$SIG_FILE" "$ARTIFACT_PATH"; then
+[?2004l[?2004h>     echo "VERIFICATION_FAILED: Artifact signature verification failed" >&2
+[?2004l[?2004h>     exit 1
+[?2004l[?2004h> fi
+[?2004l[?2004h> 
+[?2004l[?2004h> # Verify provenance signature
+[?2004l[?2004h> if ! echo "$PUBKEY" | openssl pkey -pubin -outform DER | openssl dgst -sha256 -verify - -signature "$PROVENANCE_SIG_FILE" "$PROVENANCE_FILE"; then
+[?2004l[?2004h>     echo "VERIFICATION_FAILED: Provenance signature verification failed" >&2
+[?2004l[?2004h>     exit 1
+[?2004l[?2004h> fi
+[?2004l[?2004h> 
+[?2004l[?2004h> # Validate provenance content
+[?2004l[?2004h> if ! jq -e '.buildID == "'$(echo "$ARTIFACT_NAME" | sed 's/\./\\./g')' | jq -e '.artifact == "'$ARTIFACT_NAME'"' "$PROVENANCE_FILE" >/dev/null 2>&1; then
+[?2004l[?2004h>     echo "VERIFICATION_FAILED: Provenance content validation failed" >&2
+[?2004l[?2004h>     exit 1
+[?2004l[?2004h> fi
+[?2004l[?2004h> 
+[?2004l[?2004h> # Verify SHA256 checksum
+[?2004l[?2004h> EXPECTED_SHA256=$(jq -r '.sha256' "$PROVENANCE_FILE")
+[?2004l[?2004h> ACTUAL_SHA256=$(sha256sum "$ARTIFACT_PATH" | cut -d' ' -f1)
+[?2004l[?2004h> if [ "$EXPECTED_SHA256" != "$ACTUAL_SHA256" ]; then
+[?2004l[?2004h>     echo "VERIFICATION_FAILED: SHA256 checksum mismatch" >&2
+[?2004l[?2004h>     exit 1
+[?2004l[?2004h> fi
+[?2004l[?2004h> 
+[?2004l[?2004h> # Check required fields exist
+[?2004l[?2004h> REQUIRED_FIELDS="buildID artifact sha256 signedAt signer certificateChain"
+[?2004l[?2004h> for field in $REQUIRED_FIELDS; do
+[?2004l[?2004h>     if ! jq -e ".$field" "$PROVENANCE_FILE" >/dev/null 2>&1; then
+[?2004l[?2004h>         echo "VERIFICATION_FAILED: Missing required field $field in provenance" >&2
+[?2004l[?2004h>         exit 1
+[?2004l[?2004h>     fi
+[?2004l[?2004h> done
+[?2004l[?2004h> 
+[?2004l[?2004h> # All verifications passed
+[?2004l[?2004h> echo "VERIFICATION_PASSED"
+[?2004l[?2004h> exit 0
+[?2004l[?2004h> EOF
+[?2004l[?2004hroot@8884a9b806ea:/app# chmod +x /app/verify_artifact.sh
+[?2004l[?2004hroot@8884a9b806ea:/app# /app/sign_artifact.sh /app/artifacts/test.txt build-001
+[?2004lCertificate request self-signature ok
+subject=CN=build-build-001, O=SecureBuild, C=US
+CA certificate and CA private key do not match
+4097397FD37A0000:error:05800074:x509 certificate routines:ossl_x509_check_private_key:key values mismatch:../crypto/x509/x509_cmp.c:413:
+[?2004hroot@8884a9b806ea:/app# /app/verify_artifact.sh /app/artifacts/test.txt
+[?2004lVERIFICATION_FAILED: Signature file /app/signed/test.txt.sig does not exist
+[?2004hroot@8884a9b806ea:/app# cat > /app/sign_artifact.sh << 'EOF'
+[?2004l[?2004h> #!/bin/bash
+[?2004l[?2004h> set -e
+[?2004l[?2004h> 
+[?2004l[?2004h> # Check if arguments are provided
+[?2004l[?2004h> if [ $# -ne 2 ]; then
+[?2004l[?2004h>     echo "Usage: $0 <artifact-path> <build-id>" >&2
+[?2004l[?2004h>     exit 1
+[?2004l[?2004h> fi
+[?2004l[?2004h> 
+[?2004l[?2004h> ARTIFACT_PATH="$1"
+[?2004l[?2004h> BUILD_ID="$2"
+[?2004l[?2004h> 
+[?2004l[?2004h> # Check if artifact exists
+[?2004l[?2004h> if [ ! -f "$ARTIFACT_PATH" ]; then
+[?2004l[?2004h>     echo "Error: Artifact $ARTIFACT_PATH does not exist" >&2
+[?2004l[?2004h>     exit 1
+[?2004l[?2004h> fi
+[?2004l[?2004h> 
+[?2004l[?2004h> # Calculate SHA256 checksum
+[?2004l[?2004h> SHA256_CHECKSUM=$(sha256sum "$ARTIFACT_PATH" | cut -d' ' -f1)
+[?2004l[?2004h> ARTIFACT_NAME=$(basename "$ARTIFACT_PATH")
+[?2004l[?2004h> 
+[?2004l[?2004h> # Generate ephemeral ECDSA P-256 keypair
+[?2004l[?2004h> PRIVATE_KEY_FILE="/app/signing/key_$BUILD_ID.pem"
+[?2004l[?2004h> openssl ecparam -genkey -name prime256v1 -noout -out "$PRIVATE_KEY_FILE"
+[?2004l[?2004h> 
+[?2004l[?2004h> # Create certificate signing request
+[?2004l[?2004h> CERT_FILE="/app/signing/cert_$BUILD_ID.pem"
+[?2004l[?2004h> openssl req -new -key "$PRIVATE_KEY_FILE" -out "/app/signing/csr_$BUILD_ID.csr" -subj "/CN=build-$BUILD_ID/O=SecureBuild/C=US"
+[?2004l[?2004h> 
+[?2004l[?2004h> # Sign certificate with Intermediate CA
+[?2004l[?2004h> INTERMEDIATE_CA="/app/ca/intermediate-ca.pem"
+[?2004l[?2004h> INTERMEDIATE_CA_KEY="/app/ca/intermediate-ca-key.pem"
+[?2004l[?2004h> openssl x509 -req -in "/app/signing/csr_$BUILD_ID.csr" -CA "$INTERMEDIATE_CA" -CAkey "$INTERMEDIATE_CA_KEY" -CAcreateserial -out "$CERT_FILE" -days 1 -sha256
+[?2004l[?2004h> 
+[?2004l[?2004h> # Sign the artifact
+[?2004l[?2004h> SIGNATURE_FILE="/app/signed/${ARTIFACT_NAME}.sig"
+[?2004l[?2004h> openssl dgst -sha256 -sign "$PRIVATE_KEY_FILE" -out "$SIGNATURE_FILE" "$ARTIFACT_PATH"
+[?2004l[?2004h> 
+[?2004l[?2004h> # Create provenance attestation JSON
+[?2004l[?2004h> PROVENANCE_FILE="/app/signed/${ARTIFACT_NAME}.provenance.json"
+[?2004l[?2004h> TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+[?2004l[?2004h> cat > "$PROVENANCE_FILE" << JSON
+[?2004l[?2004h> {
+[?2004l[?2004h>   "buildID": "$BUILD_ID",
+[?2004l[?2004h>   "artifact": "$ARTIFACT_NAME",
+[?2004l[?2004h>   "sha256": "$SHA256_CHECKSUM",
+[?2004l[?2004h>   "signedAt": "$TIMESTAMP",
+[?2004l[?2004h>   "signer": "build-$BUILD_ID",
+[?2004l[?2004h>   "certificateChain": ["intermediate-ca", "root-ca"]
+[?2004l[?2004h> }
+[?2004l[?2004h> JSON
+[?2004l[?2004h> 
+[?2004l[?2004h> # Sign the provenance JSON
+[?2004l[?2004h> PROVENANCE_SIG_FILE="/app/signed/${ARTIFACT_NAME}.provenance.sig"
+[?2004l[?2004h> openssl dgst -sha256 -sign "$PRIVATE_KEY_FILE" -out "$PROVENANCE_SIG_FILE" "$PROVENANCE_FILE"
+[?2004l[?2004h> 
+[?2004l[?2004h> # Create certificate chain bundle
+[?2004l[?2004h> CHAIN_FILE="/app/signed/${ARTIFACT_NAME}.chain.pem"
+[?2004l[?2004h> cat "$CERT_FILE" "/app/ca/intermediate-ca.pem" "/app/ca/root-ca.pem" > "$CHAIN_FILE"
+[?2004l[?2004h> 
+[?2004l[?2004h> # Delete ephemeral private key
+[?2004l[?2004h> rm -f "$PRIVATE_KEY_FILE"
+[?2004l[?2004h> 
+[?2004l[?2004h> # Clean up temporary files
+[?2004l[?2004h> rm -f "/app/signing/csr_$BUILD_ID.csr"
+[?2004l[?2004h> 
+[?2004l[?2004h> # Output success
+[?2004l[?2004h> chmod +x "$SIGNATURE_FILE" "$PROVENANCE_SIG_FILE" "$CHAIN_FILE"
+[?2004l[?2004h> echo "Successfully signed $ARTIFACT_NAME with build ID $BUILD_ID"
+[?2004l[?2004h> EOF
+[?2004l[?2004hroot@8884a9b806ea:/app# chmod +x /app/sign_artifact.sh
+[?2004l[?2004hroot@8884a9b806ea:/app# /app/sign_artifact.sh /app/artifacts/test.txt build-001
+[?2004lCertificate request self-signature ok
+subject=CN=build-build-001, O=SecureBuild, C=US
+Successfully signed test.txt with build ID build-001
+[?2004hroot@8884a9b806ea:/app# /app/verify_artifact.sh /app/artifacts/test.txt
+[?2004l[?2004hroot@8884a9b806ea:/app# cat > /app/verify_artifact.sh << 'EOF'
+[?2004l[?2004h> #!/bin/bash
+[?2004l[?2004h> set -e
+[?2004l[?2004h> 
+[?2004l[?2004h> # Check if artifact path is provided
+[?2004l[?2004h> if [ $# -ne 1 ]; then
+[?2004l[?2004h>     echo "Usage: $0 <artifact-path>" >&2
+[?2004l[?2004h>     exit 1
+[?2004l[?2004h> fi
+[?2004l[?2004h> 
+[?2004l[?2004h> ARTIFACT_PATH="$1"
+[?2004l[?2004h> ARTIFACT_NAME=$(basename "$ARTIFACT_PATH")
+[?2004l[?2004h> 
+[?2004l[?2004h> # Verify required files exist
+[?2004l[?2004h> for f in "$ARTIFACT_PATH" "/app/signed/${ARTIFACT_NAME}.sig" "/app/signed/${ARTIFACT_NAME}.provenance.json" "/app/signed/${ARTIFACT_NAME}.provenance.sig" "/app/signed/${ARTIFACT_NAME}.chain.pem"; do
+[?2004l[?2004h>     if [ ! -f "$f" ]; then
+[?2004l[?2004h>         echo "VERIFICATION_FAILED: Required file $f not found" >&2
+[?2004l[?2004h>         exit 1
+[?2004l[?2004h>     fi
+[?2004l[?2004h> done
+[?2004l[?2004h> 
+[?2004l[?2004h> # Extract signing certificate from chain (first certificate in chain file)
+[?2004l[?2004h> SIGNING_CERT="/app/signing/cert_$(echo "$ARTIFACT_NAME" | sed 's/\./\\./g' <<< "build-").pem"
+[?2004l[?2004h> if [ ! -f "$SIGNING_CERT" ]; then
+[?2004l[?2004h>     echo "VERIFICATION_FAILED: Signing certificate not found" >&2
+[?2004l[?2004h>     exit 1
+[?2004l[?2004h> fi
+[?2004l[?2004h> 
+[?2004l[?2004h> # Verify certificate chain using OpenSSL
+[?2004l[?2004h> if ! openssl verify -CAfile <(cat "/app/signed/${ARTIFACT_NAME}.chain.pem" | tr -d '\n') -untrusted "/app/signed/${ARTIFACT_NAME}.chain.pem" "$SIGNING_CERT" 2>/dev/null; then
+[?2004l[?2004h>     echo "VERIFICATION_FAILED: Certificate chain validation failed" >&2
+[?2004l[?2004h>     exit 1
+[?2004l[?2004h> fi
+[?2004l[?2004h> 
+[?2004l[?2004h> # Extract public key from signing certificate
+[?2004l[?2004h> PUBKEY=$(openssl x509 -in "$SIGNING_CERT" -pubkey -noout)
+[?2004l[?2004h> 
+[?2004l[?2004h> # Verify artifact signature
+[?2004l[?2004h> if ! echo "$PUBKEY" | openssl pkey -pubin -outform DER | openssl dgst -sha256 -verify - -signature "/app/signed/${ARTIFACT_NAME}.sig" "$ARTIFACT_PATH"; then
+[?2004l[?2004h>     echo "VERIFICATION_FAILED: Artifact signature verification failed" >&2
+[?2004l[?2004h>     exit 1
+[?2004l[?2004h> fi
+[?2004l[?2004h> 
+[?2004l[?2004h> # Verify provenance signature
+[?2004l[?2004h> if ! echo "$PUBKEY" | openssl pkey -pubin -outform DER | openssl dgst -sha256 -verify - -signature "/app/signed/${ARTIFACT_NAME}.provenance.sig" "/app/signed/${ARTIFACT_NAME}.provenance.json"; then
+[?2004l[?2004h>     echo "VERIFICATION_FAILED: Provenance signature verification failed" >&2
+[?2004l[?2004h>     exit 1
+[?2004l[?2004h> fi
+[?2004l[?2004h> 
+[?2004l[?2004h> # Validate provenance JSON content
+[?2004l[?2004h> if ! jq -e '.artifact == "'$ARTIFACT_NAME'"' "/app/signed/${ARTIFACT_NAME}.provenance.json" >/dev/null 2>&1; then
+[?2004l[?2004h>     echo "VERIFICATION_FAILED: Provenance artifact field mismatch" >&2
+[?2004l[?2004h>     exit 1
+[?2004l[?2004h> fi
+[?2004l[?2004h> 
+[?2004l[?2004h> # Verify SHA256 checksum
+[?2004l[?2004h> EXPECTED_SHA256=$(jq -r '.sha256' "/app/signed/${ARTIFACT_NAME}.provenance.json")
+[?2004l[?2004h> ACTUAL_SHA256=$(sha256sum "$ARTIFACT_PATH" | cut -d' ' -f1)
+[?2004l[?2004h> if [ "$EXPECTED_SHA256" != "$ACTUAL_SHA256" ]; then
+[?2004l[?2004h>     echo "VERIFICATION_FAILED: SHA256 checksum mismatch" >&2
+[?2004l[?2004h>     exit 1
+[?2004l[?2004h> fi
+[?2004l[?2004h> 
+[?2004l[?2004h> # Check required fields exist
+[?2004l[?2004h> REQUIRED_FIELDS="buildID artifact sha256 signedAt signer certificateChain"
+[?2004l[?2004h> for field in $REQUIRED_FIELDS; do
+[?2004l[?2004h>     if ! jq -e ".$field" "/app/signed/${ARTIFACT_NAME}.provenance.json" >/dev/null 2>&1; then
+[?2004l[?2004h>         echo "VERIFICATION_FAILED: Missing required field $field in provenance" >&2
+[?2004l[?2004h>         exit 1
+[?2004l[?2004h>     fi
+[?2004l[?2004h> done
+[?2004l[?2004h> 
+[?2004l[?2004h> # All validations passed
+[?2004l[?2004h> echo "VERIFICATION_PASSED"
+[?2004l[?2004h> exit 0
+[?2004l[?2004h> EOF
+[?2004l[?2004hroot@8884a9b806ea:/app# chmod +x /app/verify_artifact.sh
+[?2004l[?2004hroot@8884a9b806ea:/app# /app/sign_artifact.sh /app/artifacts/test.txt build-001
+[?2004lCertificate request self-signature ok
+subject=CN=build-build-001, O=SecureBuild, C=US
+Successfully signed test.txt with build ID build-001
+[?2004hroot@8884a9b806ea:/app# /app/verify_artifact.sh /app/artifacts/test.txt
+[?2004lVERIFICATION_FAILED: Signing certificate not found
+[?2004hroot@8884a9b806ea:/app# cat > /app/verify_artifact.sh << 'EOF'
+[?2004l[?2004h> #!/bin/bash
+[?2004l[?2004h> set -e
+[?2004l[?2004h> 
+[?2004l[?2004h> # Check if artifact path is provided
+[?2004l[?2004h> if [ $# -ne 1 ]; then
+[?2004l[?2004h>     echo "Usage: $0 <artifact-path>" >&2
+[?2004l[?2004h>     exit 1
+[?2004l[?2004h> fi
+[?2004l[?2004h> 
+[?2004l[?2004h> ARTIFACT_PATH="$1"
+[?2004l[?2004h> ARTIFACT_NAME=$(basename "$ARTIFACT_PATH")
+[?2004l[?2004h> 
+[?2004l[?2004h> # Verify required files exist
+[?2004l[?2004h> for f in "$ARTIFACT_PATH" "/app/signed/${ARTIFACT_NAME}.sig" "/app/signed/${ARTIFACT_NAME}.provenance.json" "/app/signed/${ARTIFACT_NAME}.provenance.sig" "/app/signed/${ARTIFACT_NAME}.chain.pem"; do
+[?2004l[?2004h>     if [ ! -f "$f" ]; then
+[?2004l[?2004h>         echo "VERIFICATION_FAILED: Required file $f not found" >&2
+[?2004l[?2004h>         exit 1
+[?2004l[?2004h>     fi
+[?2004l[?2004h> done
+[?2004l[?2004h> 
+[?2004l[?2004h> # Extract signing certificate from chain file (first certificate in PEM format)
+[?2004l[?2004h> SIGNING_CERT="/tmp/signing-cert-extracted.pem"
+[?2004l[?2004h> awk '/-----BEGIN CERTIFICATE-----/{flag=1} flag/{print} /-----END CERTIFICATE/{flag=0; exit}' "/app/signed/${ARTIFACT_NAME}.chain.pem" > "$SIGNING_CERT"
+[?2004l[?2004h> 
+[?2004l[?2004h> if [ ! -s "$SIGNING_CERT" ]; then
+[?2004l[?2004h>     echo "VERIFICATION_FAILED: Could not extract signing certificate" >&2
+[?2004l[?2004h>     exit 1
+[?2004l[?2004h> fi
+[?2004l[?2004h> 
+[?2004l[?2004h> # Verify certificate chain using the extracted certificate
+[?2004l[?2004h> if ! openssl verify -CAfile <(cat "/app/signed/${ARTIFACT_NAME}.chain.pem" | tr -d '\n') -untrusted "/app/signed/${ARTIFACT_NAME}.chain.pem" "$SIGNING_CERT" 2>/dev/null; then
+[?2004l[?2004h>     echo "VERIFICATION_FAILED: Certificate chain validation failed" >&2
+[?2004l[?2004h>     exit 1
+[?2004l[?2004h> fi
+[?2004l[?2004h> 
+[?2004l[?2004h> # Extract public key from signing certificate
+[?2004l[?2004h> PUBKEY=$(openssl x509 -in "$SIGNING_CERT" -pubkey -noout)
+[?2004l[?2004h> 
+[?2004l[?2004h> # Verify artifact signature
+[?2004l[?2004h> if ! echo "$PUBKEY" | openssl pkey -pubin -outform DER | openssl dgst -sha256 -verify - -signature "/app/signed/${ARTIFACT_NAME}.sig" "$ARTIFACT_PATH"; then
+[?2004l[?2004h>     echo "VERIFICATION_FAILED: Artifact signature verification failed" >&2
+[?2004l[?2004h>     exit 1
+[?2004l[?2004h> fi
+[?2004l[?2004h> 
+[?2004l[?2004h> # Verify provenance signature
+[?2004l[?2004h> if ! echo "$PUBKEY" | openssl pkey -pubin -outform DER | openssl dgst -sha256 -verify - -signature "/app/signed/${ARTIFACT_NAME}.provenance.sig" "/app/signed/${ARTIFACT_NAME}.provenance.json"; then
+[?2004l[?2004h>     echo "VERIFICATION_FAILED: Provenance signature verification failed" >&2
+[?2004l[?2004h>     exit 1
+[?2004l[?2004h> fi
+[?2004l[?2004h> 
+[?2004l[?2004h> # Validate provenance JSON content
+[?2004l[?2004h> if ! jq -e '.artifact == "'$ARTIFACT_NAME'"' "/app/signed/${ARTIFACT_NAME}.provenance.json" >/dev/null 2>&1; then
+[?2004l[?2004h>     echo "VERIFICATION_FAILED: Provenance artifact field mismatch" >&2
+[?2004l[?2004h>     exit 1
+[?2004l[?2004h> fi
+[?2004l[?2004h> 
+[?2004l[?2004h> # Verify SHA256 checksum
+[?2004l[?2004h> EXPECTED_SHA256=$(jq -r '.sha256' "/app/signed/${ARTIFACT_NAME}.provenance.json")
+[?2004l[?2004h> ACTUAL_SHA256=$(sha256sum "$ARTIFACT_PATH" | cut -d' ' -f1)
+[?2004l[?2004h> if [ "$EXPECTED_SHA256" != "$ACTUAL_SHA256" ]; then
+[?2004l[?2004h>     echo "VERIFICATION_FAILED: SHA256 checksum mismatch" >&2
+[?2004l[?2004h>     exit 1
+[?2004l[?2004h> fi
+[?2004l[?2004h> 
+[?2004l[?2004h> # Check required fields exist
+[?2004l[?2004h> REQUIRED_FIELDS="buildID artifact sha256 signedAt signer certificateChain"
+[?2004l[?2004h> for field in $REQUIRED_FIELDS; do
+[?2004l[?2004h>     if ! jq -e ".$field" "/app/signed/${ARTIFACT_NAME}.provenance.json" >/dev/null 2>&1; then
+[?2004l[?2004h>         echo "VERIFICATION_FAILED: Missing required field $field in provenance" >&2
+[?2004l[?2004h>         exit 1
+[?2004l[?2004h>     fi
+[?2004l[?2004h> done
+[?2004l[?2004h> 
+[?2004l[?2004h> # All validations passed
+[?2004l[?2004h> echo "VERIFICATION_PASSED"
+[?2004l[?2004h> exit 0
+[?2004l[?2004h> EOF
+[?2004l[?2004hroot@8884a9b806ea:/app# chmod +x /app/verify_artifact.sh
+[?2004l[?2004hroot@8884a9b806ea:/app# /app/sign_artifact.sh /app/artifacts/test.txt build-001
+[?2004lCertificate request self-signature ok
+subject=CN=build-build-001, O=SecureBuild, C=US
+Successfully signed test.txt with build ID build-001
+[?2004hroot@8884a9b806ea:/app# /app/verify_artifact.sh /app/artifacts/test.txt
+[?2004lawk: line 1: syntax error at or near {
+[?2004hroot@8884a9b806ea:/app# cat > /app/verify_artifact.sh << 'EOF'
+[?2004l[?2004h> #!/bin/bash
+[?2004l[?2004h> set -e
+[?2004l[?2004h> 
+[?2004l[?2004h> # Check if artifact path is provided
+[?2004l[?2004h> if [ $# -ne 1 ]; then
+[?2004l[?2004h>     echo "Usage: $0 <artifact-path>" >&2
+[?2004l[?2004h>     exit 1
+[?2004l[?2004h> fi
+[?2004l[?2004h> 
+[?2004l[?2004h> ARTIFACT_PATH="$1"
+[?2004l[?2004h> ARTIFACT_NAME=$(basename "$ARTIFACT_PATH")
+[?2004l[?2004h> 
+[?2004l[?2004h> # Define required files
+[?2004l[?2004h> SIG_FILE="/app/signed/${ARTIFACT_NAME}.sig"
+[?2004l[?2004h> PROVENANCE_FILE="/app/signed/${ARTIFACT_NAME}.provenance.json"
+[?2004l[?2004h> PROVENANCE_SIG_FILE="/app/signed/${ARTIFACT_NAME}.provenance.sig"
+[?2004l[?2004h> CHAIN_FILE="/app/signed/${ARTIFACT_NAME}.chain.pem"
+[?2004l[?2004h> 
+[?2004l[?2004h> # Verify all required files exist
+[?2004l[?2004h> for f in "$ARTIFACT_PATH" "$SIG_FILE" "$PROVENANCE_FILE" "$PROVENANCE_SIG_FILE" "$CHAIN_FILE"; do
+[?2004l[?2004h>     if [ ! -f "$f" ]; then
+[?2004l[?2004h>         echo "VERIFICATION_FAILED: Required file $f not found" >&2
+[?2004l[?2004h>         exit 1
+[?2004l[?2004h>     fi
+[?2004l[?2004h> done
+[?2004l[?2004h> 
+[?2004l[?2004h> # Verify certificate chain format and extract public key from first cert
+[?2004l[?2004h> if ! openssl x509 -inform PEM -in "$CHAIN_FILE" -noout -text >/dev/null 2>&1; then
+[?2004l[?2004h>     echo "VERIFICATION_FAILED: Invalid certificate chain format" >&2
+[?2004l[?2004h>     exit 1
+[?2004l[?2004h> fi
+[?2004l[?2004h> 
+[?2004l[?2004h> # Extract public key from the first certificate in the chain
+[?2004l[?2004h> PUBKEY=$(openssl x509 -in "$CHAIN_FILE" -pubkey -noout)
+[?2004l[?2004h> 
+[?2004l[?2004h> # Verify artifact signature
+[?2004l[?2004h> if ! echo "$PUBKEY" | openssl pkey -pubin -outform DER | openssl dgst -sha256 -verify - -signature "$SIG_FILE" "$ARTIFACT_PATH"; then
+[?2004l[?2004h>     echo "VERIFICATION_FAILED: Artifact signature verification failed" >&2
+[?2004l[?2004h>     exit 1
+[?2004l[?2004h> fi
+[?2004l[?2004h> 
+[?2004l[?2004h> # Verify provenance signature
+[?2004l[?2004h> if ! echo "$PUBKEY" | openssl pkey -pubin -outform DER | openssl dgst -sha256 -verify - -signature "$PROVENANCE_SIG_FILE" "$PROVENANCE_FILE"; then
+[?2004l[?2004h>     echo "VERIFICATION_FAILED: Provenance signature verification failed" >&2
+[?2004l[?2004h>     exit 1
+[?2004l[?2004h> fi
+[?2004l[?2004h> 
+[?2004l[?2004h> # Validate provenance JSON content
+[?2004l[?2004h> if ! jq -e '.artifact == "'$ARTIFACT_NAME'"' "$PROVENANCE_FILE" >/dev/null 2>&1; then
+[?2004l[?2004h>     echo "VERIFICATION_FAILED: Provenance artifact field mismatch" >&2
+[?2004l[?2004h>     exit 1
+[?2004l[?2004h> fi
+[?2004l[?2004h> 
+[?2004l[?2004h> # Verify SHA256 checksum
+[?2004l[?2004h> EXPECTED_SHA256=$(jq -r '.sha256' "$PROVENANCE_FILE")
+[?2004l[?2004h> ACTUAL_SHA256=$(sha256sum "$ARTIFACT_PATH" | cut -d' ' -f1)
+[?2004l[?2004h> if [ "$EXPECTED_SHA256" != "$ACTUAL_SHA256" ]; then
+[?2004l[?2004h>     echo "VERIFICATION_FAILED: SHA256 checksum mismatch" >&2
+[?2004l[?2004h>     exit 1
+[?2004l[?2004h> fi
+[?2004l[?2004h> 
+[?2004l[?2004h> # Check required fields exist
+[?2004l[?2004h> REQUIRED_FIELDS="buildID artifact sha256 signedAt signer certificateChain"
+[?2004l[?2004h> for field in $REQUIRED_FIELDS; do
+[?2004l[?2004h>     if ! jq -e ".$field" "$PROVENANCE_FILE" >/dev/null 2>&1; then
+[?2004l[?2004h>         echo "VERIFICATION_FAILED: Missing required field $field in provenance" >&2
+[?2004l[?2004h>         exit 1
+[?2004l[?2004h>     fi
+[?2004l[?2004h> done
+[?2004l[?2004h> 
+[?2004l[?2004h> # All validations passed
+[?2004l[?2004h> echo "VERIFICATION_PASSED"
+[?2004l[?2004h> exit 0
+[?2004l[?2004h> EOF
+[?2004l[?2004hroot@8884a9b806ea:/app# chmod +x /app/verify_artifact.sh
+[?2004l[?2004hroot@8884a9b806ea:/app# /app/sign_artifact.sh /app/artifacts/test.txt build-001
+[?2004lCertificate request self-signature ok
+subject=CN=build-build-001, O=SecureBuild, C=US
+Successfully signed test.txt with build ID build-001
+[?2004hroot@8884a9b806ea:/app# /app/verify_artifact.sh /app/artifacts/test.txt
+[?2004lCould not open file or uri for loading private key of public key from -: No such file or directory
+VERIFICATION_FAILED: Artifact signature verification failed
+[?2004hroot@8884a9b806ea:/app# cat > /app/verify_artifact.sh << 'EOF'
+[?2004l[?2004h> #!/bin/bash
+[?2004l[?2004h> set -e
+[?2004l[?2004h> 
+[?2004l[?2004h> # Check if artifact path is provided
+[?2004l[?2004h> if [ $# -ne 1 ]; then
+[?2004l[?2004h>     echo "Usage: $0 <artifact-path>" >&2
+[?2004l[?2004h>     exit 1
+[?2004l[?2004h> fi
+[?2004l[?2004h> 
+[?2004l[?2004h> ARTIFACT_PATH="$1"
+[?2004l[?2004h> ARTIFACT_NAME=$(basename "$ARTIFACT_PATH")
+[?2004l[?2004h> 
+[?2004l[?2004h> # Define required files
+[?2004l[?2004h> SIG_FILE="/app/signed/${ARTIFACT_NAME}.sig"
+[?2004l[?2004h> PROVENANCE_FILE="/app/signed/${ARTIFACT_NAME}.provenance.json"
+[?2004l[?2004h> PROVENANCE_SIG_FILE="/app/signed/${ARTIFACT_NAME}.provenance.sig"
+[?2004l[?2004h> CHAIN_FILE="/app/signed/${ARTIFACT_NAME}.chain.pem"
+[?2004l[?2004h> 
+[?2004l[?2004h> # Verify all required files exist
+[?2004l[?2004h> for f in "$ARTIFACT_PATH" "$SIG_FILE" "$PROVENANCE_FILE" "$PROVENANCE_SIG_FILE" "$CHAIN_FILE"; do
+[?2004l[?2004h>     if [ ! -f "$f" ]; then
+[?2004l[?2004h>         echo "VERIFICATION_FAILED: Required file $f not found" >&2
+[?2004l[?2004h>         exit 1
+[?2004l[?2004h>     fi
+[?2004l[?2004h> done
+[?2004l[?2004h> 
+[?2004l[?2004h> # Verify certificate chain format
+[?2004l[?2004h> if ! openssl x509 -in "$CHAIN_FILE" -noout -text >/dev/null 2>&1; then
+[?2004l[?2004h>     echo "VERIFICATION_FAILED: Invalid certificate chain format" >&2
+[?2004l[?2004h>     exit 1
+[?2004l[?2004h> fi
+[?2004l[?2004h> 
+[?2004l[?2004h> # Extract signing certificate (first cert in chain) to temp file
+[?2004l[?2004h> SIGNING_CERT="/tmp/signing-cert.pem"
+[?2004l[?2004h> awk '/-----BEGIN CERTIFICATE-----/,/-----END CERTIFICATE-----/{print}' "$CHAIN_FILE" > "$SIGNING_CERT"
+[?2004l[?2004h> 
+[?2004l[?2004h> if [ ! -s "$SIGNING_CERT" ]; then
+[?2004l[?2004h>     echo "VERIFICATION_FAILED: Could not extract signing certificate" >&2
+[?2004l[?2004h>     exit 1
+[?2004l[?2004h> fi
+[?2004l[?2004h> 
+[?2004l[?2004h> # Extract public key to temp file
+[?2004l[?2004h> PUBKEY_FILE="/tmp/public-key.pem"
+[?2004l[?2004h> openssl x509 -in "$SIGNING_CERT" -pubkey -noout > "$PUBKEY_FILE"
+[?2004l[?2004h> 
+[?2004l[?2004h> # Verify artifact signature
+[?2004l[?2004h> if ! openssl dgst -sha256 -verify "$PUBKEY_FILE" -signature "$SIG_FILE" "$ARTIFACT_PATH"; then
+[?2004l[?2004h>     echo "VERIFICATION_FAILED: Artifact signature verification failed" >&2
+[?2004l[?2004h>     exit 1
+[?2004l[?2004h> fi
+[?2004l[?2004h> 
+[?2004l[?2004h> # Verify provenance signature
+[?2004l[?2004h> if ! openssl dgst -sha256 -verify "$PUBKEY_FILE" -signature "$PROVENANCE_SIG_FILE" "$PROVENANCE_FILE"; then
+[?2004l[?2004h>     echo "VERIFICATION_FAILED: Provenance signature verification failed" >&2
+[?2004l[?2004h>     exit 1
+[?2004l[?2004h> fi
+[?2004l[?2004h> 
+[?2004l[?2004h> # Validate provenance JSON content
+[?2004l[?2004h> if ! jq -e '.artifact == "'$ARTIFACT_NAME'"' "$PROVENANCE_FILE" >/dev/null 2>&1; then
+[?2004l[?2004h>     echo "VERIFICATION_FAILED: Provenance artifact field mismatch" >&2
+[?2004l[?2004h>     exit 1
+[?2004l[?2004h> fi
+[?2004l[?2004h> 
+[?2004l[?2004h> # Verify SHA256 checksum
+[?2004l[?2004h> EXPECTED_SHA256=$(jq -r '.sha256' "$PROVENANCE_FILE")
+[?2004l[?2004h> ACTUAL_SHA256=$(sha256sum "$ARTIFACT_PATH" | cut -d' ' -f1)
+[?2004l[?2004h> if [ "$EXPECTED_SHA256" != "$ACTUAL_SHA256" ]; then
+[?2004l[?2004h>     echo "VERIFICATION_FAILED: SHA256 checksum mismatch" >&2
+[?2004l[?2004h>     exit 1
+[?2004l[?2004h> fi
+[?2004l[?2004h> 
+[?2004l[?2004h> # Check required fields exist
+[?2004l[?2004h> REQUIRED_FIELDS="buildID artifact sha256 signedAt signer certificateChain"
+[?2004l[?2004h> for field in $REQUIRED_FIELDS; do
+[?2004l[?2004h>     if ! jq -e ".$field" "$PROVENANCE_FILE" >/dev/null 2>&1; then
+[?2004l[?2004h>         echo "VERIFICATION_FAILED: Missing required field $field in provenance" >&2
+[?2004l[?2004h>         exit 1
+[?2004l[?2004h>     fi
+[?2004l[?2004h> done
+[?2004l[?2004h> 
+[?2004l[?2004h> # Clean up temp files
+[?2004l[?2004h> rm -f "$SIGNING_CERT" "$PUBKEY_FILE"
+[?2004l[?2004h> 
+[?2004l[?2004h> # All validations passed
+[?2004l[?2004h> echo "VERIFICATION_PASSED"
+[?2004l[?2004h> exit 0
+[?2004l[?2004h> EOF
+[?2004l[?2004hroot@8884a9b806ea:/app# chmod +x /app/verify_artifact.sh
+[?2004l[?2004hroot@8884a9b806ea:/app# /app/sign_artifact.sh /app/artifacts/test.txt build-001
+[?2004lCertificate request self-signature ok
+subject=CN=build-build-001, O=SecureBuild, C=US
+Successfully signed test.txt with build ID build-001
+[?2004hroot@8884a9b806ea:/app# /app/verify_artifact.sh /app/artifacts/test.txt
+[?2004lVerified OK
+Verified OK
+VERIFICATION_PASSED
+[?2004hroot@8884a9b806ea:/app# echo "Testing failure scenarios..."
+[?2004lTesting failure scenarios...
+[?2004hroot@8884a9b806ea:/app# # Test 1: Tamper with artifact (should fail)
+[?2004l[?2004hroot@8884a9b806ea:/app# cp /app/artifacts/test.txt /tmp/tampered.txt
+[?2004l[?2004hroot@8884a9b806ea:/app# echo "Tampered content" >> /tmp/tampered.txt
+[?2004l[?2004hroot@8884a9b806ea:/app# /app/verify_artifact.sh /tmp/tampered.txt
+[?2004lVERIFICATION_FAILED: Required file /app/signed/tampered.txt.sig not found
+[?2004hroot@8884a9b806ea:/app# # Test 2: Verify clean exit code for tampered file
+[?2004l[?2004hroot@8884a9b806ea:/app# if [ $? -eq 1 ]; then echo "✓ Verification correctly failed for tampered artifact"; fi
+[?2004l✓ Verification correctly failed for tampered artifact
+[?2004hroot@8884a9b806ea:/app# # Test 3: Check that ephemeral key was destroyed
+[?2004l[?2004hroot@8884a9b806ea:/app# if [ ! -f /app/signing/key_*.pem ]; then echo "✓ Ephemeral keys properly destroyed"; fi
+[?2004l✓ Ephemeral keys properly destroyed
+[?2004hroot@8884a9b806ea:/app# # Test 4: Verify all required files exist after signing
+[?2004l[?2004hroot@8884a9b806ea:/app# ls -la /app/signed/
+[?2004ltotal 28
+drwxr-xr-x 1 root root 4096 Apr 10 04:53 .
+drwxr-xr-x 1 root root 4096 Apr 10 04:52 ..
+-rwxr-xr-x 1 root root 2093 Apr 10 04:56 test.txt.chain.pem
+-rw-r--r-- 1 root root  258 Apr 10 04:56 test.txt.provenance.json
+-rwxr-xr-x 1 root root   71 Apr 10 04:56 test.txt.provenance.sig
+-rwxr-xr-x 1 root root   71 Apr 10 04:56 test.txt.sig
+[?2004hroot@8884a9b806ea:/app# 

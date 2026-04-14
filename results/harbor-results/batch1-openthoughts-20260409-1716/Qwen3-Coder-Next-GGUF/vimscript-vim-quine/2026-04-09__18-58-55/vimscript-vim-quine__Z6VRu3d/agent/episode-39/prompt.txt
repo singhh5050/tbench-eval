@@ -1,0 +1,41 @@
+Current Terminal Screen:
+                    call add(script, ind . 'edit ' . fnameescape(win.bufname))
+                endif
+            else
+                call add(script, ind . '" Window ' . (win_idx + 1) . ' - buffer: ' . win.bufname)
+
+                if win.split_type == 'vsplit'
+                    call add(script, ind . 'vsplit')
+                elseif win.split_type == 'split'
+                    call add(script, ind . 'split')
+                endif
+
+                if win.bufname != ''
+                    call add(script, ind . 'edit ' . fnameescape(win.bufname))
+                endif
+            endif
+
+            call add(script, '')
+        endfor
+    endfor
+
+    call add(script, ind . '" Restore active tab')
+    call add(script, ind . 'if ' . tab_count . ' > 1')
+    call add(script, ind1 . 'tabnext ' . a:layout.active_tab)
+    call add(script, ind . 'endif')
+
+    return script
+endfunction
+
+function! s:LayoutQuineImpl(path)
+    let layout = s:CaptureLayout()
+    let script = s:GenerateLayoutScript(layout, 0)
+
+    call writefile(script, a:path)
+
+    echo 'Layout saved to: ' . a:path
+endfunction
+
+command! -nargs=1 LayoutQuine call s:LayoutQuineImpl(<f-args>)
+root@8d526f641b03:/app# vim -u /app/plugin/layout_quine.vim -c 'vsplit' -c 'split' -c 'tabnew' -c 'vsplit' -c 'LayoutQuine /tmp/test_layout.vim' -c 'q'
+root@8d526f641b03:/app#

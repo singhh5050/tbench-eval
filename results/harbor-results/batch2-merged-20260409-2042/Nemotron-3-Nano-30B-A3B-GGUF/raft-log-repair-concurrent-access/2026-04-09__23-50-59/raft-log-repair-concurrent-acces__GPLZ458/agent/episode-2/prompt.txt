@@ -1,0 +1,156 @@
+Current terminal state:
+New Terminal Output:
+root@bdc4553eea9d:/app# cat > /app/solution.py << 'EOF'
+> import re
+> from collections import defaultdict
+>
+> def solve(lines: list[str]) -> str:
+>     node_re = re.compile(r'^n[0-9]+$')
+>     entries = []
+>     for line in lines:
+>         stripped = line.strip()
+>         if not stripped or stripped.startswith('#'):
+global_votes:
+                    violations[idx] = 'BAD_DUPLICATE_VOTE'
+                    break
+                global_votes.add((node, term))
+            elif op == 'LEADER':
+                if term in leader_terms_seen:
+                    violations[idx] = 'BAD_LEADER_ORDER'
+                    break
+                leader_terms_seen.add(term)
+            elif op == 'APPEND':
+                append_terms.append((term, data))
+                append_seen_so_far = True
+            elif op == 'COMMIT':
+                if not append_seen_so_far:
+                    violations[idx] = 'BAD_COMMIT_ORDER'
+                    break
+                commit_terms.append(term)
+        if idx in violations:
+            continue
+        if not append_terms:
+            winning_term = None
+        else:
+            max_term = max(t for t, _ in append_terms)
+            max_data_set = {d for t, d in append_terms if t == max_term}
+            if len(max_data_set) > 1:
+                violations[idx] = 'BAD_CONFLICT'
+            winning_term = max_term
+        if idx not in violations and winning_term is not None:
+            for ct in commit_terms:
+                if ct != winning_term:
+                    violations[idx] = 'BAD_COMMIT_ORDER'
+                    break
+        if winning_term is not None:
+            if not commit_terms or any(ct != winning_term for ct in commit_terms):
+                need_repair.append((idx, winning_term))
+    bad_lines = sorted([f"BAD {idx} {reason}" for idx, reason in violations.items()])
+    unique_repairs = {}
+    for idx, term in need_repair:
+        unique_repairs[idx] = (term, idx)
+    ins_lines = sorted([f"INS {term} {idx} COMMIT" for idx, (term, _) in unique_repairs.items()], key=lambda x: (int(x.split()[2]), int(x.split()[1])))
+    if not bad_lines and not ins_lines:
+        return "OK"
+    return "\n".join(bad_lines + ins_lines)
+EOF
+>             continue
+>         parts = stripped.split()
+>         if len(parts) not in (4, 5):
+>             break
+>         try:
+>             term = int(parts[0])
+>             if term < 0:
+>                 raise ValueError
+>             idx = int(parts[1])
+>             if idx < 1:
+>                 raise ValueError
+>             node = parts[2]
+>             if not node_re.fullmatch(node):
+>                 raise ValueError
+>             op = parts[3]
+>             if op not in ('VOTE', 'APPEND', 'COMMIT', 'LEADER'):
+>                 raise ValueError
+>             if op in ('VOTE', 'COMMIT', 'LEADER') and len(parts) != 4:
+>                 raise ValueError
+>             if op == 'APPEND' and len(parts) != 5:
+>                 raise ValueError
+>         except ValueError:
+>             break
+>         data = parts[4] if op == 'APPEND' else None
+>         if any(e.term == term and e.node == node and e.op == op and e.data == data for e in entries):
+>             continue
+>         entries.append((term, idx, node, op, data))
+>     by_idx = defaultdict(list)
+>     for e in entries:
+>         by_idx[e[1]].append(e)
+>     sorted_indices = sorted(by_idx.keys())
+>     violations = {}
+>     need_repair = []
+>     global_votes = set()
+>     leader_terms_seen = set()
+>     for idx in sorted_indices:
+>         evs = by_idx[idx]
+>         prev_term = -1
+>         for ev in evs:
+>             term = ev[0]
+>             if term < prev_term:
+>                 violations[idx] = 'BAD_TERM_REGRESSION'
+>                 break
+>             prev_term = term
+>         if idx in violations:
+>             continue
+>         append_terms = []
+>         commit_terms = []
+>         append_seen_so_far = False
+>         for ev in evs:
+>             term, node, op, data = ev[0], ev[2], ev[3], ev[4]
+>             if op == 'VOTE':
+>                 if (node, term) in global_votes:
+>                     violations[idx] = 'BAD_DUPLICATE_VOTE'
+>                     break
+>                 global_votes.add((node, term))
+>             elif op == 'LEADER':
+>                 if term in leader_terms_seen:
+>                     violations[idx] = 'BAD_LEADER_ORDER'
+>                     break
+>                 leader_terms_seen.add(term)
+>             elif op == 'APPEND':
+>                 append_terms.append((term, data))
+>                 append_seen_so_far = True
+>             elif op == 'COMMIT':
+>                 if not append_seen_so_far:
+>                     violations[idx] = 'BAD_COMMIT_ORDER'
+>                     break
+>                 commit_terms.append(term)
+>         if idx in violations:
+>             continue
+>         if not append_terms:
+>             winning_term = None
+>         else:
+>             max_term = max(t for t, _ in append_terms)
+>             max_data_set = {d for t, d in append_terms if t == max_term}
+>             if len(max_data_set) > 1:
+>                 violations[idx] = 'BAD_CONFLICT'
+>             winning_term = max_term
+>         if idx not in violations and winning_term is not None:
+>             for ct in commit_terms:
+>                 if ct != winning_term:
+>                     violations[idx] = 'BAD_COMMIT_ORDER'
+>                     break
+>         if winning_term is not None:
+>             if not commit_terms or any(ct != winning_term for ct in commit_terms):
+>                 need_repair.append((idx, winning_term))
+>     bad_lines = sorted([f"BAD {idx} {reason}" for idx, reason in violations.items()])
+>     unique_repairs = {}
+>     for idx, term in need_repair:
+>         unique_repairs[idx] = (term, idx)
+>     ins_lines = sorted([f"INS {term} {idx} COMMIT" for idx, (term, _) in unique_repairs.items()], key=lambda x: (int(x.split()[2]), int(x.split()[1])))
+>     if not bad_lines and not ins_lines:
+>         return "OK"
+>     return "\n".join(bad_lines + ins_lines)
+> EOF
+
+
+
+Are you sure you want to mark the task as complete? This will trigger your solution to be graded and you won't be able to make any further corrections. If so, include "task_complete": true in your JSON response again.

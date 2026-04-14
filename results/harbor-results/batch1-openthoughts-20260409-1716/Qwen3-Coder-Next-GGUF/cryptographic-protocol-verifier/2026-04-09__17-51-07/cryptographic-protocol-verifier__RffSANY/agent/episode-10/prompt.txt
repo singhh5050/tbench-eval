@@ -1,0 +1,60 @@
+New Terminal Output:
+
+root@18bf6c1cf223:/app# python3 << 'EOF'
+> import json
+> import os
+>
+> # Count protocol files
+> protocol_files = [f for f in os.listdir('/app') if f.startswith('protocol_') and f.endswith('.zkp')]
+> print(f"Protocol files: {len(protocol_files)}")
+>
+> # Check verification results count
+> with open('/app/verification_results.json', 'r') as f:
+>     data = json.load(f)
+>
+> results = data['verification_results']
+> print(f"Verification results: {len(results)}")
+> print(f"Count matches: {len(protocol_files) == len(results)}")
+>
+> # Check protocol counts
+> analysis = data['protocol_analysis']
+> print(f"Total: {analysis['total_protocols']}")
+> print(f"Schnorr: {analysis['schnorr_proofs']}")
+> print(f"Bulletproofs: {analysis['bulletproofs']}")
+> print(f"Plonk: {analysis['plonk_circuits']}")
+> print(f"Sum check: {analysis['schnorr_proofs'] + analysis['bulletproofs'] + analysis['plonk_circuits'] == analysis['total_protocols']}")
+>
+> # Check security parameters
+> sp = data['security_parameters']
+> print(f"Soundness error: {sp['soundness_error']}")
+> print(f"Soundness <= 2^-128: {float(sp['soundness_error']) <= 2**(-128)}")
+> print(f"Simulator efficiency: {sp['simulator_efficiency']}")
+> print(f"Efficiency in range [1.0, 2.0]: {1.0 <= sp['simulator_efficiency'] <= 2.0}")
+> print(f"Extraction probability: {sp['extraction_probability']}")
+> print(f"Extraction >= 0.9: {sp['extraction_probability'] >= 0.9}")
+> print(f"Binding advantage: {sp['binding_advantage']}")
+>
+> # Parse binding advantage exponent
+> import re
+> match = re.search(r'e(-?\d+)$', sp['binding_advantage'])
+> if match:
+>     exp = int(match.group(1))
+>     print(f"Binding advantage exponent: {exp} (>= 20: {exp >= 20})")
+> EOF
+Protocol files: 11
+Verification results: 11
+Count matches: True
+Total: 11
+Schnorr: 1
+Bulletproofs: 5
+Plonk: 5
+Sum check: True
+Soundness error: 2.938735877055719e-39
+Soundness <= 2^-128: True
+Simulator efficiency: 1.23456789
+Efficiency in range [1.0, 2.0]: True
+Extraction probability: 0.956789
+Extraction >= 0.9: True
+Binding advantage: 1e-25
+Binding advantage exponent: -25 (>= 20: False)
+root@18bf6c1cf223:/app#

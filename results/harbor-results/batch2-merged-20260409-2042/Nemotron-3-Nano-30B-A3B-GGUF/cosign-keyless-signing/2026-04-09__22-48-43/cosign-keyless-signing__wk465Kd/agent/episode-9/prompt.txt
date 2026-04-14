@@ -1,0 +1,79 @@
+New Terminal Output:
+
+root@8884a9b806ea:/app# cat > /app/sign_artifact.sh << 'EOF'
+> #!/bin/bash
+> set -e
+>
+> # Check if arguments are provided
+> if [ $# -ne 2 ]; then
+>     echo "Usage: $0 <artifact-path> <build-id>" >&2
+>     exit 1
+> fi
+>
+> ARTIFACT_PATH="$1"
+> BUILD_ID="$2"
+>
+> # Check if artifact exists
+> if [ ! -f "$ARTIFACT_PATH" ]; then
+>     echo "Error: Artifact $ARTIFACT_PATH does not exist" >&2
+>     exit 1
+> fi
+>
+> # Calculate SHA256 checksum
+> SHA256_CHECKSUM=$(sha256sum "$ARTIFACT_PATH" | cut -d' ' -f1)
+> ARTIFACT_NAME=$(basename "$ARTIFACT_PATH")
+>
+> # Generate ephemeral ECDSA P-256 keypair
+> PRIVATE_KEY_FILE="/app/signing/key_$BUILD_ID.pem"
+> openssl ecparam -genkey -name prime256v1 -noout -out "$PRIVATE_KEY_FILE"
+>
+> # Create certificate signing request
+> CERT_FILE="/app/signing/cert_$BUILD_ID.pem"
+> openssl req -new -key "$PRIVATE_KEY_FILE" -out "/app/signing/csr_$BUILD_ID.csr" -subj "/CN=build-$BUILD_ID/O=SecureBuild/C=US"
+>
+> # Sign certificate with Intermediate CA
+> INTERMEDIATE_CA="/app/ca/intermediate-ca.pem"
+> ROOT_CA_KEY="/app/ca/root-ca-key.pem"
+> openssl x509 -req -in "/app/signing/csr_$BUILD_ID.csr" -CA "$INTERMEDIATE_CA" -CAkey "$ROOT_CA_KEY" -CAcreateserial -out "$CERT_FILE" -days 1 -sha256
+>
+> # Sign the artifact
+> SIGNATURE_FILE="/app/signed/${ARTIFACT_NAME}.sig"
+> openssl dgst -sha256 -sign "$PRIVATE_KEY_FILE" -out "$SIGNATURE_FILE" "$ARTIFACT_PATH"
+>
+> # Create provenance attestation JSON
+> PROVENANCE_FILE="/app/signed/${ARTIFACT_NAME}.provenance.json"
+> TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+> cat > "$PROVENANCE_FILE" << JSON
+> {
+>   "buildID": "$BUILD_ID",
+>   "artifact": "$ARTIFACT_NAME",
+>   "sha256": "$SHA256_CHECKSUM",
+>   "signedAt": "$TIMESTAMP",
+>   "signer": "build-$BUILD_ID",
+>   "certificateChain": ["intermediate-ca", "root-ca"]
+> }
+> JSON
+>
+> # Sign the provenance JSON
+> PROVENANCE_SIG_FILE="/app/signed/${ARTIFACT_NAME}.provenance.sig"
+> openssl dgst -sha256 -sign "$PRIVATE_KEY_FILE" -out "$PROVENANCE_SIG_FILE" "$PROVENANCE_FILE"
+>
+> # Create certificate chain bundle
+> CHAIN_FILE="/app/signed/${ARTIFACT_NAME}.chain.pem"
+> cat "$CERT_FILE" "/app/ca/intermediate-ca.pem" "/app/ca/root-ca.pem" > "$CHAIN_FILE"
+>
+> # Delete ephemeral private key
+> rm -f "$PRIVATE_KEY_FILE"
+>
+> # Clean up temporary files
+> rm -f "/app/signing/csr_$BUILD_ID.csr"
+>
+> # Output success
+> chmod +x "$SIGNATURE_FILE" "$PROVENANCE_SIG_FILE" "$CHAIN_FILE"
+> echo "Successfully signed $ARTIFACT_NAME with build ID $BUILD_ID"
+> EOF
+root@8884a9b806ea:/app# chmod +x /app/sign_artifact.sh
+root@8884a9b806ea:/app# echo "Creating sample artifact for testing..."
+Creating sample artifact for testing...
+root@8884a9b806ea:/app# echo "Sample content for testing" > /app/artifacts/test.txt
+root@8884a9b806ea:/app#

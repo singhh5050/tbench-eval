@@ -1,0 +1,29 @@
+Current terminal state:
+New Terminal Output:
+
+root@8884a9b806ea:/app# echo "Testing failure scenarios..."
+Testing failure scenarios...
+root@8884a9b806ea:/app# # Test 1: Tamper with artifact (should fail)
+root@8884a9b806ea:/app# cp /app/artifacts/test.txt /tmp/tampered.txt
+root@8884a9b806ea:/app# echo "Tampered content" >> /tmp/tampered.txt
+root@8884a9b806ea:/app# /app/verify_artifact.sh /tmp/tampered.txt
+VERIFICATION_FAILED: Required file /app/signed/tampered.txt.sig not found
+root@8884a9b806ea:/app# # Test 2: Verify clean exit code for tampered file
+root@8884a9b806ea:/app# if [ $? -eq 1 ]; then echo "✓ Verification correctly failed for tampered artifact"; fi
+✓ Verification correctly failed for tampered artifact
+root@8884a9b806ea:/app# # Test 3: Check that ephemeral key was destroyed
+root@8884a9b806ea:/app# if [ ! -f /app/signing/key_*.pem ]; then echo "✓ Ephemeral keys properly destroyed"; fi
+✓ Ephemeral keys properly destroyed
+root@8884a9b806ea:/app# # Test 4: Verify all required files exist after signing
+root@8884a9b806ea:/app# ls -la /app/signed/
+total 28
+drwxr-xr-x 1 root root 4096 Apr 10 04:53 .
+drwxr-xr-x 1 root root 4096 Apr 10 04:52 ..
+-rwxr-xr-x 1 root root 2093 Apr 10 04:56 test.txt.chain.pem
+-rw-r--r-- 1 root root  258 Apr 10 04:56 test.txt.provenance.json
+-rwxr-xr-x 1 root root   71 Apr 10 04:56 test.txt.provenance.sig
+-rwxr-xr-x 1 root root   71 Apr 10 04:56 test.txt.sig
+root@8884a9b806ea:/app#
+
+
+Are you sure you want to mark the task as complete? This will trigger your solution to be graded and you won't be able to make any further corrections. If so, include "task_complete": true in your JSON response again.

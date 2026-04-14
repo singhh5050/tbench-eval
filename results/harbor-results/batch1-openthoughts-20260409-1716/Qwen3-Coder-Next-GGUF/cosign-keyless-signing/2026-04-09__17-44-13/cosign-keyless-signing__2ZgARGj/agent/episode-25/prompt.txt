@@ -1,0 +1,58 @@
+New Terminal Output:
+
+root@2928fe68ba2e:/app# # Final end-to-end test
+root@2928fe68ba2e:/app# # Clean up and re-sign release.tar.gz with fresh build ID
+root@2928fe68ba2e:/app# rm -f /app/signed/release.tar.gz.*
+root@2928fe68ba2e:/app# /app/sign_artifact.sh /app/artifacts/release.tar.gz build-test
+Generating ephemeral ECDSA keypair...
+Creating signing certificate...
+Certificate request self-signature ok
+subject=CN=build-build-test, O=SecureBuild, C=US
+Signing artifact...
+Signing provenance attestation...
+Creating certificate chain...
+Destroying ephemeral key...
+Cleaning up signing artifacts...
+Signing complete!
+Artifact: /app/artifacts/release.tar.gz
+Build ID: build-test
+SHA256: cb20bd666b830989c22437f682f35d286563331c6270c01cca5070b245dc7007
+
+Output files:
+  - Signature: /app/signed/release.tar.gz.sig
+  - Provenance: /app/signed/release.tar.gz.provenance.json
+  - Provenance Signature: /app/signed/release.tar.gz.provenance.sig
+  - Chain: /app/signed/release.tar.gz.chain.pem
+root@2928fe68ba2e:/app# # Verify it passes
+root@2928fe68ba2e:/app# /app/verify_artifact.sh /app/artifacts/release.tar.gz
+Checking required files...
+All required files present.
+Validating certificate chain...
+Certificate will not expire
+Certificate chain valid.
+Extracting public key from signing certificate...
+Verifying artifact signature...
+Artifact signature verified.
+Verifying provenance signature...
+Provenance signature verified.
+Validating provenance content...
+Provenance content validated.
+Artifact SHA256: cb20bd666b830989c22437f682f35d286563331c6270c01cca5070b245dc7007
+
+VERIFICATION_PASSED
+root@2928fe68ba2e:/app# echo "Exit code: $?"
+Exit code: 0
+root@2928fe68ba2e:/app# # Test tampering - should fail
+root@2928fe68ba2e:/app# echo "tamper" >> /app/artifacts/release.tar.gz
+root@2928fe68ba2e:/app# /app/verify_artifact.sh /app/artifacts/release.tar.gz
+Checking required files...
+All required files present.
+Validating certificate chain...
+Certificate will not expire
+Certificate chain valid.
+Extracting public key from signing certificate...
+Verifying artifact signature...
+VERIFICATION_FAILED
+root@2928fe68ba2e:/app# echo "Exit code for tampered: $?"
+Exit code for tampered: 1
+root@2928fe68ba2e:/app#

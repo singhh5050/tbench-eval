@@ -1,0 +1,129 @@
+New Terminal Output:
+
+root@8d526f641b03:/app# cat /app/plugin/layout_quine.vim
+" LayoutQuine Plugin
+" A Vimscript plugin that can replicate a Vim layout
+
+if exists('g:layout_quine_loaded')
+    finish
+endif
+let g:layout_quine_loaded = 1
+
+function! s:CaptureLayout()
+    let layout = {}
+    let layout.active_tab = tabpagenr()
+    let layout.tabs = []
+
+    let tab_count = tabpagenr('$')
+
+    for tab_num in range(1, tab_count)
+        let tab_info = {}
+        let tab_info.windows = []
+        let tab_info.window_count = winnr('$')
+
+        execute 'tabnext' tab_num
+
+        let win_count = winnr('$')
+
+        for win_num in range(1, win_count)
+            let win_info = {}
+            let win_info.bufnr = winbufnr(win_num)
+            let win_info.bufname = bufname(winbufnr(win_num))
+            let win_info.width = winwidth(win_num)
+            let win_info.height = winheight(win_num)
+
+            if win_num > 1
+                let prev_win = win_num - 1
+                let prev_right = win_screenpos(prev_win)[0] + winwidth(prev_win)
+                let curr_left = win_screenpos(win_num)[0]
+
+                if prev_right == curr_left
+                    let win_info.split_type = 'vsplit'
+                else
+                    let win_info.split_type = 'split'
+                endif
+            else
+                let win_info.split_type = 'first'
+            endif
+
+            call add(tab_info.windows, win_info)
+        endfor
+
+        call add(layout.tabs, tab_info)
+    endfor
+
+    execute 'tabnext' layout.active_tab
+
+    return layout
+endfunction
+
+function! s:GenerateLayoutScript(layout, indent)
+    let script = []
+    let ind = repeat('    ', a:indent)
+    let ind1 = repeat('    ', a:indent + 1)
+
+    call add(script, ind . '" Recreate tabs and windows')
+    call add(script, ind . '" Active tab was: ' . a:layout.active_tab)
+    call add(script, '')
+
+    let tab_count = len(a:layout.tabs)
+
+    for tab_idx in range(0, tab_count - 1)
+        let tab = a:layout.tabs[tab_idx]
+
+        if tab_idx > 0
+            call add(script, ind . '" Tab ' . (tab_idx + 1))
+            call add(script, ind . 'tabnew')
+            call add(script, '')
+        endif
+
+        let win_count = len(tab.windows)
+        let first_window = 1
+
+        for win_idx in range(0, win_count - 1)
+            let win = tab.windows[win_idx]
+
+            if first_window
+                let first_window = 0
+
+                if win.bufname != ''
+                    call add(script, ind . '" Window ' . (win_idx + 1) . ' - buffer: ' . win.bufname)
+                    call add(script, ind . 'edit ' . fnameescape(win.bufname))
+                endif
+            else
+                call add(script, ind . '" Window ' . (win_idx + 1) . ' - buffer: ' . win.bufname)
+
+                if win.split_type == 'vsplit'
+                    call add(script, ind . 'vsplit')
+                elseif win.split_type == 'split'
+                    call add(script, ind . 'split')
+                endif
+
+                if win.bufname != ''
+                    call add(script, ind . 'edit ' . fnameescape(win.bufname))
+                endif
+            endif
+
+            call add(script, '')
+        endfor
+    endfor
+
+    call add(script, ind . '" Restore active tab')
+    call add(script, ind . 'if ' . tab_count . ' > 1')
+    call add(script, ind1 . 'tabnext ' . a:layout.active_tab)
+    call add(script, ind . 'endif')
+
+    return script
+endfunction
+
+function! s:LayoutQuineImpl(path)
+    let layout = s:CaptureLayout()
+    let script = s:GenerateLayoutScript(layout, 0)
+
+    call writefile(script, a:path)
+
+    echo 'Layout saved to: ' . a:path
+endfunction
+
+command! -nargs=1 LayoutQuine call s:LayoutQuineImpl(<f-args>)
+root@8d526f641b03:/app#

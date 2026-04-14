@@ -1,0 +1,52 @@
+New Terminal Output:
+
+root@85192a4178f3:/workdir# python3 << 'EOF'
+> import cv2
+> import numpy as np
+>
+> # Let's look at the structure of card_3 which has the distinctive right-heavy pattern
+> # A '4' typically has: vertical line on right, horizontal bar crossing it
+>
+> for i in [3]:  # Focus on card_3
+>     filepath = f'/workdir/data/cards/card_{i}.png'
+>     img = cv2.imread(filepath)
+>
+>     rank_area = img[10:70, 10:70]
+>     gray = cv2.cvtColor(rank_area, cv2.COLOR_BGR2GRAY)
+>     _, binary = cv2.threshold(gray, 128, 255, cv2.THRESH_BINARY_INV)
+>
+>     contours, _ = cv2.findContours(binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+>
+>     if contours:
+>         x, y, w, h = cv2.boundingRect(max(contours, key=cv2.contourArea))
+>         digit = binary[y:y+h, x:x+w]
+>
+>         # Print the digit as a character grid
+>         print(f'card_{i}.png digit shape:')
+>         for row in range(0, digit.shape[0], 4):  # Sample every 4 rows
+>             line = ''
+>             for col in range(0, digit.shape[1], 2):  # Sample every 2 cols
+>                 if digit[row, col] == 0:
+>                     line += '#'
+>                 else:
+>                     line += ' '
+>             print(line)
+>         print()
+> EOF
+card_3.png digit shape:
+    ################
+    ##############      ##
+    ############      ####
+    ##########      ######
+    ########      ########
+    ######      ##########
+    ####     #############
+    ##       #############
+              ############
+       ###      ##########
+     #######     #########
+    #########      #######
+    ###########     ######
+    ############      ####
+
+root@85192a4178f3:/workdir#

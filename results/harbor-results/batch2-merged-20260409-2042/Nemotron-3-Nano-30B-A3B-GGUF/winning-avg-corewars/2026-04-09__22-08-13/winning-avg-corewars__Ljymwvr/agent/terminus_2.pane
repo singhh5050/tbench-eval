@@ -1,0 +1,844 @@
+[?2004hroot@77bd7acbed24:/app# asciinema rec --stdin /logs/agent/recording.cast
+[?2004l[0;32masciinema: recording asciicast to /logs/agent/recording.cast[0m
+[0;32masciinema: press <ctrl-d> or type "exit" when you're done[0m
+[?2004hroot@77bd7acbed24:/app# clear
+[?2004l[H[J[3J[?2004hroot@77bd7acbed24:/app# ls -la warriors/
+[?2004ltotal 32
+drwxr-xr-x 2 root root 4096 Sep 13  2025 .
+drwxr-xr-x 1 root root 4096 Sep 13  2025 ..
+-rw-r--r-- 1 root root  824 Sep 13  2025 g2-clear.red
+-rw-r--r-- 1 root root  487 Sep 13  2025 paper.red
+-rw-r--r-- 1 root root 5021 Sep 13  2025 snake.red
+-rw-r--r-- 1 root root  284 Sep 13  2025 stone.red
+-rw-r--r-- 1 root root  839 Sep 13  2025 vampire.red
+[?2004hroot@77bd7acbed24:/app# cat warriors/stone.red
+[?2004l;redcode-94
+;name Stone
+;author mzvince (Everything2)
+;source https://everything2.com/title/bomber
+;strategy Classic stone bomber - drops DAT every 4 positions
+;assert CORESIZE == 8000
+
+start   add #4, 3
+        mov 2, @2  
+        jmp -2
+        dat #0, #0
+        
+        end start[?2004hroot@77bd7acbed24:/app# cat warriors/paper.red
+[?2004l;redcode-94
+;name Paper
+;author mzvince (Everything2)
+;source https://everything2.com/title/corewars+replicator
+;strategy Classic paper replicator - fast copying beats stone bombers  
+;assert CORESIZE == 8000
+
+step    equ 2667    ; coprime step for full coverage
+
+start   spl 1       ; split for more processes
+        
+loop    mov copy, *ptr
+        add #1, ptr
+        mov copy, @ptr
+        add #step, ptr
+        jmp loop
+
+copy    spl 0, 0
+ptr     dat step, step*2
+
+        end start[?2004hroot@77bd7acbed24:/app# cat warriors/vampire.red
+[?2004l;redcode-94
+;name Vampire
+;author mzvince (Everything2)
+;source https://everything2.com/node/581524 (with minor adjustments)
+;strategy Vampire/pit-trapper: scatter fangs (JMP) that send enemy into a pit which clears.
+;assert CORESIZE == 8000 && MAXCYCLES == 80000
+
+const   EQU     7
+
+        SPL     0                   ; prevent instant bomber kill
+main    MOV     ptr, @ptr           ; drop fang (JMP at B(ptr))
+        ADD     data, ptr           ; advance pointer
+        DJN     main, <2444         ; loop while stepping through core
+
+ptr     JMP     trap, ptr           ; fang: jumps into our pit
+
+trap    SPL     1, -100             ; slow replicators
+        MOV     data, <-1           ; core-clear in the pit
+        JMP     -2                  ; loop until overwritten
+
+data    DAT     #const, #-const
+        
+        end main
+[?2004hroot@77bd7acbed24:/app# cat warriors/snake.red
+[?2004l;redcode-94
+;name Snake
+;author Wayne Sheppard
+;source https://corewar.co.uk/snake.htm
+;strategy Pitbomber-impspiral
+;assert CORESIZE == 8000 && MAXCYCLES == 80000
+
+;Dan only plays bombers and imps on the hill.  But I am hoping
+;that he will go with a paper or scanner
+
+;Snake is a vampire and imp
+;Night Crawler would lose vs paper
+;The vampire should gain enough wins to beat paper
+;Should still have a winning record vs scanners
+;Probably lose vs other imps
+
+dist    equ 121             ; Bomb spread distance
+imp     equ icopy+1800      ; Imp start location  
+hide    equ 1600            ; Vampire hide location
+
+; Trap and pit for vampire victims
+trap    jmp pit-x-121+2, x+121   ; Trap statement in front to foil tracers
+x       spl 0,           trap
+        mov @0,          @trap
+        sub 4,           @-1
+        jmp -2
+pit     mov @dist,       <0-dist
+        spl 0                     ; This should change more losses into ties
+        spl -1                    ; than wins into ties
+
+; Massive decoy field - 63 lines to slow down enemy djn scans
+        dat     <trap,          <1      ; decoys
+        dat     <trap,          <1      ; slow down enemy djn  
+        dat     <trap,          <1      ; but don't cmp equal
+        dat     <trap,          <1
+        dat     <trap,          <1
+        dat     <trap,          <1
+        dat     <trap,          <1
+        dat     <trap,          <1
+        dat     <trap,          <1
+        dat     <trap,          <1
+        dat     <trap,          <1
+        dat     <trap,          <1
+        dat     <trap,          <1
+        dat     <trap,          <1
+        dat     <trap,          <1
+        dat     <trap,          <1
+        dat     <trap,          <1
+        dat     <trap,          <1
+        dat     <trap,          <1
+        dat     <trap,          <1
+        dat     <trap,          <1
+        dat     <trap,          <1
+        dat     <trap,          <1
+        dat     <trap,          <1
+        dat     <trap,          <1
+        dat     <trap,          <1
+        dat     <trap,          <1
+        dat     <trap,          <1
+        dat     <trap,          <1
+        dat     <trap,          <1
+        dat     <trap,          <1
+        dat     <trap,          <1
+        dat     <trap,          <1
+        dat     <trap,          <1
+        dat     <trap,          <1
+        dat     <trap,          <1
+        dat     <trap,          <1
+        dat     <trap,          <1
+        dat     <trap,          <1
+        dat     <trap,          <1
+        dat     <trap,          <1
+        dat     <trap,          <1
+        dat     <trap,          <1
+        dat     <trap,          <1
+        dat     <trap,          <1
+        dat     <trap,          <1
+        dat     <trap,          <1
+        dat     <trap,          <1
+        dat     <trap,          <1
+        dat     <trap,          <1
+        dat     <trap,          <1
+        dat     <trap,          <1
+        dat     <trap,          <1
+        dat     <trap,          <1
+        dat     <trap,          <1
+        dat     <trap,          <1
+        dat     <trap,          <1
+        dat     <trap,          <1
+        dat     <trap,          <1
+        dat     <trap,          <1
+        dat     <trap,          <1
+        dat     <trap,          <1
+        dat     <trap,          <1
+
+; Main execution - vampire setup and binary ring launcher  
+start   mov     trap+4,         hide            ; Copy vampire components
+        mov     trap+3,         <start          ; to safe hide location
+        mov     trap+2,         <start          
+        mov     trap+1,         <start
+        mov     trap,           <start
+        mov     pit+2,          hide
+        mov     pit+1,          <-1
+        mov     pit,            <-2
+        spl     start+hide-3,   <1              ; 1st split to vampire
+
+; Binary ring imp launcher - creates multiple imp streams
+ring    spl     9,              <4050           ; Binary tree startup
+        spl     5,              <4100           
+        spl     3,              <4150
+        mov     icopy,          imp             ; Copy imp template away from decoys
+        jmp     start+hide-3,   <4200           ; 2nd split to vampire
+        jmp     imp,            <4250           ; Launch first imp stream
+        spl     2,              <4300
+        jmp     2667+imp,       <6350           ; Imp stream at 2667 interval
+        jmp     5334+imp,       <4400           ; Imp stream at 5334 interval  
+        spl     4,              <4450
+        spl     2,              <4500
+        jmp     1+imp,          <4550           ; Imp stream at +1 offset
+        jmp     2668+imp,       <4600           ; Imp stream at 2668 interval
+        spl     2,              <4650
+        jmp     5335+imp,       <4700           ; Imp stream at 5335 interval
+        jmp     2+imp,          <4750           ; Imp stream at +2 offset
+
+; Imp template
+icopy   mov     0,              2667            ; Basic imp: mov 0, 2667
+
+        end     start[?2004hroot@77bd7acbed24:/app# cat warriors/g2-clear.red
+[?2004l;redcode-94
+;name G2-Clear
+;author Unknown
+;source https://corewar.co.uk/clear.htm
+;strategy Simple clear loop with decrementing pointer
+;assert CORESIZE == 8000 && MAXCYCLES == 80000
+
+dec     equ     2700                ; Decrement value for bomb counter
+gate    equ     clear-4             ; Gate location relative to clear
+
+        org     clear-1             ; Start execution before clear
+
+; Main data and bomb structures
+bptr    dat     bomb,       9       ; Pointer to bomb with offset 9
+bomb    spl     #dec,       11      ; Split with decrement value, creates processes
+clear   mov     *bptr,      >gate   ; Move bomb contents through gate pointer
+        mov     *bptr,      >gate   ; Second move for double clearing
+        djn.f   clear,      }bomb   ; Decrement and jump if not zero (loop control)
+
+        end
+[?2004hroot@77bd7acbed24:/app# cat > my_warrior.red << 'EOF'
+[?2004l[?2004h> ;redcode-94
+[?2004l[?2004h> ;name MyWarrior
+[?2004l[?2004h> ;author AI Assistant
+[?2004l[?2004h> ;strategy Balanced warrior combining replication and strategic bombing
+[?2004l[?2004h> ;assert CORESIZE == 8000
+[?2004l[?2004h> 
+[?2004l[?2004h> start   spl 1                   ; Split for more processes
+[?2004l[?2004h>     mov copy, *ptr          ; Copy code to continue execution
+[?2004l[?2004h>     add #1, ptr             ; Advance pointer
+[?2004l[?2004h>     mov copy, @ptr          ; Copy to next location
+[?2004l[?2004h>     add #100, ptr           ; Spread out replication
+[?2004l[?2004h>     jmp loop                ; Continue replication loop
+[?2004l[?2004h> 
+[?2004l[?2004h> copy    spl 0, 0              ; Copy instruction
+[?2004l[?2004h> ptr     dat 100, 100        ; Data pointer with spacing
+[?2004l[?2004h> 
+[?2004l[?2004h> loop    djn copy, 2           ; Continue replication
+[?2004l[?2004h>       spl 0                 ; Prevent immediate termination
+[?2004l[?2004h>       djn loop, 10          ; Loop control
+[?2004l[?2004h> 
+[?2004l[?2004h> ; Bombing sequence to disrupt opponents
+[?2004l[?2004h> bomb    equ 500             ; Bombing frequency
+[?2004l[?2004h> bomb_start equ 1000         ; Start bombing position
+[?2004l[?2004h> 
+[?2004l[?2004h> bomb_loop spl bomb_trigger, @bomb_start
+[?2004l[?2004h>       add #bomb, bomb_start   ; Move bombing position
+[?2004l[?2004h>       jmp bomb_loop
+[?2004l[?2004h> 
+[?2004l[?2004h> bomb_trigger dat bomb_trigger, 0
+[?2004l[?2004h> bomb    dat #bomb, #bomb    ; Bombing data
+[?2004l[?2004h> 
+[?2004l[?2004h> ; Defensive structure
+[?2004l[?2004h> protect equ 2000            ; Protection zone
+[?2004l[?2004h>     org protect             ; Start protection zone
+[?2004l[?2004h>     spl 0, 0              ; Defensive splitting
+[?2004l[?2004h>     djn protect, 5        ; Continue protection
+[?2004l[?2004h> 
+[?2004l[?2004h> ; Main execution loop
+[?2004l[?2004h> main    equ loop              ; Main execution label
+[?2004l[?2004h>     jmp main                ; Continue main loop
+[?2004l[?2004h> 
+[?2004l[?2004h> end main
+[?2004l[?2004h> EOF
+[?2004l[?2004hroot@77bd7acbed24:/app# cat > my_warrior.red << 'EOF'
+[?2004l[?2004h> ;redcode-94
+[?2004l[?2004h> ;name MyWarrior
+[?2004l[?2004h> ;author AI
+[?2004l[?2004h> ;assert CORESIZE == 8000
+[?2004l[?2004h> 
+[?2004l[?2004h> start   spl 1                   ; Split for more processes
+[?2004l[?2004h>     mov copy, *ptr            ; Copy code to continue execution
+[?2004l[?2004h>     add #1, ptr               ; Advance pointer
+[?2004l[?2004h>     mov copy, @ptr            ; Copy to next location
+[?2004l[?2004h>     add #73, ptr              ; Spread replication
+[?2004l[?2004h>     jmp loop                  ; Continue replication loop
+[?2004l[?2004h> 
+[?2004l[?2004h> copy    spl 0, 0              ; Copy instruction
+[?2004l[?2004h> ptr     dat 1, 1            ; Data pointer
+[?2004l[?2004h> 
+[?2004l[?2004h> loop    djn copy, 2           ; Continue replication
+[?2004l[?2004h>       spl 0                 ; Prevent immediate termination
+[?2004l[?2004h>       djn loop, 5           ; Loop control
+[?2004l[?2004h> 
+[?2004l[?2004h> ; Bombing sequence to disrupt opponents
+[?2004l[?2004h> bomb_equ  equ 400             ; Bombing frequency constant
+[?2004l[?2004h> bomb_start equ 2000           ; Start bombing position
+[?2004l[?2004h> 
+[?2004l[?2004h> bomb_loop spl bomb_target, @bomb_start
+[?2004l[?2004h>       add #bomb_equ, bomb_start
+[?2004l[?2004h>       jmp bomb_loop
+[?2004l[?2004h> 
+[?2004l[?2004h> bomb_target dat bomb_target, 0
+[?2004l[?2004h> bomb_equ    dat #bomb_equ, #bomb_equ
+[?2004l[?2004h> 
+[?2004l[?2004h> ; Defensive protection against pit traps
+[?2004l[?2004h> protect_equ equ 3000            ; Protection zone location
+[?2004l[?2004h> org protect_equ                 ; Start protection zone
+[?2004l[?2004h>     spl 0, 0                  ; Defensive splitting
+[?2004l[?2004h>     djn protect, 10           ; Continue protection
+[?2004l[?2004h> 
+[?2004l[?2004h> protect spl 0, 0                ; Protection code
+[?2004l[?2004h>     dat 0, 0                  ; Empty data
+[?2004l[?2004h> 
+[?2004l[?2004h> end start
+[?2004l[?2004h> EOF
+[?2004l[?2004hroot@77bd7acbed24:/app# echo ';redcode-94' > my_warrior.red
+[?2004l[?2004hroot@77bd7acbed24:/app# echo ';name MyWarrior' >> my_warrior.red
+[?2004l[?2004hroot@77bd7acbed24:/app# echo ';author AI' >> my_warrior.red
+[?2004l[?2004hroot@77bd7acbed24:/app# echo ';assert CORESIZE == 8000' >> my_warrior.red
+[?2004l[?2004hroot@77bd7acbed24:/app# echo '' >> my_warrior.red
+[?2004l[?2004hroot@77bd7acbed24:/app# echo 'start   spl 1' >> my_warrior.red
+[?2004l[?2004hroot@77bd7acbed24:/app# echo '    mov copy, *ptr' >> my_warrior.red
+[?2004l[?2004hroot@77bd7acbed24:/app# echo '    add #57, ptr' >> my_warrior.red
+[?2004l[?2004hroot@77bd7acbed24:/app# echo '    mov copy, @ptr' >> my_warrior.red
+[?2004l[?2004hroot@77bd7acbed24:/app# echo '    jmp loop' >> my_warrior.red
+[?2004l[?2004hroot@77bd7acbed24:/app# echo '' >> my_warrior.red
+[?2004l[?2004hroot@77bd7acbed24:/app# echo 'copy    spl 0, 0' >> my_warrior.red
+[?2004l[?2004hroot@77bd7acbed24:/app# echo 'ptr     dat 1, 1' >> my_warrior.red
+[?2004l[?2004hroot@77bd7acbed24:/app# echo '' >> my_warrior.red
+[?2004l[?2004hroot@77bd7acbed24:/app# echo 'loop    djn copy, 2' >> my_warrior.red
+[?2004l[?2004hroot@77bd7acbed24:/app# echo '      spl 0' >> my_warrior.red
+[?2004l[?2004hroot@77bd7acbed24:/app# echo '      djn loop, 8' >> my_warrior.red
+[?2004l[?2004hroot@77bd7acbed24:/app# echo '' >> my_warrior.red
+[?2004l[?2004hroot@77bd7acbed24:/app# echo '; Bombing sequence' >> my_warrior.red
+[?2004l[?2004hroot@77bd7acbed24:/app# echo 'bomb    equ 300' >> my_warrior.red
+[?2004l[?2004hroot@77bd7acbed24:/app# echo 'bomb_start equ 1500' >> my_warrior.red
+[?2004l[?2004hroot@77bd7acbed24:/app# echo '' >> my_warrior.red
+[?2004l[?2004hroot@77bd7acbed24:/app# echo 'bomb_loop spl bomb_target, @bomb_start' >> my_warrior.red
+[?2004l[?2004hroot@77bd7acbed24:/app# echo '      add #bomb, bomb_start' >> my_warrior.red
+[?2004l[?2004hroot@77bd7acbed24:/app# echo '      jmp bomb_loop' >> my_warrior.red
+[?2004l[?2004hroot@77bd7acbed24:/app# echo 'bomb_target dat bomb_target, 0' >> my_warrior.red
+[?2004l[?2004hroot@77bd7acbed24:/app# echo 'bomb_equ  dat #bomb, #bomb' >> my_warrior.red
+[?2004l[?2004hroot@77bd7acbed24:/app# echo '' >> my_warrior.red
+[?2004l[?2004hroot@77bd7acbed24:/app# echo '; Defensive protection' >> my_warrior.red
+[?2004l[?2004hroot@77bd7acbed24:/app# echo 'protect_equ equ 2500' >> my_warrior.red
+[?2004l[?2004hroot@77bd7acbed24:/app# echo 'org protect_equ' >> my_warrior.red
+[?2004l[?2004hroot@77bd7acbed24:/app# echo '    spl 0, 0' >> my_warrior.red
+[?2004l[?2004hroot@77bd7acbed24:/app# echo '    djn protect, 12' >> my_warrior.red
+[?2004l[?2004hroot@77bd7acbed24:/app# echo '' >> my_warrior.red
+[?2004l[?2004hroot@77bd7acbed24:/app# echo 'protect spl 0, 0' >> my_warrior.red
+[?2004l[?2004hroot@77bd7acbed24:/app# echo '    dat 0, 0' >> my_warrior.red
+[?2004l[?2004hroot@77bd7acbed24:/app# echo '' >> my_warrior.red
+[?2004l[?2004hroot@77bd7acbed24:/app# echo 'end start' >> my_warrior.red
+[?2004l[?2004hroot@77bd7acbed24:/app# pmars -b -r 100 -f my_warrior.red warriors/stone.red
+[?2004lWarning:
+        Execution starts from outside of the program
+
+Source: filename 'my_warrior.red'
+Number of warnings: 1
+
+MyWarrior by AI scores 0
+Stone by mzvince (Everything2) scores 300
+Results: 0 100 0
+[?2004hroot@77bd7acbed24:/app# rm my_warrior.red
+[?2004l[?2004hroot@77bd7acbed24:/app# cat > my_warrior.red << 'EOF'
+[?2004l[?2004h> ;redcode-94
+[?2004l[?2004h> ;name MyWarrior
+[?2004l[?2004h> ;author AI
+[?2004l[?2004h> ;assert CORESIZE == 8000
+[?2004l[?2004h> 
+[?2004l[?2004h> start   jmp init                ; Entry point
+[?2004l[?2004h> 
+[?2004l[?2004h> init    spl 1                   ; Split for replication
+[?2004l[?2004h>     mov copy, *ptr            ; Copy code
+[?2004l[?2004h>     add #59, ptr              ; Coprime stepping for full coverage
+[?2004l[?2004h>     mov copy, @ptr            ; Continue replication
+[?2004l[?2004h>     jmp loop                  ; Loop back for more copying
+[?2004l[?2004h> 
+[?2004l[?2004h> copy    spl 0, 0              ; Copy instruction
+[?2004l[?2004h> ptr     dat 1, 1            ; Data pointer
+[?2004l[?2004h> 
+[?2004l[?2004h> loop    djn copy, 2           ; Continue replication
+[?2004l[?2004h>       spl 0                 ; Prevent termination
+[?2004l[?2004h>       djn loop, 7           ; Loop control
+[?2004l[?2004h> 
+[?2004l[?2004h> ; Bombing sequence to disrupt opponents
+[?2004l[?2004h> bomb_equ  equ 277             ; Bombing frequency (coprime with 8000)
+[?2004l[?2004h> bomb_start equ 1700           ; Start bombing position
+[?2004l[?2004h> 
+[?2004l[?2004h> bomb_loop spl bomb_target, @bomb_start
+[?2004l[?2004h>       add #bomb_equ, bomb_start
+[?2004l[?2004h>       jmp bomb_loop
+[?2004l[?2004h> 
+[?2004l[?2004h> bomb_target dat bomb_target, 0
+[?2004l[?2004h> bomb_equ    dat #bomb_equ, #bomb_equ
+[?2004l[?2004h> 
+[?2004l[?2004h> ; Defensive protection
+[?2004l[?2004h> protect_equ equ 3331            ; Protection zone
+[?2004l[?2004h> org protect_equ                 ; Start protection
+[?2004l[?2004h>     spl 0, 0                  ; Defensive splitting
+[?2004l[?2004h>     djn protect, 11           ; Continue protection
+[?2004l[?2004h> 
+[?2004l[?2004h> protect spl 0, 0                ; Protection code
+[?2004l[?2004h>     dat 0, 0                  ; Empty data
+[?2004l[?2004h> 
+[?2004l[?2004h> end start
+[?2004l[?2004h> EOF
+[?2004l[?2004hroot@77bd7acbed24:/app# pmars -b -r 100 -f my_warrior.red warriors/stone.red
+[?2004lError in line 22: 'bomb_equ  equ 277             '
+        Unrecognized or improper placement of token: '277'
+
+Source: filename 'my_warrior.red'
+Number of errors: 1
+
+[?2004hroot@77bd7acbed24:/app# cat > my_warrior.red << 'EOF'
+[?2004l[?2004h> ;redcode-94
+[?2004l[?2004h> ;name MyWarrior
+[?2004l[?2004h> ;author AI
+[?2004l[?2004h> ;assert CORESIZE == 8000
+[?2004l[?2004h> 
+[?2004l[?2004h> start   jmp init
+[?2004l[?2004h> 
+[?2004l[?2004h> init    spl 1
+[?2004l[?2004h>     mov copy, *ptr
+[?2004l[?2004h>     add #59, ptr
+[?2004l[?2004h>     mov copy, @ptr
+[?2004l[?2004h>     jmp loop
+[?2004l[?2004h> 
+[?2004l[?2004h> copy    spl 0, 0
+[?2004l[?2004h> ptr     dat 1, 1
+[?2004l[?2004h> 
+[?2004l[?2004h> loop    djn copy, 2
+[?2004l[?2004h>       spl 0
+[?2004l[?2004h>       djn loop, 7
+[?2004l[?2004h> 
+[?2004l[?2004h> bomb_equ equ 277
+[?2004l[?2004h> bomb_start equ 1700
+[?2004l[?2004h> 
+[?2004l[?2004h> bomb_loop spl bomb_target, @bomb_start
+[?2004l[?2004h>       add #bomb_equ, bomb_start
+[?2004l[?2004h>       jmp bomb_loop
+[?2004l[?2004h> 
+[?2004l[?2004h> bomb_target dat bomb_target, 0
+[?2004l[?2004h> bomb_equ    dat #bomb_equ, #bomb_equ
+[?2004l[?2004h> 
+[?2004l[?2004h> protect_equ equ 3331
+[?2004l[?2004h> org protect_equ
+[?2004l[?2004h>     spl 0, 0
+[?2004l[?2004h>     djn protect, 11
+[?2004l[?2004h> 
+[?2004l[?2004h> protect spl 0, 0
+[?2004l[?2004h>     dat 0, 0
+[?2004l[?2004h> 
+[?2004l[?2004h> end start
+[?2004l[?2004h> EOF
+[?2004l[?2004hroot@77bd7acbed24:/app# pmars -b -r 100 -f my_warrior.red warriors/stone.red
+[?2004lError in line 21: 'bomb_equ equ 277'
+        Unrecognized or improper placement of token: '277'
+
+Source: filename 'my_warrior.red'
+Number of errors: 1
+
+[?2004hroot@77bd7acbed24:/app# cat > my_warrior.red << 'EOF'
+[?2004l[?2004h> ;redcode-94
+[?2004l[?2004h> ;name MyWarrior
+[?2004l[?2004h> ;assert CORESIZE == 8000
+[?2004l[?2004h> 
+[?2004l[?2004h> start   jmp init
+[?2004l[?2004h> 
+[?2004l[?2004h> init    spl 1
+[?2004l[?2004h>     mov copy, *ptr
+[?2004l[?2004h>     add #57, ptr
+[?2004l[?2004h>     mov copy, @ptr
+[?2004l[?2004h>     jmp loop
+[?2004l[?2004h> 
+[?2004l[?2004h> copy    spl 0, 0
+[?2004l[?2004h> ptr     dat 1, 1
+[?2004l[?2004h> 
+[?2004l[?2004h> loop    djn copy, 2
+[?2004l[?2004h>       spl 0
+[?2004l[?2004h>       djn loop, 8
+[?2004l[?2004h> 
+[?2004l[?2004h> ; Bombing sequence
+[?2004l[?2004h> bomb_start equ 1500
+[?2004l[?2004h> bomb_loop   mov bomb, @bomb_start
+[?2004l[?2004h>       add #277, bomb_start
+[?2004l[?2004h>       jmp bomb_loop
+[?2004l[?2004h> 
+[?2004l[?2004h> bomb      dat #5, #5
+[?2004l[?2004h> 
+[?2004l[?2004h> ; Protection
+[?2004l[?2004h> protect_start equ 2500
+[?2004l[?2004h> org protect_start
+[?2004l[?2004h>     spl 0, 0
+[?2004l[?2004h>     djn protect, 12
+[?2004l[?2004h> 
+[?2004l[?2004h> protect spl 0, 0
+[?2004l[?2004h>     dat 0, 0
+[?2004l[?2004h> 
+[?2004l[?2004h> end start
+[?2004l[?2004h> EOF
+[?2004l[?2004hroot@77bd7acbed24:/app# pmars -b -r 100 -f my_warrior.red warriors/stone.red
+[?2004lWarning:
+        Execution starts from outside of the program
+
+Source: filename 'my_warrior.red'
+Number of warnings: 1
+
+MyWarrior by Anonymous scores 0
+Stone by mzvince (Everything2) scores 300
+Results: 0 100 0
+[?2004hroot@77bd7acbed24:/app# printf ';redcode-94\n;name MyWarrior\n;assert CORESIZE == 8000\n\nstart   jmp init\n\ninit    spl 1\n    mov copy, *ptr\n    add #57, ptr\n    mov copy, @ptr\n    jmp loop\n\ncopy    spl 0, 0\nptr     dat 1, 1\n\nloop    djn copy, 2\n      spl 0\n      djn loop, 7\n\n; Bombing sequence\nbomb_start equ 1500\nbomb_loop spl bomb_target, @bomb_start\n      add #277, bomb_start\n      jmp bomb_loop\n\nbomb_target dat bomb_target, 0\nbomb_equ    dat #277, #277\n\n; Protection\nprotect_start equ 2500\norg protect_start\n    spl 0, 0\n    djn protect, 11\n\nprotect spl 0, 0\n    dat 0, 0\n\nend start\n' > my_warrior.red
+[?2004l[?2004hroot@77bd7acbed24:/app# pmars -b -r 100 -f my_warrior.red warriors/stone.red
+[?2004lWarning:
+        Execution starts from outside of the program
+
+Source: filename 'my_warrior.red'
+Number of warnings: 1
+
+MyWarrior by Anonymous scores 0
+Stone by mzvince (Everything2) scores 300
+Results: 0 100 0
+[?2004hroot@77bd7acbed24:/app# cat > my_warrior.red << 'EOF'
+[?2004l[?2004h> ;redcode-94
+[?2004l[?2004h> ;name MyWarrior
+[?2004l[?2004h> ;assert CORESIZE == 8000
+[?2004l[?2004h> 
+[?2004l[?2004h> start   jmp init
+[?2004l[?2004h> 
+[?2004l[?2004h> init    spl 1
+[?2004l[?2004h>     mov copy, *ptr
+[?2004l[?2004h>     add #57, ptr
+[?2004l[?2004h>     mov copy, @ptr
+[?2004l[?2004h>     jmp loop
+[?2004l[?2004h> 
+[?2004l[?2004h> copy    spl 0, 0
+[?2004l[?2004h> ptr     dat 1, 1
+[?2004l[?2004h> 
+[?2004l[?2004h> loop    djn copy, 2
+[?2004l[?2004h>       spl 0
+[?2004l[?2004h>       djn loop, 7
+[?2004l[?2004h> 
+[?2004l[?2004h> ; Bombing sequence
+[?2004l[?2004h> bomb_start equ 1500
+[?2004l[?2004h> bomb_loop spl bomb_target, @bomb_start
+[?2004l[?2004h>       add #277, bomb_start
+[?2004l[?2004h>       jmp bomb_loop
+[?2004l[?2004h> 
+[?2004l[?2004h> bomb_target dat bomb_target, 0
+[?2004l[?2004h> bomb_equ    dat #277, #277
+[?2004l[?2004h> 
+[?2004l[?2004h> ; Protection
+[?2004l[?2004h> protect_start equ 2500
+[?2004l[?2004h> org protect_start
+[?2004l[?2004h>     spl 0, 0
+[?2004l[?2004h>     djn protect, 11
+[?2004l[?2004h> 
+[?2004l[?2004h> protect spl 0, 0
+[?2004l[?2004h>     dat 0, 0
+[?2004l[?2004h> 
+[?2004l[?2004h> end start
+[?2004l[?2004h> EOF
+[?2004l[?2004hroot@77bd7acbed24:/app# pmars -b -r 100 -f my_warrior.red warriors/stone.red
+[?2004lWarning:
+        Execution starts from outside of the program
+
+Source: filename 'my_warrior.red'
+Number of warnings: 1
+
+MyWarrior by Anonymous scores 0
+Stone by mzvince (Everything2) scores 300
+Results: 0 100 0
+[?2004hroot@77bd7acbed24:/app# cat > my_warrior.red << 'EOF'
+[?2004l[?2004h> ;redcode-94
+[?2004l[?2004h> ;name MyWarrior
+[?2004l[?2004h> ;assert CORESIZE == 8000
+[?2004l[?2004h> 
+[?2004l[?2004h> start   mov 0, 1
+[?2004l[?2004h>     jmp init
+[?2004l[?2004h> 
+[?2004l[?2004h> init    spl 1
+[?2004l[?2004h>     mov copy, *ptr
+[?2004l[?2004h>     add #59, ptr
+[?2004l[?2004h>     mov copy, @ptr
+[?2004l[?2004h>     jmp loop
+[?2004l[?2004h> 
+[?2004l[?2004h> copy    spl 0, 0
+[?2004l[?2004h> ptr     dat 1, 1
+[?2004l[?2004h> 
+[?2004l[?2004h> loop    djn copy, 2
+[?2004l[?2004h>       spl 0
+[?2004l[?2004h>       djn loop, 7
+[?2004l[?2004h> 
+[?2004l[?2004h> ; Bombing sequence
+[?2004l[?2004h> bomb_start equ 1500
+[?2004l[?2004h> bomb_loop mov bomb, @bomb_start
+[?2004l[?2004h>       add #277, bomb_start
+[?2004l[?2004h>       jmp bomb_loop
+[?2004l[?2004h> 
+[?2004l[?2004h> bomb    dat #5, #5
+[?2004l[?2004h> 
+[?2004l[?2004h> ; Protection
+[?2004l[?2004h> protect_start equ 2500
+[?2004l[?2004h> spl 0, 0
+[?2004l[?2004h>     djn protect, 11
+[?2004l[?2004h> 
+[?2004l[?2004h> protect spl 0, 0
+[?2004l[?2004h>     dat 0, 0
+[?2004l[?2004h> 
+[?2004l[?2004h> loop  djn copy, 2
+[?2004l[?2004h>       spl 0
+[?2004l[?2004h>       djn loop, 7
+[?2004l[?2004h> 
+[?2004l[?2004h> protect mov protect, @protect_start
+[?2004l[?2004h>       add #277, protect_start
+[?2004l[?2004h>       jmp protect
+[?2004l[?2004h> 
+[?2004l[?2004h> end start
+[?2004l[?2004h> EOF
+[?2004l[?2004hroot@77bd7acbed24:/app# pmars -b -r 100 -f my_warrior.red warriors/stone.red
+[?2004lWarning in line 37: 'loop  djn copy, 2'
+        Ignored, redefinition of label 'loop'
+Warning in line 41: 'protect mov protect, @protect_start'
+        Ignored, redefinition of label 'protect'
+
+Source: filename 'my_warrior.red'
+Number of warnings: 2
+
+MyWarrior by Anonymous scores 68
+Stone by mzvince (Everything2) scores 164
+Results: 0 32 68
+[?2004hroot@77bd7acbed24:/app# cat > my_warrior.red << 'EOF'
+[?2004l[?2004h> ;redcode-94
+[?2004l[?2004h> ;name MyWarrior
+[?2004l[?2004h> ;assert CORESIZE == 8000
+[?2004l[?2004h> 
+[?2004l[?2004h> start   spl 1
+[?2004l[?2004h>     mov copy, *ptr
+[?2004l[?2004h>     add #59, ptr
+[?2004l[?2004h>     mov copy, @ptr
+[?2004l[?2004h>     jmp loop
+[?2004l[?2004h> 
+[?2004l[?2004h> copy    spl 0, 0
+[?2004l[?2004h> ptr     dat 1, 1
+[?2004l[?2004h> 
+[?2004l[?2004h> loop    djn copy, 2
+[?2004l[?2004h>       spl 0
+[?2004l[?2004h>       djn loop, 7
+[?2004l[?2004h> 
+[?2004l[?2004h> ; Bombing sequence
+[?2004l[?2004h> bomb_start equ 1500
+[?2004l[?2004h> bomb_loop spl bomb_target, @bomb_start
+[?2004l[?2004h>       add #277, bomb_start
+[?2004l[?2004h>       jmp bomb_loop
+[?2004l[?2004h> 
+[?2004l[?2004h> bomb_target dat bomb_target, 0
+[?2004l[?2004h> bomb_equ    dat #277, #277
+[?2004l[?2004h> 
+[?2004l[?2004h> ; Protection
+[?2004l[?2004h> protect_start equ 2500
+[?2004l[?2004h> spl 0, 0
+[?2004l[?2004h>     djn protect, 11
+[?2004l[?2004h> 
+[?2004l[?2004h> protect spl 0, 0
+[?2004l[?2004h>     dat 0, 0
+[?2004l[?2004h> 
+[?2004l[?2004h> end start
+[?2004l[?2004h> EOF
+[?2004l[?2004hroot@77bd7acbed24:/app# pmars -b -r 100 -f my_warrior.red warriors/stone.red
+[?2004lMyWarrior by Anonymous scores 100
+Stone by mzvince (Everything2) scores 100
+Results: 0 0 100
+[?2004hroot@77bd7acbed24:/app# pmars -b -r 100 -f my_warrior.red warriors/paper.red
+[?2004lMyWarrior by Anonymous scores 100
+Paper by mzvince (Everything2) scores 100
+Results: 0 0 100
+[?2004hroot@77bd7acbed24:/app# pmars -b -r 100 -f my_warrior.red warriors/vampire.red
+[?2004lMyWarrior by Anonymous scores 216
+Vampire by mzvince (Everything2) scores 84
+Results: 72 28 0
+[?2004hroot@77bd7acbed24:/app# pmars -b -r 100 -f my_warrior.red warriors/snake.red
+[?2004lMyWarrior by Anonymous scores 0
+Snake by Wayne Sheppard scores 300
+Results: 0 100 0
+[?2004hroot@77bd7acbed24:/app# cat > my_warrior.red << 'EOF'
+[?2004l[?2004h> ;redcode-94
+[?2004l[?2004h> ;name MyWarrior
+[?2004l[?2004h> ;author AI
+[?2004l[?2004h> ;assert CORESIZE == 8000
+[?2004l[?2004h> 
+[?2004l[?2004h> start   jmp init
+[?2004l[?2004h> 
+[?2004l[?2004h> init    spl 1
+[?2004l[?2004h>     mov copy, *ptr
+[?2004l[?2004h>     add #59, ptr
+[?2004l[?2004h>     mov copy, @ptr
+[?2004l[?2004h>     jmp loop
+[?2004l[?2004h> 
+[?2004l[?2004h> copy    spl 0, 0
+[?2004l[?2004h> ptr     dat 1, 1
+[?2004l[?2004h> 
+[?2004l[?2004h> loop    djn copy, 2
+[?2004l[?2004h>       spl 0
+[?2004l[?2004h>       djn loop, 7
+[?2004l[?2004h> 
+[?2004l[?2004h> ; Bombing sequence - multiple coprime intervals
+[?2004l[?2004h> bomb1_start equ 1000
+[?2004l[?2004h> bomb1_loop spl bomb1_target, @bomb1_start
+[?2004l[?2004h>        add #277, bomb1_start
+[?2004l[?2004h>        jmp bomb1_loop
+[?2004l[?2004h> 
+[?2004l[?2004h> bomb1_target dat bomb1_target, 0
+[?2004l[?2004h> bomb1_equ   dat #277, #277
+[?2004l[?2004h> 
+[?2004l[?2004h> bomb2_start equ 2000
+[?2004l[?2004h> bomb2_loop spl bomb2_target, @bomb2_start
+[?2004l[?2004h>        add #311, bomb2_start
+[?2004l[?2004h>        jmp bomb2_loop
+[?2004l[?2004h> 
+[?2004l[?2004h> bomb2_target dat bomb2_target, 0
+[?2004l[?2004h> bomb2_equ   dat #311, #311
+[?2004l[?2004h> 
+[?2004l[?2004h> ; Anti-imp traps
+[?2004l[?2004h> imp_trap_start equ 3000
+[?2004l[?2004h> imp_trap_loop spl imp_trap, @imp_trap_start
+[?2004l[?2004h>       add #379, imp_trap_start
+[?2004l[?2004h>       jmp imp_trap_loop
+[?2004l[?2004h> 
+[?2004l[?2004h> imp_trap  spl 0, -1
+[?2004l[?2004h>       dat -1, -1
+[?2004l[?2004h> 
+[?2004l[?2004h> ; Protection
+[?2004l[?2004h> protect_start equ 4000
+[?2004l[?2004h> org protect_start
+[?2004l[?2004h>     spl 0, 0
+[?2004l[?2004h>     djn protect, 12
+[?2004l[?2004h> 
+[?2004l[?2004h> protect spl 0, 0
+[?2004l[?2004h>     dat 0, 0
+[?2004l[?2004h> 
+[?2004l[?2004h> end start
+[?2004l[?2004h> EOF
+[?2004l[?2004hroot@77bd7acbed24:/app# pmars -b -r 100 -f my_warrior.red warriors/stone.red
+[?2004lWarning:
+        Execution starts from outside of the program
+
+Source: filename 'my_warrior.red'
+Number of warnings: 1
+
+MyWarrior by AI scores 0
+Stone by mzvince (Everything2) scores 300
+Results: 0 100 0
+[?2004hroot@77bd7acbed24:/app# cat > my_warrior.red << 'EOF'
+[?2004l[?2004h> ;redcode-94
+[?2004l[?2004h> ;name MyWarrior
+[?2004l[?2004h> ;assert CORESIZE == 8000
+[?2004l[?2004h> 
+[?2004l[?2004h> start   jmp init
+[?2004l[?2004h> 
+[?2004l[?2004h> init    spl 1
+[?2004l[?2004h>     mov copy, *ptr
+[?2004l[?2004h>     add #57, ptr
+[?2004l[?2004h>     mov copy, @ptr
+[?2004l[?2004h>     jmp loop
+[?2004l[?2004h> 
+[?2004l[?2004h> copy    spl 0, 0
+[?2004l[?2004h> ptr     dat 1, 1
+[?2004l[?2004h> 
+[?2004l[?2004h> loop    djn copy, 2
+[?2004l[?2004h>       spl 0
+[?2004l[?2004h>       djn loop, 7
+[?2004l[?2004h> 
+[?2004l[?2004h> ; Bombing sequence
+[?2004l[?2004h> bomb_start equ 1500
+[?2004l[?2004h> bomb_loop spl bomb_target, @bomb_start
+[?2004l[?2004h>       add #277, bomb_start
+[?2004l[?2004h>       jmp bomb_loop
+[?2004l[?2004h> 
+[?2004l[?2004h> bomb_target dat bomb_target, 0
+[?2004l[?2004h> bomb_equ    dat #277, #277
+[?2004l[?2004h> 
+[?2004l[?2004h> ; Protection
+[?2004l[?2004h> protect_start equ 2500
+[?2004l[?2004h> spl 0, 0
+[?2004l[?2004h>     djn protect, 11
+[?2004l[?2004h> 
+[?2004l[?2004h> protect spl 0, 0
+[?2004l[?2004h>     dat 0, 0
+[?2004l[?2004h> 
+[?2004l[?2004h> end start
+[?2004l[?2004h> EOF
+[?2004l[?2004hroot@77bd7acbed24:/app# pmars -b -r 100 -f my_warrior.red warriors/stone.red
+[?2004lMyWarrior by Anonymous scores 100
+Stone by mzvince (Everything2) scores 100
+Results: 0 0 100
+[?2004hroot@77bd7acbed24:/app# pmars -b -r 100 -f my_warrior.red warriors/g2-clear.red
+[?2004lMyWarrior by Anonymous scores 1
+G2-Clear by Unknown scores 298
+Results: 0 99 1
+[?2004hroot@77bd7acbed24:/app# cat > my_warrior.red << 'EOF'
+[?2004l[?2004h> ;redcode-94
+[?2004l[?2004h> ;name MyWarrior
+[?2004l[?2004h> ;author AI
+[?2004l[?2004h> ;assert CORESIZE == 8000
+[?2004l[?2004h> 
+[?2004l[?2004h> start   jmp init
+[?2004l[?2004h> 
+[?2004l[?2004h> init    spl 1
+[?2004l[?2004h>     mov copy, *ptr
+[?2004l[?2004h>     add #57, ptr
+[?2004l[?2004h>     mov copy, @ptr
+[?2004l[?2004h>     jmp loop
+[?2004l[?2004h> 
+[?2004l[?2004h> copy    spl 0, 0
+[?2004l[?2004h> ptr     dat 1, 1
+[?2004l[?2004h> 
+[?2004l[?2004h> loop    djn copy, 2
+[?2004l[?2004h>       spl 0
+[?2004l[?2004h>       djn loop, 7
+[?2004l[?2004h> 
+[?2004l[?2004h> ; Bombing sequence 1
+[?2004l[?2004h> bomb1_start equ 1500
+[?2004l[?2004h> bomb1_loop spl bomb1_target, @bomb1_start
+[?2004l[?2004h>       add #277, bomb1_start
+[?2004l[?2004h>       jmp bomb1_loop
+[?2004l[?2004h> bomb1_target dat bomb1_target, 0
+[?2004l[?2004h> bomb1_equ    dat #277, #277
+[?2004l[?2004h> 
+[?2004l[?2004h> ; Bombing sequence 2
+[?2004l[?2004h> bomb2_start equ 2500
+[?2004l[?2004h> bomb2_loop spl bomb2_target, @bomb2_start
+[?2004l[?2004h>       add #311, bomb2_start
+[?2004l[?2004h>       jmp bomb2_loop
+[?2004l[?2004h> bomb2_target dat bomb2_target, 0
+[?2004l[?2004h> bomb2_equ    dat #311, #311
+[?2004l[?2004h> 
+[?2004l[?2004h> ; Protection
+[?2004l[?2004h> protect_start 3500
+[?2004l[?2004h> spl 0, 0
+[?2004l[?2004h>     djn protect, 11
+[?2004l[?2004h> protect spl 0, 0
+[?2004l[?2004h>     dat 0, 0
+[?2004l[?2004h> 
+[?2004l[?2004h> end start
+[?2004l[?2004h> EOF
+[?2004l[?2004hroot@77bd7acbed24:/app# pmars -b -r 100 -f my_warrior.red warriors/stone.red
+[?2004lError in line 38: 'protect_start 3500'
+        Unrecognized or improper placement of token: '3500'
+
+Source: filename 'my_warrior.red'
+Number of errors: 1
+
+[?2004hroot@77bd7acbed24:/app# 

@@ -1,0 +1,35 @@
+New Terminal Output:
+
+root@85192a4178f3:/workdir# python3 << 'EOF'
+> import cv2
+> import numpy as np
+>
+> # Let's look at the actual pixel patterns more carefully
+> # A '4' typically has: a vertical line on the right, a horizontal line across the middle, and a diagonal
+>
+> for i in range(1, 7):
+>     filepath = f'/workdir/data/cards/card_{i}.png'
+>     img = cv2.imread(filepath)
+>
+>     rank_area = img[10:70, 10:70]
+>     gray = cv2.cvtColor(rank_area, cv2.COLOR_BGR2GRAY)
+>
+>     # Get the top left corner of the rank area
+>     top_left = gray[5:30, 5:30]
+>
+>     # Calculate mean pixel values in different quadrants
+>     h, w = top_left.shape
+>     q1 = np.mean(top_left[:h//2, :w//2])  # top-left quadrant
+>     q2 = np.mean(top_left[:h//2, w//2:])  # top-right quadrant
+>     q3 = np.mean(top_left[h//2:, :w//2])  # bottom-left quadrant
+>     q4 = np.mean(top_left[h//2:, w//2:])  # bottom-right quadrant
+>
+>     print(f'card_{i}.png - Q1(40-60): {q1:.1f}, Q2(60-80): {q2:.1f}, Q3(40-60): {q3:.1f}, Q4(60-80): {q4:.1f}')
+> EOF
+card_1.png - Q1(40-60): 255.0, Q2(60-80): 255.0, Q3(40-60): 255.0, Q4(60-80): 254.0
+card_2.png - Q1(40-60): 255.0, Q2(60-80): 255.0, Q3(40-60): 255.0, Q4(60-80): 225.1
+card_3.png - Q1(40-60): 214.8, Q2(60-80): 251.2, Q3(40-60): 210.6, Q4(60-80): 101.0
+card_4.png - Q1(40-60): 255.0, Q2(60-80): 187.2, Q3(40-60): 255.0, Q4(60-80): 255.0
+card_5.png - Q1(40-60): 255.0, Q2(60-80): 197.8, Q3(40-60): 255.0, Q4(60-80): 146.5
+card_6.png - Q1(40-60): 255.0, Q2(60-80): 255.0, Q3(40-60): 255.0, Q4(60-80): 255.0
+root@85192a4178f3:/workdir#

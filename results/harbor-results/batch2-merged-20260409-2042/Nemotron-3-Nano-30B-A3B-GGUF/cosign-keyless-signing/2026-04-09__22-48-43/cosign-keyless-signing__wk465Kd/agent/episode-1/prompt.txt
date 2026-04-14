@@ -1,0 +1,49 @@
+New Terminal Output:
+root@8884a9b806ea:/app# ls -la
+total 24
+drwxr-xr-x 1 root root 4096 Apr  9 23:44 .
+drwxr-xr-x 1 root root 4096 Apr 10 04:48 ..
+drwxr-xr-x 1 root root 4096 Apr  9 23:44 artifacts
+drwxr-xr-x 2 root root 4096 Apr  9 23:44 ca
+drwxr-xr-x 2 root root 4096 Apr  9 23:44 signed
+drwxr-xr-x 2 root root 4096 Apr  9 23:44 signing
+root@8884a9b806ea:/app# mkdir -p /app/ca /app/signing /app/signed /app/artifacts
+root@8884a9b806ea:/app# echo "Creating setup_ca.sh..."
+Creating setup_ca.sh...
+root@8884a9b806ea:/app# cat > /app/setup_ca.sh << 'EOF'
+> #!/bin/bash
+> set -e
+>
+> # Create directory structure
+> mkdir -p /app/ca /app/signing /app/signed
+>
+> # Generate Root CA private key
+> openssl genpkey -algorithm EC -pkeyopt ec_paramgen_curve:prime256v1 -out /app/ca/root-ca-key.pem
+>
+> # Generate Root CA self-signed certificate
+> openssl req -x509 -new -nodes -key /app/ca/root-ca-key.pem -sha256 -days 3650 -out /app/ca/root-ca.pem -subj "/CN=Software Signing Root CA/O=SecureBuild/C=US"
+ -addext "keyUsage=certificateSign,crlSign" -addext "basicConstraints=critical,CA:true"
+>
+> # Generate Intermediate CA private key
+> openssl genpkey -algorithm EC -pkeyopt ec_paramgen_curve:prime256v1 -out /app/ca/intermediate-ca-key.pem
+>
+> # Generate Intermediate CA CSR
+> openssl req -new -key /app/ca/intermediate-ca-key.pem -out /app/ca/intermediate-ca.csr -subj "/CN=Build Pipeline Intermediate CA/O=SecureBuild/C=US"
+>
+> # Sign Intermediate CA with Root CA
+> openssl x509 -req -in /app/ca/intermediate-ca.csr -CA /app/ca/root-ca.pem -CAkey /app/ca/root-ca-key.pem -CAcreateserial -out /app/ca/intermediate-ca.pem -day
+s 1825 -sha256 -addext "keyUsage=certificateSign,digitalSignature" -addext "basicConstraints=critical,CA:true,pathlen:0"
+>
+> # Clean up CSR
+> rm -f /app/ca/intermediate-ca.csr
+>
+> # Create serial file for OpenSSL
+> touch /app/ca/serial
+> EOF
+root@8884a9b806ea:/app# chmod +x /app/setup_ca.sh
+root@8884a9b806ea:/app# /app/setup_ca.sh
+Error checking extensions defined using -addext
+408791C9A4790000:error:1100006F:X509 V3 routines:v2i_ASN1_BIT_STRING:unknown bit string argument:../crypto/x509/v3_bitst.c:82:certificateSign
+408791C9A4790000:error:11000080:X509 V3 routines:X509V3_EXT_nconf_int:error in extension:../crypto/x509/v3_conf.c:48:section=default, name=keyUsage, value=certi
+ficateSign,crlSign
+root@8884a9b806ea:/app#

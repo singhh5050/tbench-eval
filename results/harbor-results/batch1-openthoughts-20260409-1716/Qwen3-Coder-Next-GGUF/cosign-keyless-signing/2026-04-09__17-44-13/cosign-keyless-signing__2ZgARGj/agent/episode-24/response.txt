@@ -1,0 +1,18 @@
+{
+  "analysis": "Let me do a final verification to ensure everything is working correctly before marking the task as complete. I want to make sure the scripts handle all the edge cases properly, including the verification failure scenarios mentioned in the requirements.",
+  "plan": "1. Run a quick test to verify the complete workflow works end-to-end\n2. Test that verification fails for tampered artifacts\n3. Confirm all files are in place",
+  "commands": [
+    {
+      "keystrokes": "# Final end-to-end test\n# Clean up and re-sign release.tar.gz with fresh build ID\nrm -f /app/signed/release.tar.gz.*\n/app/sign_artifact.sh /app/artifacts/release.tar.gz build-test\n",
+      "duration": 2.0
+    },
+    {
+      "keystrokes": "# Verify it passes\n/app/verify_artifact.sh /app/artifacts/release.tar.gz\necho \"Exit code: $?\"\n",
+      "duration": 2.0
+    },
+    {
+      "keystrokes": "# Test tampering - should fail\necho \"tamper\" >> /app/artifacts/release.tar.gz\n/app/verify_artifact.sh /app/artifacts/release.tar.gz\necho \"Exit code for tampered: $?\"\n",
+      "duration": 2.0
+    }
+  ]
+}

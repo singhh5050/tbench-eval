@@ -1,0 +1,122 @@
+New Terminal Output:
+ ]
+}
+root@ec00c077f56c:/app# cat > /app/api/app.py << 'EOF'
+ type(best_model).__name__ if best_model else "unknown",
+        "features_count": 8
+    }
+
+@app.post("/predict")
+async def predict_single(input_data: PredictInput):
+    if best_model is None:
+        return JSONResponse(content={"error": "Model not loaded"}, status_code=503)
+
+    features_array = np.array(input_data.features).reshape(1, -1)
+    prediction = best_model.predict(features_array)[0]
+
+    return {
+        "prediction": float(prediction),
+        "model_name": model_name
+    }
+
+@app.post("/predict-batch")
+async def predict_batch(input_data: PredictBatchInput):
+    if best_model is None:
+        return JSONResponse(content={"error": "Model not loaded"}, status_code=503)
+
+    features_array = np.array(input_data.features_list)
+    predictions = best_model.predict(features_array)
+
+    return {
+        "predictions": [float(p) for p in predictions],
+        "model_name": model_name,
+        "count": len(predictions)
+    }
+EOF
+> from fastapi import FastAPI
+> from fastapi.responses import JSONResponse
+> from pydantic import BaseModel
+> from typing import List, Optional
+> import pickle
+> import numpy as np
+> import pandas as pd
+>
+> # Global variable for the model
+> best_model = None
+> model_name = "random_forest"
+>
+> # Request/Response models
+> class PredictInput(BaseModel):
+>     features: List[float]
+>
+> class PredictBatchInput(BaseModel):
+>     features_list: List[List[float]]
+>
+> # Initialize FastAPI app
+> app = FastAPI(title="California Housing Prediction API")
+>
+> @app.on_event("startup")
+> async def load_model():
+>     global best_model
+>     with open('/app/models/best_model.pkl', 'rb') as f:
+>         best_model = pickle.load(f)
+>     print(f"Model loaded: {type(best_model).__name__}")
+>
+> @app.get("/health")
+> async def health_check():
+>     return {
+>         "status": "healthy",
+>         "model_loaded": best_model is not None
+>     }
+>
+> @app.get("/model-info")
+> async def get_model_info():
+>     return {
+>         "model_name": model_name,
+>         "model_type": type(best_model).__name__ if best_model else "unknown",
+>         "features_count": 8
+>     }
+>
+> @app.post("/predict")
+> async def predict_single(input_data: PredictInput):
+>     if best_model is None:
+>         return JSONResponse(content={"error": "Model not loaded"}, status_code=503)
+>
+>     features_array = np.array(input_data.features).reshape(1, -1)
+>     prediction = best_model.predict(features_array)[0]
+>
+>     return {
+>         "prediction": float(prediction),
+>         "model_name": model_name
+>     }
+>
+> @app.post("/predict-batch")
+> async def predict_batch(input_data: PredictBatchInput):
+>     if best_model is None:
+>         return JSONResponse(content={"error": "Model not loaded"}, status_code=503)
+>
+>     features_array = np.array(input_data.features_list)
+>     predictions = best_model.predict(features_array)
+>
+>     return {
+>         "predictions": [float(p) for p in predictions],
+>         "model_name": model_name,
+>         "count": len(predictions)
+>     }
+> EOF
+root@ec00c077f56c:/app# kill %1 2>/dev/null; sleep 1
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [501]
+[1]+  Terminated              cd /app && uvicorn api.app:app --host 0.0.0.0 --port 8000
+root@ec00c077f56c:/app# cd /app && uvicorn api.app:app --host 0.0.0.0 --port 8000 &
+[1] 670
+root@ec00c077f56c:/app# INFO:     Started server process [671]
+INFO:     Waiting for application startup.
+Model loaded: RandomForestRegressor
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+sleep 2 && curl -s http://localhost:8000/health
+INFO:     127.0.0.1:44892 - "GET /health HTTP/1.1" 200 OK
+{"status":"healthy","model_loaded":true}root@ec00c077f56c:/app#

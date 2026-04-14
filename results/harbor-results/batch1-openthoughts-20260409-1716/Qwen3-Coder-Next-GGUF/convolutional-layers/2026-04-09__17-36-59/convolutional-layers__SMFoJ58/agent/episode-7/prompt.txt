@@ -1,0 +1,265 @@
+New Terminal Output:
+
+root@b05171444938:/app# python3 << 'EOF'
+> import numpy as np
+> import sys
+> sys.path.insert(0, '/app')
+>
+> from src import *
+>
+ut = pool.forward(x)
+assert out.shape == (2, 16, 16, 8)
+assert pool.kernel_size == 2 and pool.stride == 2
+print("MaxPool2D: OK\n")
+
+# Test AvgPool2D
+print("=== Testing AvgPool2D ===")
+pool = AvgPool2D(2, stride=2)
+x = np.random.randn(2, 32, 32, 8).astype(np.float64)
+out = pool.forward(x)
+assert out.shape == (2, 16, 16, 8)
+print("AvgPool2D: OK\n")
+
+# Test BatchNorm2D
+print("=== Testing BatchNorm2D ===")
+bn = BatchNorm2D(16)
+x = np.random.randn(4, 8, 8, 16).astype(np.float64)
+out = bn.forward(x, training=True)
+assert out.shape == (4, 8, 8, 16)
+assert hasattr(bn, 'gamma') and hasattr(bn, 'beta')
+assert hasattr(bn, 'running_mean') and hasattr(bn, 'running_var')
+assert bn.num_features == 16 and bn.eps == 1e-5 and bn.momentum == 0.1
+print("BatchNorm2D: OK\n")
+
+# Test ReLU
+print("=== Testing ReLU ===")
+relu = ReLU()
+x = np.array([[-1, 0, 1], [-2, 0.5, 2]], dtype=np.float64)
+out = relu.forward(x)
+expected = np.array([[0, 0, 1], [0, 0.5, 2]], dtype=np.float64)
+assert np.allclose(out, expected)
+print("ReLU: OK\n")
+
+# Test LeakyReLU
+print("=== Testing LeakyReLU ===")
+lrelu = LeakyReLU(negative_slope=0.01)
+x = np.array([[-1, 0, 1], [-2, 0.5, 2]], dtype=np.float64)
+out = lrelu.forward(x)
+expected = np.array([[-0.01, 0, 1], [-0.02, 0.5, 2]], dtype=np.float64)
+assert np.allclose(out, expected)
+assert lrelu.negative_slope == 0.01
+print("LeakyReLU: OK\n")
+
+# Test Sigmoid
+print("=== Testing Sigmoid ===")
+sigmoid = Sigmoid()
+x = np.array([0.0, 1.0, -1.0], dtype=np.float64)
+out = sigmoid.forward(x)
+expected = np.array([0.5, 0.73105858, 0.26894142])
+assert np.allclose(out, expected, atol=1e-5)
+print("Sigmoid: OK\n")
+
+# Test __call__ method
+print("=== Testing __call__ method ===")
+relu = ReLU()
+x = np.array([-1, 0, 1], dtype=np.float64)
+out1 = relu.forward(x)
+out2 = relu(x)
+assert np.allclose(out1, out2)
+print("__call__ method: OK\n")
+
+# Test all outputs are float64
+print("=== Verifying float64 dtype ===")
+for layer_name, layer in [
+    ('Conv2D', Conv2D(3, 4, 3)),
+    ('Conv2DTranspose', Conv2DTranspose(4, 5, 3)),
+    ('MaxPool2D', MaxPool2D(2)),
+    ('AvgPool2D', AvgPool2D(2)),
+    ('BatchNorm2D', BatchNorm2D(4)),
+    ('ReL> print("Running comprehensive test suite...\n")
+>
+> # Test padding
+> print("=== Testing padding ===")
+> x = np.ones((2, 4, 4, 3), dtype=np.float64)
+> padded = zero_pad(x, 1)
+> assert padded.shape == (2, 6, 6, 3)
+> print("zero_pad: OK")
+>
+> out = get_output_shape((28, 28), 3, 1, 1)
+> assert out == (28, 28)
+> out = get_output_shape((32, 32), 4, 2, 1)
+> assert out == (16, 16)
+> print("get_output_shape: OK\n")
+>
+> # Test BaseLayer (abstract)
+> print("=== Testing BaseLayer ===")
+> try:
+>     base = BaseLayer()
+>     print("ERROR: Should not be able to instantiate BaseLayer")
+> except TypeError:
+>     pass
+> print("BaseLayer: OK\n")
+>
+> # Test Conv2D
+> print("=== Testing Conv2D ===")
+> conv = Conv2D(3, 16, 3, stride=1, padding=1)
+> x = np.random.randn(2, 28, 28, 3).astype(np.float64)
+> out = conv.forward(x)
+> assert out.shape == (2, 28, 28, 16)
+> assert hasattr(conv, 'weights') and hasattr(conv, 'bias')
+> assert conv.in_channels == 3 and conv.out_channels == 16
+> assert conv.kernel_size == 3 and conv.stride == 1
+> assert conv.padding == 1 and conv.dilation == 1
+> print("Conv2D basic: OK")
+>
+> conv = Conv2D(3, 8, 3, stride=2, padding=0, dilation=1)
+> x = np.random.randn(2, 32, 32, 3).astype(np.float64)
+> out = conv.forward(x)
+> assert out.shape == (2, 15, 15, 8)
+> print("Conv2D stride/dilation: OK\n")
+>
+> # Test Conv2DTranspose
+> print("=== Testing Conv2DTranspose ===")
+> conv_t = Conv2DTranspose(8, 16, 3, stride=2, padding=1)
+> x = np.random.randn(2, 16, 16, 8).astype(np.float64)
+> out = conv_t.forward(x)
+> expected_out_h = (16 - 1) * 2 - 2 * 1 + 3
+> expected_out_w = (16 - 1) * 2 - 2 * 1 + 3
+> assert out.shape == (2, expected_out_h, expected_out_w, 16)
+> assert hasattr(conv_t, 'weights') and hasattr(conv_t, 'bias')
+> assert conv_t.in_channels == 8 and conv_t.out_channels == 16
+> assert conv_t.kernel_size == 3 and conv_t.stride == 2
+> assert conv_t.padding == 1
+> print("Conv2DTranspose: OK\n")
+>
+> # Test MaxPool2D
+> print("=== Testing MaxPool2D ===")
+> pool = MaxPool2D(2, stride=2)
+> x = np.random.randn(2, 32, 32, 8).astype(np.float64)
+> out = pool.forward(x)
+> assert out.shape == (2, 16, 16, 8)
+> assert pool.kernel_size == 2 and pool.stride == 2
+> print("MaxPool2D: OK\n")
+>
+> # Test AvgPool2D
+> print("=== Testing AvgPool2D ===")
+> pool = AvgPool2D(2, stride=2)
+> x = np.random.randn(2, 32, 32, 8).astype(np.float64)
+> out = pool.forward(x)
+> assert out.shape == (2, 16, 16, 8)
+> print("AvgPool2D: OK\n")
+>
+> # Test BatchNorm2D
+> print("=== Testing BatchNorm2D ===")
+> bn = BatchNorm2D(16)
+> x = np.random.randn(4, 8, 8, 16).astype(np.float64)
+> out = bn.forward(x, training=True)
+> assert out.shape == (4, 8, 8, 16)
+> assert hasattr(bn, 'gamma') and hasattr(bn, 'beta')
+> assert hasattr(bn, 'running_mean') and hasattr(bn, 'running_var')
+> assert bn.num_features == 16 and bn.eps == 1e-5 and bn.momentum == 0.1
+> print("BatchNorm2D: OK\n")
+>
+> # Test ReLU
+> print("=== Testing ReLU ===")
+> relu = ReLU()
+> x = np.array([[-1, 0, 1], [-2, 0.5, 2]], dtype=np.float64)
+> out = relu.forward(x)
+> expected = np.array([[0, 0, 1], [0, 0.5, 2]], dtype=np.float64)
+> assert np.allclose(out, expected)
+> print("ReLU: OK\n")
+>
+> # Test LeakyReLU
+> print("=== Testing LeakyReLU ===")
+> lrelu = LeakyReLU(negative_slope=0.01)
+> x = np.array([[-1, 0, 1], [-2, 0.5, 2]], dtype=np.float64)
+> out = lrelu.forward(x)
+> expected = np.array([[-0.01, 0, 1], [-0.02, 0.5, 2]], dtype=np.float64)
+> assert np.allclose(out, expected)
+> assert lrelu.negative_slope == 0.01
+> print("LeakyReLU: OK\n")
+>
+> # Test Sigmoid
+> print("=== Testing Sigmoid ===")
+> sigmoid = Sigmoid()
+> x = np.array([0.0, 1.0, -1.0], dtype=np.float64)
+> out = sigmoid.forward(x)
+> expected = np.array([0.5, 0.73105858, 0.26894142])
+> assert np.allclose(out, expected, atol=1e-5)
+> print("Sigmoid: OK\n")
+>
+> # Test __call__ method
+> print("=== Testing __call__ method ===")
+> relu = ReLU()
+> x = np.array([-1, 0, 1], dtype=np.float64)
+> out1 = relu.forward(x)
+> out2 = relu(x)
+> assert np.allclose(out1, out2)
+> print("__call__ method: OK\n")
+>
+> # Test all outputs are float64
+> print("=== Verifying float64 dtype ===")
+> for layer_name, layer in [
+>     ('Conv2D', Conv2D(3, 4, 3)),
+>     ('Conv2DTranspose', Conv2DTranspose(4, 5, 3)),
+>     ('MaxPool2D', MaxPool2D(2)),
+>     ('AvgPool2D', AvgPool2D(2)),
+>     ('BatchNorm2D', BatchNorm2D(4)),
+>     ('ReLU', ReLU()),
+>     ('LeakyReLU', LeakyReLU()),
+>     ('Sigmoid', Sigmoid()),
+> ]:
+>     x = np.random.randn(2, 8, 8, 4).astype(np.float64)
+>     out = layer.forward(x) if hasattr(layer, 'forward') else layer(x)
+>     assert out.dtype == np.float64, f"{layer_name} should output float64, got {out.dtype}"
+> print("All layers output float64: OK\n")
+>
+> print("="*50)
+> print("ALL TESTS PASSED!")
+> print("="*50)
+> EOF
+Running comprehensive test suite...
+
+=== Testing padding ===
+zero_pad: OK
+get_output_shape: OK
+
+=== Testing BaseLayer ===
+BaseLayer: OK
+
+=== Testing Conv2D ===
+Conv2D basic: OK
+Conv2D stride/dilation: OK
+
+=== Testing Conv2DTranspose ===
+Conv2DTranspose: OK
+
+=== Testing MaxPool2D ===
+MaxPool2D: OK
+
+=== Testing AvgPool2D ===
+AvgPool2D: OK
+
+=== Testing BatchNorm2D ===
+BatchNorm2D: OK
+
+=== Testing ReLU ===
+ReLU: OK
+
+=== Testing LeakyReLU ===
+LeakyReLU: OK
+
+=== Testing Sigmoid ===
+Sigmoid: OK
+
+=== Testing __call__ method ===
+__call__ method: OK
+
+=== Verifying float64 dtype ===
+Traceback (most recent call last):
+  File "<stdin>", line 141, in <module>
+  File "/app/src/conv.py", line 74, in forward
+    region[ki, kj, :] = x_padded[b, h_idx, w_idx, :]
+    ~~~~~~^^^^^^^^^^^
+ValueError: could not broadcast input array from shape (4,) into shape (3,)
+root@b05171444938:/app#

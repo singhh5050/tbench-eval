@@ -1,0 +1,173 @@
+New Terminal Output:
+
+root@ec00c077f56c:/app# cat > train_models.py << 'EOF'
+> import pandas as pd
+> import numpy as np
+> import json
+> import pickle
+> import os
+> from sklearn.model_selection import train_test_split
+> from sklearn.linear_model import LinearRegression, Ridge
+> from sklearn.ensemble import RandomForestRegressor
+> from sklearn.metrics import r2_score, mean_absolute_error, mean_squared_error
+>
+> # Step 1: Load data
+tr> print("Loading data...")
+> train_df = pd.read_csv('/app/data/train.csv')
+> print(f"Training data shape: {train_df.shape}")
+>
+> # Step 2: Split data
+> X = train_df.drop('target', axis=1)
+> y = train_df['target']
+>
+> # Reset index before split
+> X = X.reset_index(drop=True)
+> y = y.reset_index(drop=True)
+>
+> X_train, X_val, y_train, y_val = train_test_split(
+>     X, y, test_size=0.2, random_state=42
+> )
+>
+> # Save split info
+> split_info = {
+>     "train_size": len(X_train),
+>     "validation_size": len(X_val),
+>     "random_state": 42,
+>     "test_size": 0.2,
+>     "train_indices": sorted(X_train.index.tolist()),
+>     "validation_indices": sorted(X_val.index.tolist())
+> }
+>
+> with open('/app/output/split_info.json', 'w') as f:
+>     json.dump(split_info, f, indent=2)
+> print(f"Split info saved. Train: {len(X_train)}, Val: {len(X_val)}")
+>
+> # Step 3: Train models
+> print("\nTraining models...")
+>
+> models = {}
+> model_metrics = []
+>
+> # Model 1: Linear Regression
+> print("Training Linear Regression...")
+> lr_model = LinearRegression()
+> lr_model.fit(X_train, y_train)
+> lr_train_r2 = r2_score(y_train, lr_model.predict(X_train))
+> lr_val_r2 = r2_score(y_val, lr_model.predict(X_val))
+> lr_mae = mean_absolute_error(y_val, lr_model.predict(X_val))
+> lr_mse = mean_squared_error(y_val, lr_model.predict(X_val))
+> lr_rmse = np.sqrt(lr_mse)
+>
+> models['linear_regression'] = lr_model
+> model_metrics.append({
+>     "model_name": "linear_regression",
+>     "train_r2": round(lr_train_r2, 6),
+>     "val_r2": round(lr_val_r2, 6),
+>     "mae": round(lr_mae, 6),
+>     "mse": round(lr_mse, 6),
+>     "rmse": round(lr_rmse, 6)
+> })
+> print(f"  Train R²: {lr_train_r2:.4f}, Val R²: {lr_val_r2:.4f}, MAE: {lr_mae:.4f}")
+>
+> # Model 2: Ridge Regression
+> print("Training Ridge Regression...")
+> ridge_model = Ridge(alpha=1.0)
+> ridge_model.fit(X_train, y_train)
+> ridge_train_r2 = r2_score(y_train, ridge_model.predict(X_train))
+> ridge_val_r2 = r2_score(y_val, ridge_model.predict(X_val))
+> ridge_mae = mean_absolute_error(y_val, ridge_model.predict(X_val))
+> ridge_mse = mean_squared_error(y_val, ridge_model.predict(X_val))
+> ridge_rmse = np.sqrt(ridge_mse)
+>
+> models['ridge'] = ridge_model
+> model_metrics.append({
+>     "model_name": "ridge",
+>     "train_r2": round(ridge_train_r2, 6),
+>     "val_r2": round(ridge_val_r2, 6),
+>     "mae": round(ridge_mae, 6),
+>     "mse": round(ridge_mse, 6),
+>     "rmse": round(ridge_rmse, 6)
+> })
+> print(f"  Train R²: {ridge_train_r2:.4f}, Val R²: {ridge_val_r2:.4f}, MAE: {ridge_mae:.4f}")
+>
+> # Model 3: Random Forest
+> print("Training Random Forest...")
+> rf_model = RandomForestRegressor(n_estimators=100, random_state=42, n_jobs=-1)
+> rf_model.fit(X_train, y_train)
+> rf_train_r2 = r2_score(y_train, rf_model.predict(X_train))
+> rf_val_r2 = r2_score(y_val, rf_model.predict(X_val))
+> rf_mae = mean_absolute_error(y_val, rf_model.predict(X_val))
+> rf_mse = mean_squared_error(y_val, rf_model.predict(X_val))
+> rf_rmse = np.sqrt(rf_mse)
+>
+> models['random_forest'] = rf_model
+> model_metrics.append({
+>     "model_name": "random_forest",
+>     "train_r2": round(rf_train_r2, 6),
+>     "val_r2": round(rf_val_r2, 6),
+>     "mae": round(rf_mae, 6),
+>     "mse": round(rf_mse, 6),
+>     "rmse": round(rf_rmse, 6)
+> })
+> print(f"  Train R²: {rf_train_r2:.4f}, Val R²: {rf_val_r2:.4f}, MAE: {rf_mae:.4f}")
+>
+> # Step 4: Select best model and save all
+> print("\nSaving models...")
+>
+> # Find best model based on validation R²
+> best_model_name = max(model_metrics, key=lambda x: x['val_r2'])['model_name']
+> print(f"Best model: {best_model_name} with val R² = {max(m['val_r2'] for m in model_metrics):.4f}")
+>
+> # Save all models
+> for name, model in models.items():
+>     with open(f'/app/models/{name}.pkl', 'wb') as f:
+>         pickle.dump(model, f)
+>     print(f"  Saved {name}.pkl")
+>
+> # Save best model as best_model.pkl
+> with open('/app/models/best_model.pkl', 'wb') as f:
+>     pickle.dump(models[best_model_name], f)
+> print(f"  Saved best_model.pkl ({best_model_name})")
+>
+> # Save model comparison
+> model_comparison = {
+>     "models": model_metrics,
+>     "best_model_name": best_model_name
+> }
+> with open('/app/output/model_comparison.json', 'w') as f:
+>     json.dump(model_comparison, f, indent=2)
+> print("Model comparison saved.")
+>
+> print("\nAll training complete!")
+> print("\nModel Performance Summary:")
+> for m in model_metrics:
+>     print(f"  {m['model_name']}: Val R²={m['val_r2']}, MAE={m['mae']}")
+> EOF
+root@ec00c077f56c:/app# python train_models.py
+Loading data...
+Training data shape: (16512, 9)
+Split info saved. Train: 13209, Val: 3303
+
+Training models...
+Training Linear Regression...
+  Train R²: 0.6131, Val R²: 0.6097, MAE: 0.5407
+Training Ridge Regression...
+  Train R²: 0.6131, Val R²: 0.6097, MAE: 0.5407
+Training Random Forest...
+  Train R²: 0.9732, Val R²: 0.7985, MAE: 0.3459
+
+Saving models...
+Best model: random_forest with val R² = 0.7985
+  Saved linear_regression.pkl
+  Saved ridge.pkl
+  Saved random_forest.pkl
+  Saved best_model.pkl (random_forest)
+Model comparison saved.
+
+All training complete!
+
+Model Performance Summary:
+  linear_regression: Val R²=0.609702, MAE=0.540714
+  ridge: Val R²=0.6097, MAE=0.540731
+  random_forest: Val R²=0.798486, MAE=0.345861
+root@ec00c077f56c:/app#

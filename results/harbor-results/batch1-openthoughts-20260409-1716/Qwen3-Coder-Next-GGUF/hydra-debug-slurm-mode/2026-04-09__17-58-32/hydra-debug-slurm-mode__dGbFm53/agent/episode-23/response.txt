@@ -1,0 +1,14 @@
+{
+  "analysis": "The BasicLauncherConf doesn't accept `folder` either. The issue is that Hydra is validating the configuration against a schema. I need to either:\n1. Disable validation for the launcher config\n2. Use only the parameters accepted by the schema\n\nLet me try to find the correct schema for the launcher by looking at what parameters are actually valid.",
+  "plan": "1. Try a minimal launcher configuration without extra parameters\n2. Add parameters one by one to see which are accepted\n3. Or use Hydra's config validation settings",
+  "commands": [
+    {
+      "keystrokes": "cat > /app/src/config/slurm.yaml << 'EOF'\n# @package _global_\n\nhydra:\n  launcher:\n    _target_: hydra_plugins.hydra_submitit_launcher.submitit_launcher.SlurmLauncher\n\n_debug: false\nEOF\n",
+      "duration": 0.1
+    },
+    {
+      "keystrokes": "python /app/src/main.py -cn=slurm --cfg job\n",
+      "duration": 2
+    }
+  ]
+}

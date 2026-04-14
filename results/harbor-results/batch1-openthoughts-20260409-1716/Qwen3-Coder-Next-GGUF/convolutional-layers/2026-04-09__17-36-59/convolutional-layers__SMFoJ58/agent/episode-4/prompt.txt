@@ -1,0 +1,141 @@
+New Terminal Output:
+
+root@b05171444938:/app# python3 << 'EOF'
+> import numpy as np
+> import sys
+> sys.path.insert(0, '/app')
+_infer.shape}")
+print("BatchNorm inference: OK\n")
+
+# Test that __call__ works
+print("=== Verifying __call__ method ===")
+relu = ReLU()
+x = np.array([-1, 0, 1], dtype=np.float64)
+out1 = relu.forward(x)
+out2 = relu(x)  # Using __call__
+assert np.allclose(out1, out2)
+print("__call__ method: OK\n")
+
+# Test output dtype is always float64
+print("=== Verifying float64 dtype ===")
+for layer_name, layer in [
+    ('Conv2D', Conv2D(3, 4, 3)),
+    ('Conv2DTranspose', Conv2DTranspose(4, 5, 3)),
+    ('MaxPool2D', MaxPool2D(2)),
+    ('AvgPool2D', AvgPool2D(2)),
+    ('BatchNorm2D', BatchNorm2D(4)),
+    ('ReLU', ReLU()),
+    ('LeakyReLU', LeakyReLU()),
+    ('Sigmoid', Sigmoid()),
+]:
+    x = np.random.randn(2, 8, 8, 4).astype(np.float64)
+    out = layer.forward(x) if hasattr(layer, 'forward') else layer(x)
+    assert out.dtype == np.float64, f"{layer_name} should output float64, got {out.dtype}"
+    print(f"{layer_name}: float64 OK")
+
+print("\n" + "="*50)
+print("ALL VERIFICATION TESTS PASSED!")
+print("="*50)
+EOF
+>
+> from src import *
+>
+> print("Additional verification tests...\n")
+>
+> # Test that Conv2D with stride > 1 works correctly
+> print("=== Verifying Conv2D with stride=2 ===")
+> conv = Conv2D(1, 1, 3, stride=2, padding=0, dilation=1)
+> # Use simple weights for verification
+> conv.weights = np.ones((1, 1, 3, 3), dtype=np.float64)
+> conv.bias = np.zeros(1, dtype=np.float64)
+>
+> # Input: 4x4 with all ones
+> x = np.ones((1, 4, 4, 1), dtype=np.float64)
+> out = conv.forward(x)
+> print(f"Input shape: {x.shape}")
+> print(f"Output shape: {out.shape}")
+> print(f"Output: {out}")
+> # With stride=2, padding=0, kernel=3, input=4:
+> # output = (4 + 0 - 1) // 2 + 1 = 2
+> # Output should be 9 at position 0,0 (3x3 sum of ones)
+> assert out.shape == (1, 2, 2, 1)
+> print("Stride verification: OK\n")
+>
+> # Test Conv2D with dilation
+> print("=== Verifying Conv2D with dilation=2 ===")
+> conv = Conv2D(1, 1, 3, stride=1, padding=0, dilation=2)
+> conv.weights = np.ones((1, 1, 3, 3), dtype=np.float64)
+> conv.bias = np.zeros(1, dtype=np.float64)
+>
+> # Input: 5x5 with all ones
+> x = np.ones((1, 5, 5, 1), dtype=np.float64)
+> out = conv.forward(x)
+> print(f"Input shape: {x.shape}")
+> print(f"Output shape: {out.shape}")
+> # With dilation=2, kernel effectively expands to 5x5
+> # output = (5 + 0 - 5 - 1) // 1 + 1 = 1
+> assert out.shape == (1, 1, 1, 1)
+> print("Dilation verification: OK\n")
+>
+> # Test BatchNorm inference mode
+> print("=== Verifying BatchNorm inference mode ===")
+> bn = BatchNorm2D(2)
+> x = np.random.randn(4, 8, 8, 2).astype(np.float64)
+>
+> # First run in training mode to accumulate running stats
+> bn.forward(x, training=True)
+> running_mean_before = bn.running_mean.copy()
+>
+> # Run again to update stats
+> bn.forward(x, training=True)
+> running_mean_after = bn.running_mean.copy()
+>
+> print(f"Running mean before: {running_mean_before}")
+> print(f"Running mean after: {running_mean_after}")
+>
+> # Inference should use running stats
+> out_train = bn.forward(x, training=True)
+> out_infer = bn.forward(x, training=False)
+> print(f"Output shapes match: {out_train.shape == out_infer.shape}")
+> print("BatchNorm inference: OK\n")
+>
+> # Test that __call__ works
+> print("=== Verifying __call__ method ===")
+> relu = ReLU()
+> x = np.array([-1, 0, 1], dtype=np.float64)
+> out1 = relu.forward(x)
+> out2 = relu(x)  # Using __call__
+> assert np.allclose(out1, out2)
+> print("__call__ method: OK\n")
+>
+> # Test output dtype is always float64
+> print("=== Verifying float64 dtype ===")
+> for layer_name, layer in [
+>     ('Conv2D', Conv2D(3, 4, 3)),
+>     ('Conv2DTranspose', Conv2DTranspose(4, 5, 3)),
+>     ('MaxPool2D', MaxPool2D(2)),
+>     ('AvgPool2D', AvgPool2D(2)),
+>     ('BatchNorm2D', BatchNorm2D(4)),
+>     ('ReLU', ReLU()),
+>     ('LeakyReLU', LeakyReLU()),
+>     ('Sigmoid', Sigmoid()),
+> ]:
+>     x = np.random.randn(2, 8, 8, 4).astype(np.float64)
+>     out = layer.forward(x) if hasattr(layer, 'forward') else layer(x)
+>     assert out.dtype == np.float64, f"{layer_name} should output float64, got {out.dtype}"
+>     print(f"{layer_name}: float64 OK")
+>
+> print("\n" + "="*50)
+> print("ALL VERIFICATION TESTS PASSED!")
+> print("="*50)
+> EOF
+Additional verification tests...
+
+=== Verifying Conv2D with stride=2 ===
+Input shape: (1, 4, 4, 1)
+Output shape: (1, 1, 1, 1)
+Output: [[[[9.]]]]
+Traceback (most recent call last):
+  File "<stdin>", line 25, in <module>
+AssertionError
+root@b05171444938:/app#

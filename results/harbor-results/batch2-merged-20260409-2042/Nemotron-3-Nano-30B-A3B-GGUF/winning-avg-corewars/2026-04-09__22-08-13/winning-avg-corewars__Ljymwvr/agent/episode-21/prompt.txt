@@ -1,0 +1,50 @@
+New Terminal Output:
+
+root@77bd7acbed24:/app# cat > my_warrior.red << 'EOF'
+> ;redcode-94
+> ;name MyWarrior
+> ;assert CORESIZE == 8000
+>
+> start   mov 0, 1
+>     jmp init
+>
+> init    spl 1
+>     mov copy, *ptr
+>     add #59, ptr
+>     mov copy, @ptr
+>     jmp loop
+>
+> copy    spl 0, 0
+> ptr     dat 1, 1
+>
+> loop    djn copy, 2
+>       spl 0
+>       djn loop, 7
+>
+> ; Bombing sequence
+> bomb_start equ 1500
+> bomb_loop mov bomb, @bomb_start
+>       add #277, bomb_start
+>       jmp bomb_loop
+>
+> bomb    dat #5, #5
+>
+> ; Protection
+> protect_start equ 2500
+> spl 0, 0
+>     djn protect, 11
+>
+> protect spl 0, 0
+>     dat 0, 0
+>
+> loop  djn copy, 2
+>       spl 0
+>       djn loop, 7
+>
+> protect mov protect, @protect_start
+>       add #277, protect_start
+>       jmp protect
+>
+> end start
+> EOF
+root@77bd7acbed24:/app#

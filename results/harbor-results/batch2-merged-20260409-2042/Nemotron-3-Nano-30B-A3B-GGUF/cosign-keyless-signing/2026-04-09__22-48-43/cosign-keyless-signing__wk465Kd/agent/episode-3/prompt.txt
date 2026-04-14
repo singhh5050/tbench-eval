@@ -1,0 +1,89 @@
+New Terminal Output:
+
+root@8884a9b806ea:/app# cat > /app/setup_ca.sh << 'EOF'
+> #!/bin/bash
+> set -e
+>
+> # Create directory structure
+> mkdir -p /app/ca /app/signing /app/signed
+>
+> # Function to create a self-signed root CA
+> create_root_ca() {
+>     echo "Creating Root CA..."
+>
+>     # Generate root CA private key
+>     openssl genpkey -algorithm EC -pkeyopt ec_paramgen_curve:prime256v1 -out /app/ca/root-ca-key.pem
+>
+>     # Create temporary config for root CA
+>     cat > /tmp/root-ca.cnf << CONFIG
+> [ req ]
+> distinguished_name = req_distinguished_name
+> req_extensions = v3_req
+> [ req_distinguished_name ]
+> commonName = CA
+> [v3_req]
+> basicConstraints = critical,CA:true
+> keyUsage = certificateSign, cRLSign
+> subjectKeyIdentifier = hash
+> authorityKeyIdentifier = keyid:always,issuer
+> CONFIG
+>
+>     # Create self-signed root CA certificate
+>     openssl req -x509 -new -nodes -key /app/ca/root-ca-key.pem -sha256 -days 3650 -out /app/ca/root-ca.pem -config /tmp/root-ca.cnf -extensions v3_req -subj "
+/CN=Software Signing Root CA/O=SecureBuild/C=US"
+>
+>     # Clean up
+>     rm -f /tmp/root-ca.cnf
+> }
+>
+> # Function to create intermediate CA signed by root CA
+> create_intermediate_ca() {
+>     echo "Creating Intermediate CA..."
+>
+>     # Generate intermediate CA private key
+>     openssl genpkey -algorithm EC -pkeyopt ec_paramgen_curve:prime256v1 -out /app/ca/intermediate-ca-key.pem
+>
+>     # Create temporary config for intermediate CA
+>     cat > /tmp/intermediate-ca.cnf << CONFIG
+> [ req ]
+> distinguished_name = req_distinguished_name
+> req_extensions = v3_req
+> [ req_distinguished_name ]
+> commonName = Intermediate CA
+> [v3_req]
+> basicConstraints = critical,CA:true,pathlen:0
+> keyUsage = certificateSign, digitalSignature
+> subjectKeyIdentifier = hash
+> authorityKeyIdentifier = keyid,issuer
+> CONFIG
+>
+>     # Create CSR for intermediate CA
+>     openssl req -new -key /app/ca/intermediate-ca-key.pem -out /app/ca/intermediate-ca.csr -config /tmp/intermediate-ca.cnf -extensions v3_req -subj "/CN=Buil
+d Pipeline Intermediate CA/O=SecureBuild/C=US"
+>
+>     # Sign intermediate CA with root CA
+>     openssl x509 -req -in /app/ca/intermediate-ca.csr -CA /app/ca/root-ca.pem -CAkey /app/ca/root-ca-key.pem -CAcreateserial -out /app/ca/intermediate-ca.pem
+-days 1825 -sha256 -extensions v3_req -extfile /tmp/intermediate-ca.cnf -reqexts v3_req
+>
+>     # Clean up
+>     rm -f /tmp/intermediate-ca.cnf /app/ca/intermediate-ca.csr
+>
+>     # Create serial file
+>     echo 01 > /app/ca/serial
+> }
+>
+> # Execute setup
+> create_root_ca
+> create_intermediate_ca
+>
+> # Create empty serial file if it doesn't exist
+> touch /app/ca/serial
+> EOF
+root@8884a9b806ea:/app# chmod +x /app/setup_ca.sh
+root@8884a9b806ea:/app# /app/setup_ca.sh
+Creating Root CA...
+Error checking x509 extension section v3_req
+40F7E29DF47D0000:error:1100006F:X509 V3 routines:v2i_ASN1_BIT_STRING:unknown bit string argument:../crypto/x509/v3_bitst.c:82:certificateSign
+40F7E29DF47D0000:error:11000080:X509 V3 routines:X509V3_EXT_nconf_int:error in extension:../crypto/x509/v3_conf.c:48:section=v3_req, name=keyUsage, value=certif
+icateSign, cRLSign
+root@8884a9b806ea:/app#

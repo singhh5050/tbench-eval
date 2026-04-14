@@ -1,0 +1,122 @@
+[?2004hroot@3b9cc5c86e58:/app# asciinema rec --stdin /logs/agent/recording.cast
+[?2004l[0;32masciinema: recording asciicast to /logs/agent/recording.cast[0m
+[0;32masciinema: press <ctrl-d> or type "exit" when you're done[0m
+[?2004hroot@3b9cc5c86e58:/app# clear
+[?2004l[H[J[3J[?2004hroot@3b9cc5c86e58:/app# mkdir -p /app/mlruns
+[?2004l[?2004hroot@3b9cc5c86e58:/app# mlflow server --host localhost --port 8080 --backend-store-uri sqlite:///mlflow.db --default-artifact-root ./mlruns &
+[?2004l[1] 598
+[?2004hroot@3b9cc5c86e58:/app# 2026/04/10 00:27:29 INFO mlflow.store.db.utils: Creating initial MLflow database tables...
+2026/04/10 00:27:29 INFO mlflow.store.db.utils: Updating database tables
+INFO  [alembic.runtime.migration] Context impl SQLiteImpl.
+INFO  [alembic.runtime.migration] Will assume non-transactional DDL.
+INFO  [alembic.runtime.migration] Running upgrade  -> 451aebb31d03, add metric step
+INFO  [alembic.runtime.migration] Running upgrade 451aebb31d03 -> 90e64c465722, migrate user column to tags
+INFO  [alembic.runtime.migration] Running upgrade 90e64c465722 -> 181f10493468, allow nulls for metric values
+INFO  [alembic.runtime.migration] Running upgrade 181f10493468 -> df50e92ffc5e, Add Experiment Tags Table
+INFO  [alembic.runtime.migration] Running upgrade df50e92ffc5e -> 7ac759974ad8, Update run tags with larger limit
+INFO  [alembic.runtime.migration] Running upgrade 7ac759974ad8 -> 89d4b8295536, create latest metrics table
+INFO  [89d4b8295536_create_latest_metrics_table_py] Migration complete!
+INFO  [alembic.runtime.migration] Running upgrade 89d4b8295536 -> 2b4d017a5e9b, add model registry tables to db
+INFO  [2b4d017a5e9b_add_model_registry_tables_to_db_py] Adding registered_models and model_versions tables to database.
+INFO  [2b4d017a5e9b_add_model_registry_tables_to_db_py] Migration complete!
+INFO  [alembic.runtime.migration] Running upgrade 2b4d017a5e9b -> cfd24bdc0731, Update run status constraint with killed
+INFO  [alembic.runtime.migration] Running upgrade cfd24bdc0731 -> 0a8213491aaa, drop_duplicate_killed_constraint
+INFO  [alembic.runtime.migration] Running upgrade 0a8213491aaa -> 728d730b5ebd, add registered model tags table
+INFO  [alembic.runtime.migration] Running upgrade 728d730b5ebd -> 27a6a02d2cf1, add model version tags table
+INFO  [alembic.runtime.migration] Running upgrade 27a6a02d2cf1 -> 84291f40a231, add run_link to model_version
+INFO  [alembic.runtime.migration] Running upgrade 84291f40a231 -> a8c4a736bde6, allow nulls for run_id
+INFO  [alembic.runtime.migration] Running upgrade a8c4a736bde6 -> 39d1c3be5f05, add_is_nan_constraint_for_metrics_tables_if_necessary
+INFO  [alembic.runtime.migration] Running upgrade 39d1c3be5f05 -> c48cb773bb87, reset_default_value_for_is_nan_in_metrics_table_for_mysql
+INFO  [alembic.runtime.migration] Running upgrade c48cb773bb87 -> bd07f7e963c5, create index on run_uuid
+INFO  [alembic.runtime.migration] Running upgrade bd07f7e963c5 -> 0c779009ac13, add deleted_time field to runs table
+INFO  [alembic.runtime.migration] Running upgrade 0c779009ac13 -> cc1f77228345, change param value length to 500
+INFO  [alembic.runtime.migration] Running upgrade cc1f77228345 -> 97727af70f4d, Add creation_time and last_update_time to experiments table
+INFO  [alembic.runtime.migration] Running upgrade 97727af70f4d -> 3500859a5d39, Add Model Aliases table
+INFO  [alembic.runtime.migration] Running upgrade 3500859a5d39 -> 7f2a7d5fae7d, add datasets inputs input_tags tables
+INFO  [alembic.runtime.migration] Running upgrade 7f2a7d5fae7d -> 2d6e25af4d3e, increase max param val length from 500 to 8000
+INFO  [alembic.runtime.migration] Running upgrade 2d6e25af4d3e -> acf3f17fdcc7, add storage location field to model versions
+INFO  [alembic.runtime.migration] Running upgrade acf3f17fdcc7 -> 867495a8f9d4, add trace tables
+INFO  [alembic.runtime.migration] Running upgrade 867495a8f9d4 -> 5b0e9adcef9c, add cascade deletion to trace tables foreign keys
+INFO  [alembic.runtime.migration] Running upgrade 5b0e9adcef9c -> 4465047574b1, increase max dataset schema size
+INFO  [alembic.runtime.migration] Running upgrade 4465047574b1 -> f5a4f2784254, increase run tag value limit to 8000
+INFO  [alembic.runtime.migration] Running upgrade f5a4f2784254 -> 0584bdc529eb, add cascading deletion to datasets from experiments
+INFO  [alembic.runtime.migration] Context impl SQLiteImpl.
+INFO  [alembic.runtime.migration] Will assume non-transactional DDL.
+[2026-04-10 00:27:30 +0000] [631] [INFO] Starting gunicorn 23.0.0
+[2026-04-10 00:27:30 +0000] [631] [INFO] Listening at: http://127.0.0.1:8080 (631)
+[2026-04-10 00:27:30 +0000] [631] [INFO] Using worker: sync
+[2026-04-10 00:27:30 +0000] [632] [INFO] Booting worker with pid: 632
+[2026-04-10 00:27:30 +0000] [633] [INFO] Booting worker with pid: 633
+[2026-04-10 00:27:30 +0000] [634] [INFO] Booting worker with pid: 634
+[2026-04-10 00:27:30 +0000] [635] [INFO] Booting worker with pid: 635
+cat > train_and_register.py << 'EOF'
+[?2004l[?2004h> import mlflow
+[?2004l[?2004h> import mlflow.sklearn
+[?2004l[?2004h> from sklearn.linear_model import LinearRegression
+[?2004l[?2004h> from sklearn.datasets import make_regression
+[?2004l[?2004h> import numpy as np
+[?2004l[?2004h> 
+[?2004l[?2004h> # Set tracking URI
+[?2004l[?2004h> mlflow.set_tracking_uri("http://localhost:8080")
+[?2004l[?2004h> 
+[?2004l[?2004h> # Set experiment
+[?2004l[?2004h> mlflow.set_experiment("linear_regression_experiment")
+[?2004l[?2004h> 
+[?2004l[?2004h> # Create random dataset with 3 features
+[?2004l[?2004h> X, y = make_regression(n_samples=100, n_features=3, random_state=42)
+[?2004l[?2004h> 
+[?2004l[?2004h> # Create and train the model
+[?2004l[?2004h> model = LinearRegression()
+[?2004l[?2004h> model.fit(X, y)
+[?2004l[?2004h> 
+[?2004l[?2004h> # Start MLflow run and log the model
+[?2004l[?2004h> with mlflow.start_run(run_name="linear_regression_run"):
+[?2004l[?2004h>     # Log parameters
+[?2004l[?2004h>     mlflow.log_param("n_features", 3)
+[?2004l[?2004h>     mlflow.log_param("n_samples", 100)
+[?2004l[?2004h>     
+[?2004l[?2004h>     # Log model metrics
+[?2004l[?2004h>     train_score = model.score(X, y)
+[?2004l[?2004h>     mlflow.log_metric("r2_score", train_score)
+[?2004l[?2004h>     
+[?2004l[?2004h>     # Log the model as 'gpt-5'
+[?2004l[?2004h>     mlflow.sklearn.log_model(model, "model", registered_model_name="gpt-5")
+[?2004l[?2004h>     
+[?2004l[?2004h>     print(f"Model trained with R2 score: {train_score}")
+[?2004l[?2004h>     print("Model registered as 'gpt-5' in MLflow")
+[?2004l[?2004h> EOF
+[?2004l[?2004hroot@3b9cc5c86e58:/app# python3 train_and_register.py
+[?2004l2026/04/10 00:27:48 INFO mlflow.tracking.fluent: Experiment with name 'linear_regression_experiment' does not exist. Creating a new experiment.
+2026/04/10 00:27:48 WARNING mlflow.utils.git_utils: Failed to import Git (the Git executable is probably not on your PATH), so Git SHA is not available. Error: Failed to initialize: Bad git executable.
+The git executable must be specified in one of the following ways:
+    - be included in your $PATH
+    - be set via $GIT_PYTHON_GIT_EXECUTABLE
+    - explicitly set via git.refresh(<full-path-to-git-executable>)
+
+All git commands will error until this is rectified.
+
+This initial message can be silenced or aggravated in the future by setting the
+$GIT_PYTHON_REFRESH environment variable. Use one of the following values:
+    - quiet|q|silence|s|silent|none|n|0: for no message or exception
+    - warn|w|warning|log|l|1: for a warning message (logging level CRITICAL, displayed by default)
+    - error|e|exception|raise|r|2: for a raised exception
+
+Example:
+    export GIT_PYTHON_REFRESH=quiet
+
+[31m2026/04/10 00:27:51 WARNING mlflow.models.model: Model logged without a signature and input example. Please set `input_example` parameter when logging the model to auto infer the model signature.[0m
+Successfully registered model 'gpt-5'.
+2026/04/10 00:27:51 INFO mlflow.store.model_registry.abstract_store: Waiting up to 300 seconds for model version to finish creation. Model name: gpt-5, version 1
+Created version '1' of model 'gpt-5'.
+Model trained with R2 score: 1.0
+Model registered as 'gpt-5' in MLflow
+🏃 View run linear_regression_run at: http://localhost:8080/#/experiments/1/runs/c16fdbadd8574ac3af7cc526930ab2ee
+🧪 View experiment at: http://localhost:8080/#/experiments/1
+[?2004hroot@3b9cc5c86e58:/app# curl -s http://localhost:8080/api/2.0/mlflow/registered-models/get?name=gpt-5 | head -100
+[?2004lbash: curl: command not found
+[?2004hroot@3b9cc5c86e58:/app# ps aux | grep mlflow
+[?2004lbash: ps: command not found
+[?2004hroot@3b9cc5c86e58:/app# python3 -c "import requests; r = requests.get('http://localhost:8080/api/2.0/mlflow/registered-models/get?name=gpt-5'); print('Server OK:', r.status_code); print(r.json())"
+[?2004lServer OK: 200
+{'registered_model': {'name': 'gpt-5', 'creation_timestamp': 1775780871270, 'last_updated_timestamp': 1775780871294, 'latest_versions': [{'name': 'gpt-5', 'version': '1', 'creation_timestamp': 1775780871294, 'last_updated_timestamp': 1775780871294, 'current_stage': 'None', 'description': '', 'source': '/app/mlruns/1/c16fdbadd8574ac3af7cc526930ab2ee/artifacts/model', 'run_id': 'c16fdbadd8574ac3af7cc526930ab2ee', 'status': 'READY', 'run_link': ''}]}}
+[?2004hroot@3b9cc5c86e58:/app# 

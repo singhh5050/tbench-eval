@@ -1,0 +1,44 @@
+New Terminal Output:
+
+root@77bd7acbed24:/app# cat > my_warrior.red << 'EOF'
+> ;redcode-94
+> ;name MyWarrior
+> ;assert CORESIZE == 8000
+>
+> start   spl 1
+>     mov copy, *ptr
+>     add #59, ptr
+>     mov copy, @ptr
+>     jmp loop
+>
+> copy    spl 0, 0
+> ptr     dat 1, 1
+>
+> loop    djn copy, 2
+>       spl 0
+>       djn loop, 7
+>
+> ; Bombing sequence
+> bomb_start equ 1500
+> bomb_loop spl bomb_target, @bomb_start
+>       add #277, bomb_start
+>       jmp bomb_loop
+>
+> bomb_target dat bomb_target, 0
+> bomb_equ    dat #277, #277
+>
+> ; Protection
+> protect_start equ 2500
+> spl 0, 0
+>     djn protect, 11
+>
+> protect spl 0, 0
+>     dat 0, 0
+>
+> end start
+> EOF
+root@77bd7acbed24:/app# pmars -b -r 100 -f my_warrior.red warriors/stone.red
+MyWarrior by Anonymous scores 100
+Stone by mzvince (Everything2) scores 100
+Results: 0 0 100
+root@77bd7acbed24:/app#

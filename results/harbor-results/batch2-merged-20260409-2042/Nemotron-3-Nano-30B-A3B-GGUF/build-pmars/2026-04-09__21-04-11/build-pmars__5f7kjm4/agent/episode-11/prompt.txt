@@ -1,0 +1,70 @@
+New Terminal Output:
+
+root@b9e26cab3dfd:/app/pmars-0.9.4/src# cd /app/pmars-0.9.4
+root@b9e26cab3dfd:/app/pmars-0.9.4# cd src && cp Makefile Makefile.bak
+root@b9e26cab3dfd:/app/pmars-0.9.4/src# sed -i 's/$(MAINFILE): $(OBJ1) $(OBJ2) $(OBJ3)/$(MAINFILE): $(OBJ1) $(OBJ2)/' Makefile
+root@b9e26cab3dfd:/app/pmars-0.9.4/src# sed -i '/xwindisp.c/d' Makefile
+root@b9e26cab3dfd:/app/pmars-0.9.4/src# sed -i '/lnxdisp.c/d' Makefile
+root@b9e26cab3dfd:/app/pmars-0.9.4/src# make
+Making pmars with compiler flags -O -DEXT94 -DXWINGRAPHX -DPERMUTATE -DRWLIMIT
+Compiling pmars.o
+gcc                       -O -DEXT94 -DXWINGRAPHX -DPERMUTATE -DRWLIMIT  -c pmars.c
+Compiling asm.o
+gcc                       -O -DEXT94 -DXWINGRAPHX -DPERMUTATE -DRWLIMIT  -c asm.c
+Compiling eval.o
+gcc                       -O -DEXT94 -DXWINGRAPHX -DPERMUTATE -DRWLIMIT  -c eval.c
+Compiling disasm.o
+gcc                       -O -DEXT94 -DXWINGRAPHX -DPERMUTATE -DRWLIMIT  -c disasm.c
+In file included from disasm.c:26:
+sim.h:92:12: warning: built-in function ‘round’ declared as non-function [-Wbuiltin-declaration-mismatch]
+   92 | extern int round;
+      |            ^~~~~
+Compiling cdb.o
+gcc                       -O -DEXT94 -DXWINGRAPHX -DPERMUTATE -DRWLIMIT  -c cdb.c
+In file included from cdb.c:30:
+sim.h:92:12: warning: built-in function ‘round’ declared as non-function [-Wbuiltin-declaration-mismatch]
+   92 | extern int round;
+      |            ^~~~~
+Compiling sim.o
+gcc                       -O -DEXT94 -DXWINGRAPHX -DPERMUTATE -DRWLIMIT  -c sim.c
+In file included from sim.c:29:
+sim.h:92:12: warning: built-in function ‘round’ declared as non-function [-Wbuiltin-declaration-mismatch]
+   92 | extern int round;
+      |            ^~~~~
+Compiling pos.o
+gcc                       -O -DEXT94 -DXWINGRAPHX -DPERMUTATE -DRWLIMIT  -c pos.c
+In file included from pos.c:24:
+sim.h:92:12: warning: built-in function ‘round’ declared as non-function [-Wbuiltin-declaration-mismatch]
+   92 | extern int round;
+      |            ^~~~~
+pos.c: In function ‘rc5_schedule’:
+pos.c:154:12: warning: conversion from ‘long unsigned int’ to ‘U32_T’ {aka ‘unsigned int’} changes value from ‘8393868501’ to ‘4098901205’ [-Woverflow]
+  154 | #define _P 0xb7e15163UL
+      |            ^~~~~~~~~~~~
+pos.c:219:14: note: in expansion of macro ‘_P’
+  219 |   for ( S[2]=_P+2*_Q, i=3; i<NKEYS; i++) S[i] = S[i-1]+_Q;
+      |              ^~
+Compiling clparse.o
+gcc                       -O -DEXT94 -DXWINGRAPHX -DPERMUTATE -DRWLIMIT  -c clparse.c
+Compiling global.o
+gcc                       -O -DEXT94 -DXWINGRAPHX -DPERMUTATE -DRWLIMIT  -c global.c
+Compiling token.o
+gcc                       -O -DEXT94 -DXWINGRAPHX -DPERMUTATE -DRWLIMIT  -c token.c
+Linking pmars
+# @strip pmars
+done
+root@b9e26cab3dfd:/app/pmars-0.9.4/src# ls -l pmars
+-rwxr-xr-x 1 root root 138152 Apr 10 03:08 pmars
+root@b9e26cab3dfd:/app/pmars-0.9.4/src# install -m 755 pmars /usr/local/bin/pmars
+root@b9e26cab3dfd:/app/pmars-0.9.4/src# pmars -b -r 50 -f flashpaper.red rave.red | tail -n 1
+Error:
+        Unable to open file 'flashpaper.red'
+root@b9e26cab3dfd:/app/pmars-0.9.4/src# ldd /usr/local/bin/pmars
+        linux-vdso.so.1 (0x00007971b3fd9000)
+        libX11.so.6 => /lib/x86_64-linux-gnu/libX11.so.6 (0x00007971b3e13000)
+        libc.so.6 => /lib/x86_64-linux-gnu/libc.so.6 (0x00007971b3c1f000)
+        libxcb.so.1 => /lib/x86_64-linux-gnu/libxcb.so.1 (0x00007971b3bf4000)
+        /lib64/ld-linux-x86-64.so.2 (0x00007971b3fdb000)
+        libXau.so.6 => /lib/x86_64-linux-gnu/libXau.so.6 (0x00007971b3bef000)
+        libXdmcp.so.6 => /lib/x86_64-linux-gnu/libXdmcp.so.6 (0x00007971b3be5000)
+root@b9e26cab3dfd:/app/pmars-0.9.4/src#

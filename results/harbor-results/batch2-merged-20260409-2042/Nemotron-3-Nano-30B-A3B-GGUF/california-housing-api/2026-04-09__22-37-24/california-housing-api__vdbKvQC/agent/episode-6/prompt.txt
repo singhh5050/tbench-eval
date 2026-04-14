@@ -1,0 +1,166 @@
+New Terminal Output:
+
+root@e65884aa2bb3:/app# python3 /app/split_data.py
+Traceback (most recent call last):
+  File "/app/split_data.py", line 6, in <module>
+    df = pd.read_csv('/app/data/train.csv')
+  File "/usr/local/lib/python3.13/site-packages/pandas/io/parsers/readers.py", line 1026, in read_csv
+    return _read(filepath_or_buffer, kwds)
+  File "/usr/local/lib/python3.13/site-packages/pandas/io/parsers/readers.py", line 620, in _read
+    parser = TextFileReader(filepath_or_buffer, **kwds)
+  File "/usr/local/lib/python3.13/site-packages/pandas/io/parsers/readers.py", line 1620, in __init__
+    self._engine = self._make_engine(f, self.engine)
+                   ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.13/site-packages/pandas/io/parsers/readers.py", line 1880, in _make_engine
+    self.handles = get_handle(
+                   ~~~~~~~~~~^
+        f,
+        ^^
+    ...<6 lines>...
+        storage_options=self.options.get("storage_options", None),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/usr/local/lib/python3.13/site-packages/pandas/io/common.py", line 873, in get_handle
+    handle = open(
+        handle,
+    ...<3 lines>...
+        newline="",
+    )
+FileNotFoundError: [Errno 2] No such file or directory: '/app/data/train.csv'
+root@e65884aa2bb3:/app# cat > /app/train_models.py << 'EOL'
+> import pandas as pd
+> import numpy as np
+
+
+# Select best model based on validation R²
+best_model_name = max(model_results.keys(), key=lambda x: model_results[x]['val_r2'])
+best_model = models[best_model_name]
+
+# Save all models
+for name in models.keys():
+    model_path = f'/app/models/{name}.pkl'
+    with open(model_path, 'wb') as f:
+        pickle.dump(models[name], f)
+
+# Save best model separately
+with open('/app/models/best_model.pkl', 'wb') as f:
+    pickle.dump(models[best_model_name], f)
+
+# Print summary
+print(f"Best model: {best_model_name} with validation R²: {model_results[best_model_name]['val_r2']:.4f}")
+EOL
+> from sklearn.model_selection import train_test_split
+> from sklearn.linear_model import LinearRegression, Ridge
+> from sklearn.ensemble import RandomForestRegressor
+> from sklearn.metrics import r2_score, mean_absolute_error, mean_squared_error
+> import json
+> import pickle
+>
+> # Load data
+> df = pd.read_csv('/app/data/train.csv')
+>
+> # Split data using same parameters as before
+> train_df, val_df = train_test_split(df, test_size=0.2, random_state=42, shuffle=True)
+>
+> # Separate features and target
+> X_train = train_df.drop('MedHouseVal', axis=1)
+> y_train = train_df['MedHouseVal']
+> X_val = val_df.drop('MedHouseVal', axis=1)
+> y_val = val_df['MedHouseVal']
+>
+> # Initialize models and store results
+> models = {
+>     'linear_regression': LinearRegression(),
+>     'ridge': Ridge(),
+>     'random_forest': RandomForestRegressor(n_estimators=100, random_state=42)
+> }
+>
+> model_results = {}
+>
+> # Train and evaluate each model
+> for name, model in models.items():
+>     # Train
+>     model.fit(X_train, y_train)
+>
+>     # Training R²
+>     train_r2 = model.score(X_train, y_train)
+>
+>     # Validation predictions
+>     val_pred = model.predict(X_val)
+>
+>     # Validation metrics
+>     val_r2 = r2_score(y_val, val_pred)
+>     mae = mean_absolute_error(y_val, val_pred)
+>     mse = mean_squared_error(y_val, val_pred)
+>     rmse = np.sqrt(mse)
+>
+>     # Store results
+>     model_results[name] = {
+>         'train_r2': train_r2,
+>         'val_r2': val_r2,
+>         'mae': mae,
+>         'mse': mse,
+>         'rmse': rmse
+>     }
+>
+> # Save model comparison
+> with open('/app/output/model_comparison.json', 'w') as f:
+>     json.dump({
+>         'models': [{
+>             'model_name': name,
+>             'train_r2': result['train_r2'],
+>             'val_r2': result['val_r2'],
+>             'mae': result['mae'],
+>             'mse': result['mse'],
+>             'rmse': result['rmse']
+>         } for name, result in model_results.items()],
+>         'best_model_name': max(model_results.keys(), key=lambda x: model_results[x]['val_r2'])
+>     }, f, indent=2)
+>
+> # Select best model based on validation R²
+> best_model_name = max(model_results.keys(), key=lambda x: model_results[x]['val_r2'])
+> best_model = models[best_model_name]
+>
+> # Save all models
+> for name in models.keys():
+>     model_path = f'/app/models/{name}.pkl'
+>     with open(model_path, 'wb') as f:
+>         pickle.dump(models[name], f)
+>
+> # Save best model separately
+> with open('/app/models/best_model.pkl', 'wb') as f:
+>     pickle.dump(models[best_model_name], f)
+>
+> # Print summary
+> print(f"Best model: {best_model_name} with validation R²: {model_results[best_model_name]['val_r2']:.4f}")
+> EOL
+root@e65884aa2bb3:/app# python3 /app/train_models.py
+Traceback (most recent call last):
+  File "/app/train_models.py", line 11, in <module>
+    df = pd.read_csv('/app/data/train.csv')
+  File "/usr/local/lib/python3.13/site-packages/pandas/io/parsers/readers.py", line 1026, in read_csv
+    return _read(filepath_or_buffer, kwds)
+  File "/usr/local/lib/python3.13/site-packages/pandas/io/parsers/readers.py", line 620, in _read
+    parser = TextFileReader(filepath_or_buffer, **kwds)
+  File "/usr/local/lib/python3.13/site-packages/pandas/io/parsers/readers.py", line 1620, in __init__
+    self._engine = self._make_engine(f, self.engine)
+                   ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.13/site-packages/pandas/io/parsers/readers.py", line 1880, in _make_engine
+    self.handles = get_handle(
+                   ~~~~~~~~~~^
+        f,
+        ^^
+    ...<6 lines>...
+        storage_options=self.options.get("storage_options", None),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/usr/local/lib/python3.13/site-packages/pandas/io/common.py", line 873, in get_handle
+    handle = open(
+        handle,
+    ...<3 lines>...
+        newline="",
+    )
+FileNotFoundError: [Errno 2] No such file or directory: '/app/data/train.csv'
+root@e65884aa2bb3:/app#

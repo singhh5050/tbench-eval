@@ -1,0 +1,46 @@
+New Terminal Output:
+
+root@85192a4178f3:/workdir# python3 << 'EOF'
+> import cv2
+> import numpy as np
+>
+> # Let's look for the specific pattern of '4'
+> # A '4' has: vertical line on right, horizontal bar across middle, and sometimes a diagonal
+>
+> for i in range(1, 7):
+>     filepath = f'/workdir/data/cards/card_{i}.png'
+>     img = cv2.imread(filepath)
+>
+>     rank_area = img[10:70, 10:70]
+>     gray = cv2.cvtColor(rank_area, cv2.COLOR_BGR2GRAY)
+>     _, binary = cv2.threshold(gray, 128, 255, cv2.THRESH_BINARY_INV)
+>
+>     contours, _ = cv2.findContours(binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+>
+>     if contours:
+>         x, y, w, h = cv2.boundingRect(max(contours, key=cv2.contourArea))
+>         digit = binary[y:y+h, x:x+w]
+>
+>         # Check for horizontal bar in middle
+>         mid_row = digit[digit.shape[0]//2]
+>         mid_black = np.sum(mid_row == 0) / len(mid_row)
+>
+>         # Check for vertical bar on right
+>         right_col = digit[:, int(3*digit.shape[1]/4):]
+>         right_black = np.sum(right_col == 0) / right_col.size
+>
+>         # Check top vs bottom
+>         top_half = digit[:digit.shape[0]//2]
+>         bottom_half = digit[digit.shape[0]//2:]
+>         top_black = np.sum(top_half == 0) / top_half.size
+>         bottom_black = np.sum(bottom_half == 0) / bottom_half.size
+>
+>         print(f'card_{i}.png - Mid horiz: {mid_black:.2%}, Right vert: {right_black:.2%}, Top: {top_black:.2%}, Bottom: {bottom_black:.2%}')
+> EOF
+card_1.png - Mid horiz: 63.64%, Right vert: 46.75%, Top: 68.59%, Bottom: 47.81%
+card_2.png - Mid horiz: 60.87%, Right vert: 53.55%, Top: 66.43%, Bottom: 50.64%
+card_3.png - Mid horiz: 62.75%, Right vert: 83.36%, Top: 63.18%, Bottom: 58.68%
+card_4.png - Mid horiz: 78.57%, Right vert: 72.41%, Top: 56.73%, Bottom: 79.39%
+card_5.png - Mid horiz: 12.82%, Right vert: 52.59%, Top: 52.90%, Bottom: 66.10%
+card_6.png - Mid horiz: 62.79%, Right vert: 38.84%, Top: 68.04%, Bottom: 45.85%
+root@85192a4178f3:/workdir#

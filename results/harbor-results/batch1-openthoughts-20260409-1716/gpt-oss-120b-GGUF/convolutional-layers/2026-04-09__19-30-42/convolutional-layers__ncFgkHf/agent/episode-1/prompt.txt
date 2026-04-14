@@ -1,0 +1,159 @@
+New Terminal Output:
+root@8c37df19d273:/app# mkdir -p /app/src /app/output
+root@8c37df19d273:/app# apply_patch <<'PATCH'
+> *** Begin Patch
+> *** Add File: /app/src/__init__.py
+> +"""Top‑level package for the NumPy‑only CNN implementation.
+> +
+> +This module re‑exports the core building blocks so that users can import
+> +them directly from ``src``:
+> +
+> +    from src import Conv2D, ReLU, zero_pad, ...
+> +
+> +Only the symbols required by the task description are exported.
+> +"""
+> +
+> +from .base import BaseLayer
+> +from .conv import Conv2D
+> +from .conv_transpose import Conv2DTranspose
+> +from .pooling import MaxPool2D, AvgPool2D
+> +from .normalization import BatchNorm2D
+> +from .activation import ReLU, LeakyReLU, Sigmoid
+> +from .padding import zero_pad, get_output_shape
+> +
+> +__all__ = [
+> +    "BaseLayer",
+> +    "Conv2D",
+> +    "Conv2DTranspose",
+> +    "MaxPool2D",
+> +    "AvgPool2D",
+> +    "BatchNorm2D",
+> +    "ReLU",
+> +    "LeakyReLU",
+> +    "Sigmoid",
+> +    "zero_pad",
+> +    "get_output_shape",
+> +]
+> +
+> *** End Patch
+> PATCH
+bash: apply_patch: command not found
+root@8c37df19d273:/app# apply_patch <<'PATCH'
+> *** Begin Patch
+> *** Add File: /app/src/base.py
+> +"""Base abstract class for all layers.
+> +
+> +The class follows the minimal interface required by the task:
+> +
+> +* ``__call__`` forwards to ``forward`` so that a layer instance can be used
+> +  like a function.
+> +* ``forward`` is declared abstract – attempting to instantiate a subclass
+> +  without overriding it will raise a ``TypeError``.
+> +
+> +All concrete layers inherit from ``BaseLayer`` and therefore expose a
+> +consistent call signature.
+> +"""
+> +
+> +from __future__ import annotations
+> +
+> +import abc
+> +import numpy as np
+> +
+> +
+> +class BaseLayer(abc.ABC):
+> +    """Abstract base class for neural‑network layers.
+> +
+> +    Sub‑classes must implement the ``forward`` method which receives a NumPy
+> +    ``ndarray`` and returns a ``ndarray`` of type ``float64``.
+> +    """
+> +
+> +    def __init__(self) -> None:
+> +        # No parameters required by the specification.
+> +        super().__init__()
+> +
+> +    def __call__(self, x: np.ndarray) -> np.ndarray:
+> +        """Make the layer callable.
+> +
+> +        ``layer(x)`` is equivalent to ``layer.forward(x)``.
+> +        """
+> +        return self.forward(x)
+> +
+> +    @abc.abstractmethod
+> +    def forward(self, x: np.ndarray) -> np.ndarray:  # pragma: no cover
+> +        """Compute the forward pass.
+> +
+> +        Sub‑classes must override this method.  The implementation should
+> +        ensure that the returned array has ``dtype`` ``float64``.
+> +        """
+> +        raise NotImplementedError
+> +
+> *** End Patch
+> PATCH
+bash: apply_patch: command not found
+root@8c37df19d273:/app# apply_patch <<'PATCH'
+> *** Begin Patch
+> *** Add File: /app/src/padding.py
+> +"""Utility functions for padding and output‑shape calculation.
+> +
+> +The functions operate on tensors in NHWC format (batch, height, width,
+> +channels) as required by the rest of the library.
+> +"""
+> +
+> +from __future__ import annotations
+> +
+> +import numpy as np
+> +from typing import Tuple
+> +
+> +
+> +def zero_pad(x: np.ndarray, pad: int) -> np.ndarray:
+> +    """Pad the spatial dimensions of ``x`` with zeros.
+> +
+> +    Parameters
+> +    ----------
+> +    x : np.ndarray
+> +        Input tensor of shape ``(batch, height, width, channels)``.
+> +    pad : int
+> +        Number of zero rows/columns to add on *each* side.
+> +
+> +    Returns
+> +    -------
+> +    np.ndarray
+> +        Padded tensor with shape ``(batch, height + 2*pad, width + 2*pad,
+> +        channels)`` and ``dtype`` ``float64``.
+> +    """
+> +    if pad == 0:
+> +        return x.astype(np.float64, copy=False)
+> +    if x.ndim != 4:
+> +        raise ValueError("zero_pad expects a 4‑D tensor (NHWC)")
+> +    # Use np.pad with a pad width that only affects H and W dimensions.
+> +    padded = np.pad(
+> +        x,
+> +        pad_width=((0, 0), (pad, pad), (pad, pad), (0, 0)),
+> +        mode="constant",
+> +        constant_values=0,
+> +    )
+> +    return padded.astype(np.float64, copy=False)
+> +
+> +
+> +def get_output_shape(
+> +    input_shape: Tuple[int, int],
+> +    kernel_size: int,
+> +    stride: int,
+> +    padding: int,
+> +    dilation: int = 1,
+> +) -> Tuple[int, int]:
+> +    """Compute the spatial output shape of a convolution/pooling layer.
+> +
+> +    The formula follows the definition used in most deep‑learning frameworks:
+> +
+> +    ``output = (input + 2*padding - dilation*(kernel-1) - 1) // stride + 1``
+> +    """
+> +    h_in, w_in = input_shape
+> +    def dim_out(dim: int) -> int:
+> +        return (dim + 2 * padding - dilation * (kernel_size - 1) - 1) // stride + 1
+> +    return dim_out(h_in), dim_out(w_in)
+> +
+> *** End Patch
+> PATCH
+bash: apply_patch: command not found
+root@8c37df19d273:/app#

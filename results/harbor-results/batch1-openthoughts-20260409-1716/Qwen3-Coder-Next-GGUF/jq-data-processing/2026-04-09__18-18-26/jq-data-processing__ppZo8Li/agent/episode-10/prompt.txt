@@ -1,0 +1,12 @@
+Previous response had warnings:
+WARNINGS: - Extra text detected before JSON object
+- Extra text detected after JSON object
+
+New Terminal Output:
+son"
+root@920ff8f49a8a:/app# cat > /app/jq_args.yaml << 'EOF'
+> filter: '[.[] | select(.status == "active") | {user_id: .id, username: .username, email: .email, last_login: (.last_login | split("T")[0]), role_count: (.role
+s | length), primary_role: (.roles[0] // null)}] | sort_by(.username)'
+> args: []
+> EOF
+root@920ff8f49a8a:/app#

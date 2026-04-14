@@ -1,0 +1,14 @@
+{
+  "analysis": "Now I understand the SlurmLauncher. It accepts `**params` and uses them to configure the submitit executor. The issue is that Hydra's config validation is using the BasicLauncherConf schema to validate the launcher config, which only has `_target_` as a field.\n\nThe solution is to not have the launcher config validated against the BasicLauncherConf schema. I can do this by:\n1. Using `hydra.launcher: null` to skip validation\n2. Or using a custom schema that extends BasicLauncherConf\n\nLet me try using `hydra.launcher: null` to skip validation and then define the launcher config.",
+  "plan": "Let me try using a different approach - I'll use the Hydra config to skip validation by setting the launcher to null and then defining the launcher config separately.",
+  "commands": [
+    {
+      "keystrokes": "cat > /app/src/config/slurm.yaml << 'EOF'\n# @package _global_\n\nhydra:\n  launcher:\n    _target_: hydra_plugins.hydra_submitit_launcher.submitit_launcher.SlurmLauncher\n    folder: /tmp/${hydra:run.dir}/slurm\n    submitit_folder: /tmp/${hydra:run.dir}/submitit\n    max_num_timeout: 3\n    cpus_per_task: 4\n    gpus_per_node: 0\n    tasks_per_node: 1\n    nodes: 1\n    mem_gb: 8\n    partition: null\n    additional_parameters:\n      wckey: ''\n    srun_args:\n      - '--cpu-bind=none'\n    comment: ''\n\n_debug: false\nEOF\n",
+      "duration": 0.1
+    },
+    {
+      "keystrokes": "python /app/src/main.py -cn=slurm --cfg job 2>&1\n",
+      "duration": 2
+    }
+  ]
+}

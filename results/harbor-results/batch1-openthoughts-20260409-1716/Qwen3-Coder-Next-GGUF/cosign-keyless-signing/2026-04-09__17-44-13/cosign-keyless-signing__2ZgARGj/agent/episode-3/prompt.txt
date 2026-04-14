@@ -1,0 +1,124 @@
+New Terminal Output:
+
+root@2928fe68ba2e:/app# cat > /app/sign_artifact.sh << 'EOF'
+> #!/bin/bash
+> # Artifact Signing Script
+> # Signs artifacts with ephemeral keys that are destroyed after use
+>
+> set -e
+>
+> # Check arguments
+> if [ $# -ne 2 ]; then
+>     echo "Usage: $0 <artifact-path> <build-id>"
+>     exit 1
+> fi
+>
+> ARTIFACT_PATH="$1"
+> BUILD_ID="$2"
+>
+> # Validate artifact exists
+> if [ ! -f "$ARTIFACT_PATH" ]; then
+>     echo "Error: Artifact not found: $ARTIFACT_PATH"
+>     exit 1
+> fi
+>
+> # Create output directories if they don't exist
+> mkdir -p /app/signing /app/signed
+>
+> # Get artifact name and calculate SHA256
+> ARTIFACT_NAME=$(basename "$ARTIFACT_PATH")
+> SHA256=$(sha256sum "$ARTIFACT_PATH" | awk '{print $1}')
+>
+> # Generate ephemeral ECDSA P-256 keypair
+> echo "Generating ephemeral ECDSA keypair..."
+> EPHEMERAL_KEY="/app/signing/ephemeral-key-${BUILD_ID}.pem"
+> openssl ecparam -genkey -name prime256v1 -noout -out "$EPHEMERAL_KEY"
+>
+> # Create signing certificate signed by Intermediate CA
+> CERT_SUBJECT="CN=build-${BUILD_ID},O=SecureBuild,C=US"
+>
+> echo "Creating signing certificate..."
+>
+> # Generate CSR for ephemeral key
+> openssl req -new -key "$EPHEMERAL_KEY" \
+>     -out /app/signing/cert-${BUILD_ID}.csr \
+>     -subj "/CN=build-${BUILD_ID}/O=SecureBuild/C=US"
+>
+> # Create extensions file for ephemeral certificate
+> cat > /app/signing/ephemeral-ext.cnf << EXTN
+> basicConstraints=CA:FALSE
+> keyUsage=critical,digitalSignature
+> extendedKeyUsage=codeSigning
+> subjectKeyIdentifier=hash
+> authorityKeyIdentifier=keyid:always,issuer
+> EXTN
+>
+> # Sign the certificate with Intermediate CA (1 day validity)
+> openssl x509 -req \
+>     -days 1 \
+>     -in /app/signing/cert-${BUILD_ID}.csr \
+>     -CA /app/ca/intermediate-ca.pem \
+>     -CAkey /app/ca/intermediate-ca-key.pem \
+>     -CAcreateserial \
+>     -out /app/signing/cert_${BUILD_ID}.pem \
+>     -extfile /app/signing/ephemeral-ext.cnf \
+>     -sha256
+>
+> # Sign the artifact with ephemeral key
+> echo "Signing artifact..."
+> openssl dgst -sha256 -sign "$EPHEMERAL_KEY" \
+>     -out "/app/signed/${ARTIFACT_NAME}.sig" \
+>     "$ARTIFACT_PATH"
+>
+> # Create provenance attestation JSON
+> TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+> cat > "/app/signed/${ARTIFACT_NAME}.provenance.json" << PROV
+> {
+>   "buildID": "${BUILD_ID}",
+>   "artifact": "${ARTIFACT_NAME}",
+>   "sha256": "${SHA256}",
+>   "signedAt": "${TIMESTAMP}",
+>   "signer": "build-${BUILD_ID}",
+>   "certificateChain": ["intermediate-ca", "root-ca"]
+> }
+> PROV
+>
+> # Sign the provenance JSON
+> echo "Signing provenance attestation..."
+> openssl dgst -sha256 -sign "$EPHEMERAL_KEY" \
+>     -out "/app/signed/${ARTIFACT_NAME}.provenance.sig" \
+>     "/app/signed/${ARTIFACT_NAME}.provenance.json"
+>
+> # Create certificate chain bundle
+> echo "Creating certificate chain..."
+> cat /app/signing/cert_${BUILD_ID}.pem \
+>     /app/ca/intermediate-ca.pem \
+>     /app/ca/root-ca.pem \
+>     > "/app/signed/${ARTIFACT_NAME}.chain.pem"
+>
+> # Destroy ephemeral private key
+> echo "Destroying ephemeral key..."
+> rm -f "$EPHEMERAL_KEY"
+> rm -f /app/signing/cert-${BUILD_ID}.csr
+> rm -f /app/signing/ephemeral-ext.cnf
+>
+> # Clean up signing directory
+> echo "Cleaning up signing artifacts..."
+> rm -f /app/signing/cert_${BUILD_ID}.pem
+>
+> # Remove any remaining ephemeral key files
+> find /app/signing -name "ephemeral-key-*.pem" -type f -delete 2>/dev/null || true
+>
+> echo "Signing complete!"
+> echo "Artifact: $ARTIFACT_PATH"
+> echo "Build ID: $BUILD_ID"
+> echo "SHA256: $SHA256"
+> echo ""
+> echo "Output files:"
+> echo "  - Signature: /app/signed/${ARTIFACT_NAME}.sig"
+> echo "  - Provenance: /app/signed/${ARTIFACT_NAME}.provenance.json"
+> echo "  - Provenance Signature: /app/signed/${ARTIFACT_NAME}.provenance.sig"
+> echo "  - Chain: /app/signed/${ARTIFACT_NAME}.chain.pem"
+> EOF
+root@2928fe68ba2e:/app# chmod +x /app/sign_artifact.sh
+root@2928fe68ba2e:/app#

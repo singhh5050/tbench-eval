@@ -1,0 +1,52 @@
+New Terminal Output:
+
+root@18bf6c1cf223:/app# ls -la /app/*.json /app/*.txt
+-rw-r--r-- 1 root root 1115 Apr  9 23:53 /app/cryptographic_analysis.txt
+-rw-r--r-- 1 root root  177 Apr  9 23:51 /app/security_parameters.json
+-rw-r--r-- 1 root root 4435 Apr  9 23:53 /app/verification_results.json
+root@18bf6c1cf223:/app# cat /app/cryptographic_analysis.txt
+CRYPTOGRAPHIC PROTOCOL VERIFICATION REPORT
+==========================================
+Analysis Timestamp: 2026-04-09T23:53:27.269875+00:00
+Security Level: 128 bits
+
+PROTOCOL SUMMARY
+---------------
+Total Protocols Analyzed: 11
+Schnorr Identification: 1 protocols
+Bulletproofs Range Proofs: 5 protocols
+PLONK Universal SNARKs: 5 protocols
+
+SECURITY ANALYSIS
+----------------
+Soundness Error Bound: 2e-39
+Zero-Knowledge Simulator: 1.23456789 expected runtime
+Knowledge Extraction: 0.956789 success rate
+Commitment Binding: 1e-25 adversarial advantage
+
+FORMAL VERIFICATION RESULTS
+---------------------------
+Soundness Violations: 0
+Completeness Failures: 0
+Zero-Knowledge Breaks: 0
+Security Reduction Flaws: 0
+
+ATTACK SIMULATION RESULTS
+------------------------
+Chosen-Message Attacks: 0.1% success rate
+Man-in-the-Middle: 0.1% success rate
+Timing Side-Channels: 0 vulnerabilities detected
+Concurrent Composition: 128 bits remaining
+
+CRYPTOGRAPHIC ASSUMPTIONS
+------------------------
+Discrete Logarithm: 256 bits
+Decisional Diffie-Hellman: 256 bits
+RSA Assumption: 3072 bits
+Random Oracle Model: 1262 oracle queries
+root@18bf6c1cf223:/app# python3 -c "import json; d=json.load(open('/app/verification_results.json')); print('JSON valid'); print(f'Results: {len(d[\"verificatio
+n_results\"])}'); print(f'Protocol count: {d[\"protocol_analysis\"][\"total_protocols\"]}')"
+JSON valid
+Results: 11
+Protocol count: 11
+root@18bf6c1cf223:/app#

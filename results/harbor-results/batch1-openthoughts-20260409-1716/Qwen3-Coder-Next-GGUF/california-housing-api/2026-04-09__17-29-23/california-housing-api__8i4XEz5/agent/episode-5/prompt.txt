@@ -1,0 +1,41 @@
+Current Terminal Screen:
+    return {
+        "status": "healthy",
+        "model_loaded": best_model is not None
+    }
+
+@app.get("/model-info")
+async def get_model_info():
+    return {
+        "model_name": model_name,
+        "model_type": type(best_model).__name__ if best_model else "unknown",
+        "features_count": 8
+    }
+
+@app.post("/predict")
+async def predict_single(features: list):
+    if best_model is None:
+        return JSONResponse(content={"error": "Model not loaded"}, status_code=503)
+
+    features_array = np.array(features).reshape(1, -1)
+    prediction = best_model.predict(features_array)[0]
+
+    return {
+        "prediction": float(prediction),
+        "model_name": model_name
+    }
+
+@app.post("/predict-batch")
+async def predict_batch(features_list: list):
+    if best_model is None:
+        return JSONResponse(content={"error": "Model not loaded"}, status_code=503)
+
+    features_array = np.array(features_list)
+    predictions = best_model.predict(features_array)
+
+    return {
+        "predictions": [float(p) for p in predictions],
+        "model_name": model_name,
+        "count": len(predictions)
+    }
+root@ec00c077f56c:/app#

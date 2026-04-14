@@ -1,0 +1,21 @@
+New Terminal Output:
+
+root@8d75f47cee9b:/app# python3 /app/merkle_cli.py scan /app/test_data
+Scanned 4 files
+Root hash: a1cfd6d78fc8b26b91f2beafe334985326d2747ac068cd701b6fdbca6cfbfe08da584eb05f0fbe6b577c782fe499f546822537ec10f709213f4734dce17ff9cb
+root@8d75f47cee9b:/app# echo 'Added file' > /app/test_data/new_file.txt
+root@8d75f47cee9b:/app# python3 /app/merkle_cli.py proof file1.txt > /app/proof_verify.json && python3 /app/merkle_cli.py verify file1.txt /app/proof_verify.jso
+n
+Verification failed!
+{
+  "file_path": "file1.txt",
+  "root_matches": true,
+  "file_hash_matches_storage": true,
+  "added_files": [
+    "new_file.txt"
+  ],
+  "deleted_files": [],
+  "modified_files": []
+}
+root@8d75f47cee9b:/app# rm /app/test_data/new_file.txt
+root@8d75f47cee9b:/app#

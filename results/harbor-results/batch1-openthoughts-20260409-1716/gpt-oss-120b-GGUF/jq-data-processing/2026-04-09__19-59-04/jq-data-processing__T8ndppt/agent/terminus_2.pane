@@ -1,0 +1,18 @@
+[?2004hroot@7a569b61e5d0:/app# asciinema rec --stdin /logs/agent/recording.cast
+[?2004l[0;32masciinema: recording asciicast to /logs/agent/recording.cast[0m
+[0;32masciinema: press <ctrl-d> or type "exit" when you're done[0m
+[?2004hroot@7a569b61e5d0:/app# clear
+[?2004l[H[J[3J[?2004hroot@7a569b61e5d0:/app# cat > /app/jq_args.yaml <<'EOF'
+[?2004l[?2004h> filter: "map(select(.status==\"active\") | {user_id: .id, username: .username, email: .email, last_login: (.last_login[0:10]), role_count: (.roles|length), primary_role: (if (.roles|length)>0 then .roles[0] else null end)}) | sort_by(.username)"
+[?2004l[?2004h> args:
+[?2004l[?2004h>   - "--indent 2"
+[?2004l[?2004h> EOF
+[?2004l[?2004hroot@7a569b61e5d0:/app# cat > /app/cmd.sh <<'EOS'
+[?2004l[?2004h> #!/bin/bash
+[?2004l[?2004h> jq $(yq -r '.args[]' /app/jq_args.yaml) "$(yq -r '.filter' /app/jq_args.yaml)" /app/users.json > /app/active_users_report.json
+[?2004l[?2004h> EOS
+[?2004l[?2004hroot@7a569b61e5d0:/app# chmod +x /app/cmd.sh
+[?2004l[?2004hroot@7a569b61e5d0:/app# /app/cmd.sh
+[?2004l[?2004hroot@7a569b61e5d0:/app# ls -la /app/active_users_report.json
+[?2004l-rw-r--r-- 1 root root 63163 Apr 10 02:00 /app/active_users_report.json
+[?2004hroot@7a569b61e5d0:/app# 

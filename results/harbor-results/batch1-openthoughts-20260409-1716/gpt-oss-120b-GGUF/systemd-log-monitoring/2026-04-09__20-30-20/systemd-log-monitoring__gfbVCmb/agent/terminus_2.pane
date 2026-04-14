@@ -1,0 +1,427 @@
+[?2004hroot@3e9302d722d8:/opt/myapp# asciinema rec --stdin /logs/agent/recording.cast
+[?2004l[0;32masciinema: recording asciicast to /logs/agent/recording.cast[0m
+[0;32masciinema: press <ctrl-d> or type "exit" when you're done[0m
+[?2004hroot@3e9302d722d8:/opt/myapp# clear
+[?2004l[H[J[3J[?2004hroot@3e9302d722d8:/opt/myapp# id myapp >/dev/null 2>&1 || useradd -r -s /usr/sbin/nologin myapp
+[?2004l[?2004hroot@3e9302d722d8:/opt/myapp# chown -R myapp:myapp /opt/myapp
+[?2004l[?2004hroot@3e9302d722d8:/opt/myapp# cat > /opt/myapp/app.py <<'EOF'
+[?2004l[?2004h> #!/usr/bin/env python3
+[?2004l[?2004h> import sys, time, json, argparse, logging
+[?2004l[?2004h> from datetime import datetime, timezone
+[?2004l[?2004h> 
+[?2004l[?2004h> parser = argparse.ArgumentParser(description='MyApp JSON logger')
+[?2004l[?2004h> parser.add_argument('--log-level', default='INFO', choices=['INFO','WARN','ERROR'], help='Log level')
+[?2004l[?2004h> args = parser.parse_args()
+[?2004l[?2004h> 
+[?2004l[?2004h> level_map = {'INFO': logging.INFO, 'WARN': logging.WARNING, 'ERROR': logging.ERROR}
+[?2004l[?2004h> log_level = level_map[args.log_level]
+[?2004l[?2004h> 
+[?2004l[?2004h> logger = logging.getLogger('myapp')
+[?2004l[?2004h> logger.setLevel(log_level)
+[?2004l[?2004h> handler = logging.StreamHandler(sys.stdout)
+[?2004l[?2004h> handler.setFormatter(logging.Formatter('%(message)s'))
+[?2004l[?2004h> logger.addHandler(handler)
+[?2004l[?2004h> 
+[?2004l[?2004h> def log_event(level, message):
+[?2004l[?2004h>     entry = {
+[?2004l[?2004h>         "timestamp": datetime.now(timezone.utc).isoformat(timespec='seconds'),
+[?2004l[?2004h>         "level": level,
+[?2004l[?2004h>         "message": message,
+[?2004l[?2004h>         "service": "myapp"
+[?2004l[?2004h>     }
+[?2004l[?2004h>     logger.info(json.dumps(entry))
+[?2004l[?2004h> 
+[?2004l[?2004h> # Startup event
+[?2004l[?2004h> log_event('INFO', 'Service started')
+[?2004l[?2004h> 
+[?2004l[?2004h> while True:
+[?2004l[?2004h>     # Periodic heartbeat (INFO)
+[?2004l[?2004h>     log_event(args.log_level, 'Heartbeat')
+[?2004l[?2004h>     time.sleep(5)
+[?2004l[?2004h> EOF
+[?2004l[?2004hroot@3e9302d722d8:/opt/myapp# chmod +x /opt/myapp/app.py
+[?2004l[?2004hroot@3e9302d722d8:/opt/myapp# cat > /etc/systemd/system/myapp.service <<'EOF'
+[?2004l[?2004h> [Unit]
+[?2004l[?2004h> Description=MyApp Service
+[?2004l[?2004h> After=network.target
+[?2004l[?2004h> 
+[?2004l[?2004h> [Service]
+[?2004l[?2004h> User=myapp
+[?2004l[?2004h> Group=myapp
+[?2004l[?2004h> WorkingDirectory=/opt/myapp
+[?2004l[?2004h> ExecStart=/opt/myapp/app.py --log-level=INFO
+[?2004l[?2004h> Restart=on-failure
+[?2004l[?2004h> SyslogIdentifier=myapp
+[?2004l[?2004h> StandardOutput=journal
+[?2004l[?2004h> StandardError=inherit
+[?2004l[?2004h> Environment=PYTHONUNBUFFERED=1
+[?2004l[?2004h> 
+[?2004l[?2004h> [Install]
+[?2004l[?2004h> WantedBy=multi-user.target
+[?2004l[?2004h> EOF
+[?2004l[?2004hroot@3e9302d722d8:/opt/myapp# systemctl daemon-reload
+[?2004lbash: systemctl: command not found
+[?2004hroot@3e9302d722d8:/opt/myapp# systemctl enable --now myapp.service
+[?2004lbash: systemctl: command not found
+[?2004hroot@3e9302d722d8:/opt/myapp# cat > /etc/rsyslog.d/50-myapp.conf <<'EOF'
+[?2004l[?2004h> # Route myapp JSON logs
+[?2004l[?2004h> if $programname == 'myapp' and $msg contains '"level":"ERROR"' then /var/log/app_errors.log
+[?2004l[?2004h> if $programname == 'myapp' then /var/log/app_events.log
+[?2004l[?2004h> & stop
+[?2004l[?2004h> EOF
+[?2004l[?2004hroot@3e9302d722d8:/opt/myapp# systemctl restart rsyslog
+[?2004lbash: systemctl: command not found
+[?2004hroot@3e9302d722d8:/opt/myapp# cat > /etc/logrotate.d/myapp <<'EOF'
+[?2004l[?2004h> /var/log/app_events.log /var/log/app_errors.log {
+[?2004l[?2004h>     daily
+[?2004l[?2004h>     rotate 7
+[?2004l[?2004h>     compress
+[?2004l[?2004h>     missingok
+[?2004l[?2004h>     notifempty
+[?2004l[?2004h>     create 0644 myapp myapp
+[?2004l[?2004h>     sharedscripts
+[?2004l[?2004h>     postrotate
+[?2004l[?2004h>         systemctl restart rsyslog >/dev/null 2>&1 || true
+[?2004l[?2004h>     endscript
+[?2004l[?2004h> }
+[?2004l[?2004h> EOF
+[?2004l[?2004hroot@3e9302d722d8:/opt/myapp# touch /var/log/app_events.log /var/log/app_errors.log
+[?2004l[?2004hroot@3e9302d722d8:/opt/myapp# chown myapp:myapp /var/log/app_events.log /var/log/app_errors.log
+[?2004l[?2004hroot@3e9302d722d8:/opt/myapp# chmod 644 /var/log/app_events.log /var/log/app_errors.log
+[?2004l[?2004hroot@3e9302d722d8:/opt/myapp# cat > /usr/local/bin/check_service_health.sh <<'EOF'
+[?2004l[?2004h> #!/usr/bin/env bash
+[?2004l[?2004h> SERVICE="myapp"
+[?2004l[?2004h> WINDOW="5 minutes"
+[?2004l[?2004h> NOW=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+[?2004l[?2004h> # Count restarts (systemd reports "Started" in MESSAGE)
+[?2004l[?2004h> RESTARTS=$(journalctl -u "$SERVICE" --since "5 minutes ago" -o cat | grep -c "Started")
+[?2004l[?2004h> # Count error events (JSON level field)
+[?2004l[?2004h> ERRORS=$(journalctl -u "$SERVICE" --since "5 minutes ago" -o cat | grep -c "\"level\":\"ERROR\"")
+[?2004l[?2004h> RESTART_LOOP_DETECTED=false
+[?2004l[?2004h> if [ "$RESTARTS" -gt 3 ]; then
+[?2004l[?2004h>     RESTART_LOOP_DETECTED=true
+[?2004l[?2004h> fi
+[?2004l[?2004h> cat <<JSON
+[?2004l[?2004h> {
+[?2004l[?2004h>   "service": "$SERVICE",
+[?2004l[?2004h>   "time_window": "5 minutes",
+[?2004l[?2004h>   "restarts": $RESTARTS,
+[?2004l[?2004h>   "errors": $ERRORS,
+[?2004l[?2004h>   "restart_loop_detected": $RESTART_LOOP_DETECTED,
+[?2004l[?2004h>   "timestamp": "$NOW"
+[?2004l[?2004h> }
+[?2004l[?2004h> JSON
+[?2004l[?2004h> EOF
+[?2004l[?2004hroot@3e9302d722d8:/opt/myapp# chmod +x /usr/local/bin/check_service_health.sh
+[?2004l[?2004hroot@3e9302d722d8:/opt/myapp# apt-get update -y >/dev/null 2>&1
+[?2004l[?2004hroot@3e9302d722d8:/opt/myapp# apt-get install -y systemd rsyslog >/dev/null 2>&1
+[?2004l[?2004hroot@3e9302d722d8:/opt/myapp# mkdir -p /home/myapp/.config/systemd/user
+[?2004l[?2004hroot@3e9302d722d8:/opt/myapp# cp /etc/systemd/system/myapp.service /home/myapp/.config/systemd/user/
+[?2004l[?2004hroot@3e9302d722d8:/opt/myapp# chown -R myapp:myapp /home/myapp/.config/systemd/user
+[?2004l[?2004hroot@3e9302d722d8:/opt/myapp# runuser -l myapp -c "systemctl --user daemon-reload"
+[?2004l[?2004hroot@3e9302d722d8:/opt/myapp# runuser -l myapp -c "systemctl --user enable --now myapp.service"
+[?2004l[?2004hroot@3e9302d722d8:/opt/myapp# sed -i 's/journalctl -u "$SERVICE"/journalctl --user -u "$SERVICE"/g' /usr/local/bin/check_service_health.sh
+[?2004l[?2004hroot@3e9302d722d8:/opt/myapp# cat > /etc/rsyslog.d/50-myapp.conf <<'EOF'
+[?2004l[?2004h> module(load="imjournal" StateFile="imjournal.state" SysSock="/run/user/$(id -u myapp)/systemd/journal/socket")
+[?2004l[?2004h> # Route myapp JSON logs
+[?2004l[?2004h> if $programname == 'myapp' and $msg contains '"level":"ERROR"' then /var/log/app_errors.log
+[?2004l[?2004h> if $programname == 'myapp' then /var/log/app_events.log
+[?2004l[?2004h> & stop
+[?2004l[?2004h> EOF
+[?2004l[?2004hroot@3e9302d722d8:/opt/myapp# systemctl restart rsyslog
+[?2004l[0;1;31mSystem has not been booted with systemd as init system (PID 1). Can't operate.[0m
+[0;1;31mFailed to connect to bus: Host is down[0m
+[?2004hroot@3e9302d722d8:/opt/myapp# /usr/local/bin/check_service_health.sh
+[?2004l{
+  "service": "myapp",
+  "time_window": "5 minutes",
+  "restarts": 0,
+  "errors": 0,
+  "restart_loop_detected": false,
+  "timestamp": "2026-04-10T02:32:39Z"
+}
+[?2004hroot@3e9302d722d8:/opt/myapp# which systemd || echo /usr/lib/systemd/systemd
+[?2004l/usr/bin/systemd
+[?2004hroot@3e9302d722d8:/opt/myapp# SYSTEMD_BIN=$(which systemd || echo /usr/lib/systemd/systemd)
+[?2004l[?2004hroot@3e9302d722d8:/opt/myapp# runuser -l myapp -c "nohup \$SYSTEMD_BIN --user > /dev/null 2>&1 &"
+[?2004l[?2004hroot@3e9302d722d8:/opt/myapp# sleep 2
+[?2004lrunuser -l myapp -c "systemctl --user daemon-reload"
+[?2004hroot@3e9302d722d8:/opt/myapp# runuser -l myapp -c "systemctl --user daemon-reload"
+[?2004l[?2004hroot@3e9302d722d8:/opt/myapp# runuser -l myapp -c "systemctl --user enable --now myapp.service"
+[?2004l[?2004hroot@3e9302d722d8:/opt/myapp# runuser -l myapp -c "systemctl --user status myapp.service --no-pager"
+[?2004l[?2004hroot@3e9302d722d8:/opt/myapp# sleep 3
+[?2004lcat /var/log/app_events.log | head -n 5
+[?2004hroot@3e9302d722d8:/opt/myapp# cat /var/log/app_events.log | head -n 5
+[?2004l[?2004hroot@3e9302d722d8:/opt/myapp# cat /var/log/app_errors.log | head -n 5
+[?2004l[?2004hroot@3e9302d722d8:/opt/myapp# /usr/local/bin/check_service_health.sh
+[?2004l{
+  "service": "myapp",
+  "time_window": "5 minutes",
+  "restarts": 0,
+  "errors": 0,
+  "restart_loop_detected": false,
+  "timestamp": "2026-04-10T02:33:23Z"
+}
+[?2004hroot@3e9302d722d8:/opt/myapp# command -v systemd-run >/dev/null && echo "HAS_SYSTEMD_RUN" || echo "NO_SYSTEMD_RUN"
+[?2004lHAS_SYSTEMD_RUN
+[?2004hroot@3e9302d722d8:/opt/myapp# runuser -l myapp -c "systemd --user &"
+[?2004l[?2004hroot@3e9302d722d8:/opt/myapp# sleep 1
+[?2004l[?2004hroot@3e9302d722d8:/opt/myapp# runuser -l myapp -c "systemd-run --user --unit=myapp.service /opt/myapp/app.py --log-level=INFO"
+[?2004l[?2004hroot@3e9302d722d8:/opt/myapp# sleep 5
+[?2004lcat /var/log/app_events.log | head -n 5
+[?2004hroot@3e9302d722d8:/opt/myapp# cat /var/log/app_events.log | head -n 5
+[?2004l[?2004hroot@3e9302d722d8:/opt/myapp# cat /var/log/app_errors.log | head -n 5
+[?2004l[?2004hroot@3e9302d722d8:/opt/myapp# /usr/local/bin/check_service_health.sh
+[?2004l{
+  "service": "myapp",
+  "time_window": "5 minutes",
+  "restarts": 0,
+  "errors": 0,
+  "restart_loop_detected": false,
+  "timestamp": "2026-04-10T02:34:21Z"
+}
+[?2004hroot@3e9302d722d8:/opt/myapp# # Fallback if the above failed: start app via logger
+[?2004l[?2004hroot@3e9302d722d8:/opt/myapp# runuser -l myapp -c "/opt/myapp/app.py --log-level=INFO | logger -t myapp &"
+[?2004l[?2004hroot@3e9302d722d8:/opt/myapp# sleep 5
+[?2004l[?2004hroot@3e9302d722d8:/opt/myapp# cat /var/log/app_events.log | head -n 5
+[?2004l[?2004hroot@3e9302d722d8:/opt/myapp# cat /var/log/app_errors.log | head -n 5
+[?2004l[?2004hroot@3e9302d722d8:/opt/myapp# /usr/local/bin/check_service_health.sh
+[?2004l{
+  "service": "myapp",
+  "time_window": "5 minutes",
+  "restarts": 0,
+  "errors": 0,
+  "restart_loop_detected": false,
+  "timestamp": "2026-04-10T02:34:28Z"
+}
+[?2004hroot@3e9302d722d8:/opt/myapp# /etc/init.d/rsyslog start
+[?2004lbash: /etc/init.d/rsyslog: No such file or directory
+[?2004hroot@3e9302d722d8:/opt/myapp# sleep 1
+[?2004l[?2004hroot@3e9302d722d8:/opt/myapp# runuser -l myapp -c "/opt/myapp/app.py --log-level=INFO | logger -t myapp &"
+[?2004l[?2004hroot@3e9302d722d8:/opt/myapp# sleep 5
+[?2004l[?2004hroot@3e9302d722d8:/opt/myapp# cat /var/log/app_events.log | head -n 5
+[?2004l[?2004hroot@3e9302d722d8:/opt/myapp# cat /var/log/app_errors.log | head -n 5
+[?2004l[?2004hroot@3e9302d722d8:/opt/myapp# /usr/local/bin/check_service_health.sh
+[?2004l{
+  "service": "myapp",
+  "time_window": "5 minutes",
+  "restarts": 0,
+  "errors": 0,
+  "restart_loop_detected": false,
+  "timestamp": "2026-04-10T02:35:00Z"
+}
+[?2004hroot@3e9302d722d8:/opt/myapp# rsyslogd
+[?2004lrsyslogd: error during parsing file /etc/rsyslog.d/50-myapp.conf, on or before line 1: parameter 'SysSock' not known -- typo in config file? [v8.2302.0 try https://www.rsyslog.com/e/2207 ]
+[?2004hroot@3e9302d722d8:/opt/myapp# sleep 1
+[?2004l[?2004hroot@3e9302d722d8:/opt/myapp# runuser -l myapp -c "/opt/myapp/app.py --log-level=INFO | logger -t myapp &"
+[?2004l[?2004hroot@3e9302d722d8:/opt/myapp# sleep 5
+[?2004lcat /var/log/app_events.log | head -n 5
+[?2004hroot@3e9302d722d8:/opt/myapp# cat /var/log/app_events.log | head -n 5
+[?2004l[?2004hroot@3e9302d722d8:/opt/myapp# cat /var/log/app_errors.log | head -n 5
+[?2004l[?2004hroot@3e9302d722d8:/opt/myapp# /usr/local/bin/check_service_health.sh
+[?2004l{
+  "service": "myapp",
+  "time_window": "5 minutes",
+  "restarts": 0,
+  "errors": 0,
+  "restart_loop_detected": false,
+  "timestamp": "2026-04-10T02:35:31Z"
+}
+[?2004hroot@3e9302d722d8:/opt/myapp# cat > /etc/rsyslog.d/50-myapp.conf <<'EOF'
+[?2004l[?2004h> # Simple rsyslog config for myapp JSON logs
+[?2004l[?2004h> if $programname == 'myapp' and $msg contains '"level":"ERROR"' then /var/log/app_errors.log
+[?2004l[?2004h> if $programname == 'myapp' then /var/log/app_events.log
+[?2004l[?2004h> & stop
+[?2004l[?2004h> EOF
+[?2004l[?2004hroot@3e9302d722d8:/opt/myapp# pkill rsyslogd || true
+[?2004lbash: pkill: command not found
+[?2004hroot@3e9302d722d8:/opt/myapp# rsyslogd
+[?2004lrsyslogd: pidfile '/run/rsyslogd.pid' and pid 1514 already exist.
+If you want to run multiple instances of rsyslog, you need to specify
+different pid files for them (-i option).
+rsyslogd: run failed with error -3000 (see rsyslog.h or try https://www.rsyslog.com/e/3000 to learn what that number means)
+[?2004hroot@3e9302d722d8:/opt/myapp# sleep 1
+[?2004l[?2004hroot@3e9302d722d8:/opt/myapp# runuser -l myapp -c "/opt/myapp/app.py --log-level=INFO | logger -t myapp &"
+[?2004l[?2004hroot@3e9302d722d8:/opt/myapp# sleep 5
+[?2004l[?2004hroot@3e9302d722d8:/opt/myapp# cat /var/log/app_events.log | head -n 5
+[?2004l[?2004hroot@3e9302d722d8:/opt/myapp# cat /var/log/app_errors.log | head -n 5
+[?2004l[?2004hroot@3e9302d722d8:/opt/myapp# /usr/local/bin/check_service_health.sh
+[?2004l{
+  "service": "myapp",
+  "time_window": "5 minutes",
+  "restarts": 0,
+  "errors": 0,
+  "restart_loop_detected": false,
+  "timestamp": "2026-04-10T02:36:05Z"
+}
+[?2004hroot@3e9302d722d8:/opt/myapp# kill 1514 || true
+[?2004lbash: kill: (1514) - No such process
+[?2004hroot@3e9302d722d8:/opt/myapp# rsyslogd -i /tmp/rsyslogd.pid
+[?2004l[?2004hroot@3e9302d722d8:/opt/myapp# sleep 1
+[?2004l[?2004hroot@3e9302d722d8:/opt/myapp# runuser -l myapp -c "/opt/myapp/app.py --log-level=INFO | logger -t myapp &"
+[?2004l[?2004hroot@3e9302d722d8:/opt/myapp# sleep 5
+[?2004l[?2004hroot@3e9302d722d8:/opt/myapp# cat /var/log/app_events.log | head -n 5
+[?2004l[?2004hroot@3e9302d722d8:/opt/myapp# cat /var/log/app_errors.log | head -n 5
+[?2004l[?2004hroot@3e9302d722d8:/opt/myapp# /usr/local/bin/check_service_health.sh
+[?2004l{
+  "service": "myapp",
+  "time_window": "5 minutes",
+  "restarts": 0,
+  "errors": 0,
+  "restart_loop_detected": false,
+  "timestamp": "2026-04-10T02:36:35Z"
+}
+[?2004hroot@3e9302d722d8:/opt/myapp# ls -l /dev/log
+[?2004lls: cannot access '/dev/log': No such file or directory
+[?2004hroot@3e9302d722d8:/opt/myapp# cat /etc/rsyslog.conf
+[?2004l# /etc/rsyslog.conf configuration file for rsyslog
+#
+# For more information install rsyslog-doc and see
+# /usr/share/doc/rsyslog-doc/html/configuration/index.html
+
+
+#################
+#### MODULES ####
+#################
+
+#module(load="imuxsock") # provides support for local system logging
+#module(load="imklog")   # provides kernel logging support
+#module(load="immark")  # provides --MARK-- message capability
+
+# provides UDP syslog reception
+#module(load="imudp")
+#input(type="imudp" port="514")
+
+# provides TCP syslog reception
+#module(load="imtcp")
+#input(type="imtcp" port="514")
+
+
+###########################
+#### GLOBAL DIRECTIVES ####
+###########################
+
+#
+# Set the default permissions for all log files.
+#
+$FileOwner root
+$FileGroup adm
+$FileCreateMode 0640
+$DirCreateMode 0755
+$Umask 0022
+
+#
+# Where to place spool and state files
+#
+$WorkDirectory /var/spool/rsyslog
+
+#
+# Include all config files in /etc/rsyslog.d/
+#
+$IncludeConfig /etc/rsyslog.d/*.conf
+
+
+###############
+#### RULES ####
+###############
+
+#
+# Log anything besides private authentication messages to a single log file
+#
+*.*;auth,authpriv.none		-/var/log/syslog
+
+#
+# Log commonly used facilities to their own log file
+#
+auth,authpriv.*			/var/log/auth.log
+cron.*				-/var/log/cron.log
+kern.*				-/var/log/kern.log
+mail.*				-/var/log/mail.log
+user.*				-/var/log/user.log
+
+#
+# Emergencies are sent to everybody logged in.
+#
+*.emerg				:omusrmsg:*
+[?2004hroot@3e9302d722d8:/opt/myapp# cat > /etc/rsyslog.conf <<'EOF'
+[?2004l[?2004h> module(load="imuxsock")
+[?2004l[?2004h> module(load="imklog")
+[?2004l[?2004h> $IncludeConfig /etc/rsyslog.d/*.conf
+[?2004l[?2004h> EOF
+[?2004l[?2004hroot@3e9302d722d8:/opt/myapp# pkill rsyslogd || true
+[?2004lbash: pkill: command not found
+[?2004hroot@3e9302d722d8:/opt/myapp# rsyslogd -i /tmp/rsyslogd.pid
+[?2004lrsyslogd: pidfile '/tmp/rsyslogd.pid' and pid 1739 already exist.
+If you want to run multiple instances of rsyslog, you need to specify
+different pid files for them (-i option).
+rsyslogd: run failed with error -3000 (see rsyslog.h or try https://www.rsyslog.com/e/3000 to learn what that number means)
+[?2004hroot@3e9302d722d8:/opt/myapp# sleep 1
+[?2004llogger -t myapp '{"timestamp":"$(date -u +%Y-%m-%dT%H:%M:%SZ)","level":"INFO","message":"test","service":"myapp"}'
+[?2004hroot@3e9302d722d8:/opt/myapp# logger -t myapp '{"timestamp":"$(date -u +%Y-%m-%dT%H:%M:%SZ)","level":"INFO","message":"test","service":"myapp"}'
+[?2004l[?2004hroot@3e9302d722d8:/opt/myapp# sleep 1
+[?2004lcat /var/log/app_events.log | head -n 5
+[?2004hroot@3e9302d722d8:/opt/myapp# cat /var/log/app_events.log | head -n 5
+[?2004l[?2004hroot@3e9302d722d8:/opt/myapp# cat /var/log/app_errors.log | head -n 5
+[?2004l[?2004hroot@3e9302d722d8:/opt/myapp# /usr/local/bin/check_service_health.sh
+[?2004l{
+  "service": "myapp",
+  "time_window": "5 minutes",
+  "restarts": 0,
+  "errors": 0,
+  "restart_loop_detected": false,
+  "timestamp": "2026-04-10T02:37:14Z"
+}
+[?2004hroot@3e9302d722d8:/opt/myapp# ps aux | grep rsyslogd | grep -v grep
+[?2004lbash: ps: command not found
+[?2004hroot@3e9302d722d8:/opt/myapp# kill $(ps aux | grep rsyslogd | grep -v grep | awk '{print $2}') 2>/dev/null || true
+[?2004lbash: ps: command not found
+[?2004hroot@3e9302d722d8:/opt/myapp# rm -f /run/rsyslogd.pid /tmp/rsyslogd.pid
+[?2004l[?2004hroot@3e9302d722d8:/opt/myapp# rsyslogd -n
+[?2004lrsyslogd: imklog: cannot open kernel log (/proc/kmsg): Operation not permitted.
+rsyslogd: activation of module imklog failed [v8.2302.0 try https://www.rsyslog.com/e/2145 ]
+ls -l /dev/log
+logger -t myapp '{"timestamp":"$(date -u +%Y-%m-%dT%H:%M:%SZ)","level":"INFO","message":"test","service":"myapp"}'
+sleep 1
+cat /var/log/app_events.log | head -n 5
+cat /var/log/app_errors.log | head -n 5
+/usr/local/bin/check_service_health.sh
+rsyslogd -n &
+sleep 1
+ls -l /dev/log
+logger -t myapp '{"timestamp":"$(date -u +%Y-%m-%dT%H:%M:%SZ)","level":"INFO","message":"test","service":"myapp"}'
+sleep 1
+cat /var/log/app_events.log | head -n 5
+cat /var/log/app_errors.log | head -n 5
+/usr/local/bin/check_service_health.sh
+rsyslogd -n &
+sleep 1
+ls -l /dev/log
+logger -t myapp '{"timestamp":"$(date -u +%Y-%m-%dT%H:%M:%SZ)","level":"INFO","message":"test","service":"myapp"}'
+sleep 1
+cat /var/log/app_events.log | head -n 5
+cat /var/log/app_errors.log | head -n 5
+/usr/local/bin/check_service_health.sh
+pkill rsyslogd 2>/dev/null || true
+rm -f /run/rsyslogd.pid /tmp/rsyslogd.pid
+rsyslogd -n > /tmp/rsyslogd.log 2>&1 &
+sleep 1
+ls -l /dev/log
+logger -t myapp '{"timestamp":"$(date -u +%Y-%m-%dT%H:%M:%SZ)","level":"INFO","message":"test","service":"myapp"}'
+sleep 1
+cat /var/log/app_events.log | head -n 5
+cat /var/log/app_errors.log | head -n 5
+/usr/local/bin/check_service_health.sh
+ls -l /dev/log
+cat /tmp/rsyslogd.log
+pkill rsyslogd 2>/dev/null || true
+rm -f /run/rsyslogd.pid /tmp/rsyslogd.pid
+rsyslogd -n -c5 > /tmp/rsyslogd.log 2>&1 &
+sleep 1
+ls -l /dev/log
+logger -t myapp '{"timestamp":"$(date -u +%Y-%m-%dT%H:%M:%SZ)","level":"INFO","message":"test","service":"myapp"}'
+sleep 1
+cat /var/log/app_events.log | head -n 5
+cat /var/log/app_errors.log | head -n 5
+/usr/local/bin/check_service_health.sh
+ls -l /dev/log
+cat /tmp/rsyslogd.log

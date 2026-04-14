@@ -1,0 +1,277 @@
+[?2004hroot@1f800a2710c8:/app# asciinema rec --stdin /logs/agent/recording.cast
+[?2004l[0;32masciinema: recording asciicast to /logs/agent/recording.cast[0m
+[0;32masciinema: press <ctrl-d> or type "exit" when you're done[0m
+[?2004hroot@1f800a2710c8:/app# clear
+[?2004l[H[J[3J[?2004hroot@1f800a2710c8:/app# cat > /app/solution.py <<'PY'
+[?2004l[?2004h> import re
+[?2004l[?2004h> from collections import defaultdict
+[?2004l[?2004h> 
+[?2004l[?2004h> def solve(lines: list[str]) -> str:
+[?2004l[?2004h>     # ---------- Helpers ----------
+[?2004l[?2004h>     node_pat = re.compile(r'^n[0-9]+$')
+[?2004l[?2004h>     allowed_ops = {'VOTE', 'APPEND', 'COMMIT', 'LEADER'}
+[?2004l[?2004h> 
+[?2004l within the same index
+            # compare with previous term seen for this index (keep last term)
+            lst = appends_per_index[idx]
+            if lst:
+                if term < lst[-1]['term']:
+                    bad[idx].add('BAD_TERM_REGRESSION')
+            # conflict detection (same term, different data)
+            for prev in lst:
+                if prev['term'] == term and prev['data'] != e['data']:
+                    bad[idx].add('BAD_CONFLICT')
+                    break
+            lst.append(e)
+            appends_per_index[idx].append(e)
+        elif op == 'COMMIT':
+            # term regression detection similar to APPEND
+            lst = commits_per_index[idx]
+            if lst:
+                if term < lst[-1]['term']:
+                    bad[idx].add('BAD_TERM_REGRESSION')
+            commits_per_index[idx].append(e)
+        else:
+            bad[idx].add('BAD_OPERATION')
+    # ---------- Determine winning term per index ----------
+    winning_term = {}
+    for idx, app_list in appends_per_index.items():
+        if app_list:
+            winning_term[idx] = max(a['term'] for a in app_list)
+    # ---------- Validate COMMIT entries ----------
+    for idx, commit_list in commits_per_index.items():
+        if idx not in appe[?2004h>     # ---------- Parsing ----------
+[?2004l[?2004h>     entries = []  # list of dicts preserving file order
+[?2004l[?2004h>     seen = set()  # exact duplicate detection
+[?2004l        [?2004h>     for raw in lines:
+[?2004l[?2004h>         line = raw.strip()
+[?2004l[?2004h>         if not line or line.startswith('#'):
+[?2004l[?2004h>             continue
+[?2004l[?2004h>         parts = line.split()
+[?2004l[?2004h>         # basic field count validation
+[?2004l[?2004h>         if len(parts) not in (4, 5):
+[?2004l[?2004h>             break  # malformed -> hard cutoff
+[?2004l[?2004h>         term_s, index_s, node, op = parts[0], parts[1], parts[2], parts[3]
+[?2004l[?2004h>         data = parts[4] if len(parts) == 5 else None
+[?2004l[?2004h>         # op‑specific field count check
+[?2004l[?2004h>         if op == 'APPEND' and data is None:
+[?2004l[?2004h>             break
+[?2004l[?2004h>         if op != 'APPEND' and data is not None:
+[?2004l[?2004h>             break
+[?2004l[?2004h>         # numeric checks
+[?2004l[?2004h>         if not term_s.isdigit() or int(term_s) < 0:
+[?2004l[?2004h>             break
+[?2004l[?2004h>         if not index_s.isdigit() or int(index_s) < 1:
+[?2004l[?2004h>             break
+[?2004l[?2004h>         term = int(term_s)
+[?2004l[?2004h>         index = int(index_s)
+[?2004l[?2004h>         # node pattern
+[?2004l[?2004h>         if not node_pat.fullmatch(node):
+[?2004l[?2004h>             break
+[?2004l[?2004h>         if op not in allowed_ops:
+[?2004l[?2004h>             break
+[?2004l[?2004h>         key = (term, index, node, op, data)
+[?2004l[?2004h>         if key in seen:
+[?2004l[?2004h>             continue  # exact duplicate, skip
+[?2004l[?2004h>         seen.add(key)
+[?2004l[?2004h>         entries.append({
+[?2004l[?2004h>             'term': term,
+[?2004l[?2004h>             'index': index,
+[?2004l[?2004h>             'node': node,
+[?2004l[?2004h>             'op': op,
+[?2004l[?2004h>             'data': data,
+[?2004l[?2004h>         })
+[?2004l[?2004h>     # ---------- Group by index ----------
+[?2004l[?2004h>     by_index = defaultdict(list)
+[?2004l[?2004h>     for e in entries:
+[?2004l[?2004h>         by_index[e['index']].append(e)
+[?2004l[?2004h>     # ---------- State tracking ----------
+[?2004l[?2004h>     bad = defaultdict(set)          # index -> set of reasons
+[?2004l[?2004h>     votes_per_term = defaultdict(set)   # term -> set of nodes that have voted
+[?2004l[?2004h>     leader_first = {}               # term -> first index where LEADER appeared
+[?2004l[?2004h>     appends_per_index = defaultdict(list)   # index -> list of APPEND entries
+[?2004l[?2004h>     commits_per_index = defaultdict(list)   # index -> list of COMMIT entries
+[?2004l[?2004h>     min_term_per_index = {}         # index -> minimal term seen at this index
+[?2004l[?2004h>     # Process entries in original order to catch term regression & vote/leader rules
+[?2004l[?2004h>     for e in entries:
+[?2004l[?2004h>         idx = e['index']
+[?2004l[?2004h>         term = e['term']
+[?2004l[?2004h>         op = e['op']
+[?2004l[?2004h>         # maintain minimal term per index
+[?2004l[?2004h>         if idx not in min_term_per_index or term < min_term_per_index[idx]:
+[?2004l[?2004h>             min_term_per_index[idx] = term
+[?2004l[?2004h>         if op == 'VOTE':
+[?2004l[?2004h>             if e['node'] in votes_per_term[term]:
+[?2004l[?2004h>                 bad[idx].add('BAD_DUPLICATE_VOTE')
+[?2004l[?2004h>             else:
+[?2004l[?2004h>                 votes_per_term[term].add(e['node'])
+[?2004l[?2004h>         elif op == 'LEADER':
+[?2004l[?2004h>             if term not in leader_first:
+[?2004l[?2004h>                 leader_first[term] = idx
+[?2004l[?2004h>             else:
+[?2004l[?2004h>                 if idx > leader_first[term]:
+[?2004l[?2004h>                     bad[idx].add('BAD_LEADER_ORDER')
+[?2004l[?2004h>         elif op == 'APPEND':
+[?2004l[?2004h>             # term regression detection within the same index
+[?2004l[?2004h>             # compare with previous term seen for this index (keep last term)
+[?2004l[?2004h>             lst = appends_per_index[idx]
+[?2004l[?2004h>             if lst:
+[?2004l[?2004h>                 if term < lst[-1]['term']:
+[?2004l[?2004h>                     bad[idx].add('BAD_TERM_REGRESSION')
+[?2004l[?2004h>             # conflict detection (same term, different data)
+[?2004l[?2004h>             for prev in lst:
+[?2004l[?2004h>                 if prev['term'] == term and prev['data'] != e['data']:
+[?2004l[?2004h>                     bad[idx].add('BAD_CONFLICT')
+[?2004l[?2004h>                     break
+[?2004l[?2004h>             lst.append(e)
+[?2004l[?2004h>             appends_per_index[idx].append(e)
+[?2004l[?2004h>         elif op == 'COMMIT':
+[?2004l[?2004h>             # term regression detection similar to APPEND
+[?2004l[?2004h>             lst = commits_per_index[idx]
+[?2004l[?2004h>             if lst:
+[?2004l[?2004h>                 if term < lst[-1]['term']:
+[?2004l[?2004h>                     bad[idx].add('BAD_TERM_REGRESSION')
+[?2004l[?2004h>             commits_per_index[idx].append(e)
+[?2004l[?2004h>         else:
+[?2004l[?2004h>             bad[idx].add('BAD_OPERATION')
+[?2004l[?2004h>     # ---------- Determine winning term per index ----------
+[?2004l[?2004h>     winning_term = {}
+[?2004l[?2004h>     for idx, app_list in appends_per_index.items():
+[?2004l[?2004h>         if app_list:
+[?2004l[?2004h>             winning_term[idx] = max(a['term'] for a in app_list)
+[?2004l[?2004h>     # ---------- Validate COMMIT entries ----------
+[?2004l[?2004h>     for idx, commit_list in commits_per_index.items():
+[?2004l[?2004h>         if idx not in appends_per_index or not appends_per_index[idx]:
+[?2004l[?2004h>             # no prior APPEND at this index
+[?2004l[?2004h>             for _ in commit_list:
+[?2004l[?2004h>                 bad[idx].add('BAD_COMMIT_ORDER')
+[?2004l[?2004h>             continue
+[?2004l[?2004h>         win_term = winning_term.get(idx)
+[?2004l[?2004h>         for c in commit_list:
+[?2004l[?2004h>             if c['term'] != win_term:
+[?2004l[?2004h>                 bad[idx].add('BAD_COMMIT_ORDER')
+[?2004l[?2004h>     # ---------- Log matching property ----------
+[?2004l[?2004h>     committed_indices = sorted([i for i, t in winning_term.items() if i in commits_per_index and not bad[i].intersection({'BAD_COMMIT_ORDER'})])
+[?2004l[?2004h>     for i in committed_indices:
+[?2004l[?2004h>         committed_term = winning_term[i]
+[?2004l[?2004h>         nxt = i + 1
+[?2004l[?2004h>         if nxt in min_term_per_index:
+[?2004l[?2004h>             if min_term_per_index[nxt] < committed_term:
+[?2004l[?2004h>                 bad[nxt].add('BAD_LOG_MATCH')
+[?2004l[?2004h>     # ---------- Determine missing commits for repairs ----------
+[?2004l[?2004h>     inserts = []
+[?2004l[?2004h>     for idx, apps in appends_per_index.items():
+[?2004l[?2004h>         if not apps:
+[?2004l[?2004h>             continue
+[?2004l[?2004h>         win_term = winning_term.get(idx)
+[?2004l[?2004h>         # check if there is a valid COMMIT (i.e., a COMMIT entry with correct term and not flagged BAD_COMMIT_ORDER)
+[?2004l[?2004h>         has_valid_commit = False
+[?2004l[?2004h>         for c in commits_per_index.get(idx, []):
+[?2004l[?2004h>             if c['term'] == win_term and 'BAD_COMMIT_ORDER' not in bad[idx]:
+[?2004l[?2004h>                 has_valid_commit = True
+[?2004l[?2004h>                 break
+[?2004l[?2004h>         if not has_valid_commit:
+[?2004l[?2004h>             inserts.append((idx, win_term))
+[?2004l[?2004h>     # ---------- Build output ----------
+[?2004l[?2004h>     bad_lines = []
+[?2004l[?2004h>     for idx in sorted(bad.keys()):
+[?2004l[?2004h>         for reason in sorted(bad[idx]):
+[?2004l[?2004h>             bad_lines.append(f"BAD {idx} {reason}")
+[?2004l[?2004h>     ins_lines = []
+[?2004l[?2004h>     for idx, term in sorted(inserts, key=lambda x: (x[0], x[1])):
+[?2004l[?2004h>         ins_lines.append(f"INS {term} {idx} COMMIT")
+[?2004l[?2004h>     if not bad_lines and not ins_lines:
+[?2004l[?2004h>         return "OK"
+[?2004l[?2004h>     return "\n".join(bad_lines + ins_lines)
+[?2004l[?2004h> 
+[?2004l[?2004h> # The module exposes only the solve function as required.
+[?2004l[?2004h> PYapply_patch <<'PATCH'
+[?2004l[?2004h> *** Begin Patch
+[?2004l[?2004h> *** Update File: /app/solution.py
+[?2004l[?2004h> @@
+[?2004l[?2004h> -    allowed_ops = {'VOTE', 'APPEND', 'COMMIT', 'LEADER'}
+[?2004l[?2004h> +    # The specification defines a fixed set of valid operations, but unknown
+[?2004l[?2004h> +    # operations should not be treated as malformed. Instead they are accepted
+[?2004l[?2004h> +    # and later reported as BAD_OPERATION. Therefore we keep the set for
+[?2004l[?2004h> +    # validation later but do not reject unknown ops during parsing.
+[?2004l[?2004h> +    allowed_ops = {'VOTE', 'APPEND', 'COMMIT', 'LEADER'}
+[?2004l[?2004h> @@
+[?2004l[?2004h> -        if op not in allowed_ops:
+[?2004l[?2004h> -            break
+[?2004l[?2004h> +        # Do NOT break on unknown ops; they will be flagged later.
+[?2004l[?2004h> *** End Patch
+[?2004l[?2004h> PATCHapply_patch <<'PATCH'
+[?2004l[?2004h> *** Begin Patch
+[?2004l[?2004h> *** Update File: /app/solution.py
+[?2004l[?2004h> @@
+[?2004l[?2004h> -    by_index = defaultdict(list)
+[?2004l[?2004h> -    for e in entries:
+[?2004l[?2004h> -        by_index[e['index']].append(e)
+[?2004l[?2004h> +    # The `by_index` grouping is not required for the algorithm; we can work
+[?2004l[?2004h> +    # directly with the per‑index structures built later.
+[?2004l[?2004h> *** End Patch
+[?2004l[?2004h> PATCHapply_patch <<'PATCH'
+[?2004l[?2004h> *** Begin Patch
+[?2004l[?2004h> *** Update File: /app/solution.py
+[?2004l[?2004h> @@
+[?2004l[?2004h> -    appends_per_index = defaultdict(list)   # index -> list of APPEND entries
+[?2004l[?2004h> -    commits_per_index = defaultdict(list)   # index -> list of COMMIT entries
+[?2004l[?2004h> +    appends_per_index = defaultdict(list)   # index -> list of APPEND entries (in file order)
+[?2004l[?2004h> +    commits_per_index = defaultdict(list)   # index -> list of COMMIT entries (in file order)
+[?2004l[?2004h> +    # Track which indices have seen an APPEND before a COMMIT to enforce order.
+[?2004l[?2004h> +    seen_append_index = set()
+[?2004l[?2004h> @@
+[?2004l[?2004h> -        elif op == 'APPEND':
+[?2004l[?2004h> -            # term regression detection within the same index
+[?2004l[?2004h> -            # compare with previous term seen for this index (keep last term)
+[?2004l[?2004h> -            lst = appends_per_index[idx]
+[?2004l[?2004h> -            if lst:
+[?2004l[?2004h> -                if term < lst[-1]['term']:
+[?2004l[?2004h> -                    bad[idx].add('BAD_TERM_REGRESSION')
+[?2004l[?2004h> -            # conflict detection (same term, different data)
+[?2004l[?2004h> -            for prev in lst:
+[?2004l[?2004h> -                if prev['term'] == term and prev['data'] != e['data']:
+[?2004l[?2004h> -                    bad[idx].add('BAD_CONFLICT')
+[?2004l[?2004h> -                    break
+[?2004l[?2004h> -            lst.append(e)
+[?2004l[?2004h> -            appends_per_index[idx].append(e)
+[?2004l[?2004h> +        elif op == 'APPEND':
+[?2004l[?2004h> +            # term regression detection within the same index (non‑decreasing)
+[?2004l[?2004h> +            lst = appends_per_index[idx]
+[?2004l[?2004h> +            if lst and term < lst[-1]['term']:
+[?2004l[?2004h> +                bad[idx].add('BAD_TERM_REGRESSION')
+[?2004l[?2004h> +            # conflict detection: same term but different data
+[?2004l[?2004h> +            for prev in lst:
+[?2004l[?2004h> +                if prev['term'] == term and prev['data'] != e['data']:
+[?2004l[?2004h> +                    bad[idx].add('BAD_CONFLICT')
+[?2004l[?2004h> +                    break
+[?2004l[?2004h> +            lst.append(e)
+[?2004l[?2004h> +            # Record that this index now has an APPEND before any later COMMIT.
+[?2004l[?2004h> +            seen_append_index.add(idx)
+[?2004l[?2004h>          elif op == 'COMMIT':
+[?2004l[?2004h> -            # term regression detection similar to APPEND
+[?2004l[?2004h> -            lst = commits_per_index[idx]
+[?2004l[?2004h> -            if lst:
+[?2004l[?2004h> -                if term < lst[-1]['term']:
+[?2004l[?2004h> -                    bad[idx].add('BAD_TERM_REGRESSION')
+[?2004l[?2004h> -            commits_per_index[idx].append(e)
+[?2004l[?2004h> +            # term regression detection similar to APPEND
+[?2004l[?2004h> +            lst = commits_per_index[idx]
+[?2004l[?2004h> +            if lst and term < lst[-1]['term']:
+[?2004l[?2004h> +                bad[idx].add('BAD_TERM_REGRESSION')
+[?2004l[?2004h> +            # Ensure an APPEND has occurred earlier for this index.
+[?2004l[?2004h> +            if idx not in seen_append_index:
+[?2004l[?2004h> +                bad[idx].add('BAD_COMMIT_ORDER')
+[?2004l[?2004h> +            lst.append(e)
+[?2004l[?2004h> *** End Patch
+[?2004l[?2004h> PATCHapply_patch <<'PATCH'
+[?2004l[?2004h> *** Begin Patch
+[?2004l[?2004h> *** Update File: /app/solution.py
+[?2004l[?2004h> @@
+[?2004l[?2004h> -        else:
+[?2004l[?2004h> -            bad[idx].add('BAD_OPERATION')
+[?2004l[?2004h> +        else:
+[?2004l[?2004h> +            # Unknown operation type – mark as BAD_OPERATION but continue processing.
+[?2004l[?2004h> +            bad[idx].add('BAD_OPERATION')
+[?2004l[?2004h> *** End Patch
+[?2004l[?2004h> PATCH

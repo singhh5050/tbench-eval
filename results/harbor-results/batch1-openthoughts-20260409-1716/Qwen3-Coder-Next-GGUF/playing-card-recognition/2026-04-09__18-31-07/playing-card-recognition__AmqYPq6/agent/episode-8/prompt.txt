@@ -1,0 +1,43 @@
+New Terminal Output:
+
+root@85192a4178f3:/workdir# python3 << 'EOF'
+> import cv2
+> import numpy as np
+>
+> for i in range(1, 7):
+>     filepath = f'/workdir/data/cards/card_{i}.png'
+>     img = cv2.imread(filepath)
+>
+>     # Extract top-left corner where rank is displayed
+>     h, w = img.shape[:2]
+>     # The rank is typically in top-left corner
+>     rank_area = img[10:80, 10:80]
+>
+>     # Save the rank area for inspection
+>     cv2.imwrite(f'/tmp/rank_{i}.jpg', rank_area)
+>
+>     # Convert to grayscale and threshold
+>     gray = cv2.cvtColor(rank_area, cv2.COLOR_BGR2GRAY)
+>     _, thresh = cv2.threshold(gray, 127, 255, cv2.THRESH_BINARY_INV)
+>
+>     # Find contours
+>     contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+>
+>     print(f'card_{i}.png - Rank area contours: {len(contours)}')
+>     if contours:
+>         areas = [cv2.contourArea(c) for c in contours]
+>         print(f'  Largest contour area: {max(areas):.0f}')
+> EOF
+card_1.png - Rank area contours: 1
+  Largest contour area: 1368
+card_2.png - Rank area contours: 1
+  Largest contour area: 1546
+card_3.png - Rank area contours: 2
+  Largest contour area: 1134
+card_4.png - Rank area contours: 1
+  Largest contour area: 761
+card_5.png - Rank area contours: 1
+  Largest contour area: 1039
+card_6.png - Rank area contours: 1
+  Largest contour area: 1388
+root@85192a4178f3:/workdir#

@@ -1,0 +1,324 @@
+[?2004hroot@aa803a54905b:/app# asciinema rec --stdin /logs/agent/recording.cast
+[?2004l[0;32masciinema: recording asciicast to /logs/agent/recording.cast[0m
+[0;32masciinema: press <ctrl-d> or type "exit" when you're done[0m
+[?2004hroot@aa803a54905b:/app# clear
+[?2004l[H[J[3J[?2004hroot@aa803a54905b:/app# ls -la
+[?2004ltotal 16
+drwxr-xr-x 1 root root 4096 Apr  9 23:55 .
+drwxr-xr-x 1 root root 4096 Apr  9 23:55 ..
+drwxr-xr-x 2 root root 4096 Apr  9 23:55 data
+drwxr-xr-x 2 root root 4096 Apr  9 23:55 output
+[?2004hroot@aa803a54905b:/app# ls -la data/
+[?2004ltotal 28
+drwxr-xr-x 2 root root  4096 Apr  9 23:55 .
+drwxr-xr-x 1 root root  4096 Apr  9 23:55 ..
+-rw-r--r-- 1 root root 17046 Apr  9 23:55 ground_motion.csv
+[?2004hroot@aa803a54905b:/app# head -20 /app/data/ground_motion.csv
+[?2004ltime,accel_g
+0.000,0.011652
+0.020,0.000096
+0.040,-0.002243
+0.060,-0.019283
+0.080,-0.002524
+0.100,0.040133
+0.120,0.010926
+0.140,0.016763
+0.160,-0.009206
+0.180,0.006957
+0.200,0.031897
+0.220,-0.009738
+0.240,0.018408
+0.260,0.028775
+0.280,-0.020850
+0.300,0.000411
+0.320,-0.017434
+0.340,0.010564
+0.360,0.005149
+[?2004hroot@aa803a54905b:/app# wc -l /app/data/ground_motion.csv
+[?2004l1002 /app/data/ground_motion.csv
+[?2004hroot@aa803a54905b:/app# cat > /app/simulate.py << 'EOF'
+[?2004l[?2004h> import numpy as np
+[?2004l[?2004h> import csv
+[?2004l[?2004h> 
+[?2004l[?2004h> # Physical parameters
+[?2004l[?2004h> m = 2000.0  # kg (lumped mass at each floor)
+[?2004l[?2004h> k = 400000.0  # N/m (shear stiffness between floors)
+[?2004l[?2004h> zeta = 0.02  # 2% damping ratio
+[?2004l[?2004h> 
+[?2004l[?2004h> # Number of stories (DOFs)
+[?2004l[?2004h> n = 3
+[?2004l[?2004h> 
+[?2004l[?2004h> # Mass matrix (diagonal)
+[?2004l[?2004h> M = np.diag([m, m, m])
+[?2004l[?2004h> 
+[?2004l[?2004h> # Stiffness matrix for 3-story shear building
+[?2004l[?2004h> # K = [[2k, -k, 0], [-k, 2k, -k], [0, -k, k]]
+[?2004l[?2004h> K = np.array([
+[?2004l[?2004h>     [2*k, -k, 0],
+[?2004l[?2004h>     [-k, 2*k, -k],
+[?2004l[?2004h>     [0, -k, k]
+[?2004l[?2004h> ])
+[?2004l[?2004h> 
+[?2004l[?2004h> # Read ground motion data
+[?2004l[?2004h> time_data = []
+[?2004l[?2004h> accel_g_data = []  # in G-force
+[?2004l[?2004h> 
+[?2004l[?2004h> with open('/app/data/ground_motion.csv', 'r') as f:
+[?2004l[?2004h>     reader = csv.DictReader(f)
+[?2004l[?2004h>     for row in reader:
+[?2004l[?2004h>         time_data.append(float(row['time']))
+[?2004l[?2004h>         accel_g_data.append(float(row['accel_g']))
+[?2004l[?2004h> 
+[?2004l[?2004h> time_data = np.array(time_data)
+[?2004l[?2004h> accel_g_data = np.array(accel_g_data)
+[?2004l[?2004h> dt = time_data[1] - time_data[0]  # Time step
+[?2004l[?2004h> 
+[?2004l[?2004h> # Convert ground acceleration from G to m/s^2
+[?2004l[?2004h> g = 9.81  # m/s^2
+[?2004l[?2004h> accel_data = accel_g_data * g  # in m/s^2
+[?2004l[?2004h> 
+[?2004l[?2004h> # Rayleigh damping: C = alpha*M + beta*K
+[?2004l[?2004h> # Need to find alpha and beta such that damping ratio = 2% for mode 1 and mode 3
+[?2004l[?2004h> # Solve: 1/2 * (alpha/omega_i + beta*omega_i) = zeta for i=1,3
+[?2004l[?2004h> 
+[?2004l[?2004h> # Eigenvalue problem: (K - omega^2*M)*phi = 0
+[?2004l[?2004h> # Solve generalized eigenvalue problem K*phi = omega^2*M*phi
+[?2004l[?2004h> eigenvalues, eigenvectors = np.linalg.eig(np.linalg.inv(M) @ K)
+[?2004l[?2004h> 
+[?2004l[?2004h> # Get natural frequencies (square root of eigenvalues)
+[?2004l[?2004h> natural_freqs_sq = eigenvalues
+[?2004l[?2004h> natural_freqs = np.sqrt(natural_freqs_sq)
+[?2004l[?2004h> 
+[?2004l[?2004h> # Sort by frequency
+[?2004l[?2004h> idx = np.argsort(natural_freqs)
+[?2004l[?2004h> natural_freqs = natural_freqs[idx]
+[?2004l[?2004h> 
+[?2004l[?2004h> omega1 = natural_freqs[0]  # 1st mode frequency
+[?2004l[?2004h> omega3 = natural_freqs[2]  # 3rd mode frequency
+[?2004l[?2004h> 
+[?2004l[?2004h> print(f"Natural frequencies (rad/s): {natural_freqs}")
+[?2004l[?2004h> print(f"1st mode omega: {omega1}")
+[?2004l[?2004h> print(f"3rd mode omega: {omega3}")
+[?2004l[?2004h> 
+[?2004l[?2004h> # Solve for alpha and beta
+[?2004l[?2004h> # System: [1/omega1, omega1] [alpha] = [2*zeta]
+[?2004l[?2004h> #         [1/omega3, omega3] [beta]  = [2*zeta]
+[?2004l[?2004h> A = np.array([[1/omega1, omega1], [1/omega3, omega3]])
+[?2004l[?2004h> b = np.array([2*zeta, 2*zeta])
+[?2004l[?2004h> alpha, beta = np.linalg.solve(A, b)
+[?2004l[?2004h> 
+[?2004l[?2004h> print(f"Rayleigh damping coefficients: alpha={alpha}, beta={beta}")
+[?2004l[?2004h> 
+[?2004l[?2004h> # Damping matrix
+[?2004l[?2004h> C = alpha * M + beta * K
+[?2004l[?2004h> 
+[?2004l[?2004h> print(f"Mass matrix:\n{M}")
+[?2004l[?2004h> print(f"Stiffness matrix:\n{K}")
+[?2004l[?2004h> print(f"Damping matrix:\n{C}")
+[?2004l[?2004h> 
+[?2004l[?2004h> # Newmark-Beta parameters (Average Acceleration Method)
+[?2004l[?2004h> gamma = 0.5
+[?2004l[?2004h> beta_newmark = 0.25
+[?2004l[?2004h> 
+[?2004l[?2004h> # Integration constants
+[?2004l[?2004h> a0 = 1.0 / (beta_newmark * dt**2)
+[?2004l[?2004h> a1 = gamma / (beta_newmark * dt)
+[?2004l[?2004h> a2 = 1.0 / (beta_newmark * dt)
+[?2004l[?2004h> a3 = 1.0 / (2*beta_newmark) - 1
+[?2004l[?2004h> a4 = gamma / beta_newmark - 1
+[?2004l[?2004h> a5 = dt * (gamma / (2*beta_newmark) - 1)
+[?2004l[?2004h> 
+[?2004l[?2004h> print(f"\nNewmark constants: a0={a0}, a1={a1}, a2={a2}, a3={a3}, a4={a4}, a5={a5}")
+[?2004l[?2004h> 
+[?2004l[?2004h> # Effective stiffness matrix
+[?2004l[?2004h> K_eff = K + a0 * M + a1 * C
+[?2004l[?2004h> 
+[?2004l[?2004h> # Influence vector
+[?2004l[?2004h> iota = np.array([1.0, 1.0, 1.0])
+[?2004l[?2004h> 
+[?2004l[?2004h> # Initialize response arrays
+[?2004l[?2004h> n_steps = len(time_data)
+[?2004l[?2004h> u = np.zeros((n_steps, 3))  # Displacement
+[?2004l[?2004h> v = np.zeros((n_steps, 3))  # Velocity
+[?2004l[?2004h> a = np.zeros((n_steps, 3))  # Acceleration
+[?2004l[?2004h> 
+[?2004l[?2004h> # Initial conditions
+[?2004l[?2004h> u[0] = 0.0
+[?2004l[?2004h> v[0] = 0.0
+[?2004l[?2004h> # Initial acceleration: M*a0 = -M*iota*accel_data[0] - C*v0 - K*u0
+[?2004l[?2004h> a[0] = -iota * accel_data[0]
+[?2004l[?2004h> 
+[?2004l[?2004h> # Time stepping
+[?2004l[?2004h> for i in range(n_steps - 1):
+[?2004l[?2004h>     # Effective load at t+dt
+[?2004l[?2004h>     # P_eff = -M*iota*accel(t+dt) + M*(a0*u_t + a2*v_t + a3*a_t) + C*(a1*u_t + a4*v_t + a5*a_t)
+[?2004l[?2004h>     P_eff = -M @ (iota * accel_data[i+1]) + \
+[?2004l[?2004h>             M @ (a0 * u[i] + a2 * v[i] + a3 * a[i]) + \
+[?2004l[?2004h>             C @ (a1 * u[i] + a4 * v[i] + a5 * a[i])
+[?2004l[?2004h>     
+[?2004l[?2004h>     # Solve for displacement
+[?2004l[?2004h>     u[i+1] = np.linalg.solve(K_eff, P_eff)
+[?2004l[?2004h>     
+[?2004l[?2004h>     # Update acceleration and velocity
+[?2004l[?2004h>     a[i+1] = a0 * (u[i+1] - u[i]) - a2 * v[i] - a3 * a[i]
+[?2004l[?2004h>     v[i+1] = v[i] + dt * ((1 - gamma) * a[i] + gamma * a[i+1])
+[?2004l[?2004h> 
+[?2004l[?2004h> # Write output
+[?2004l[?2004h> with open('/app/output/response.csv', 'w', newline='') as f:
+[?2004l[?2004h>     writer = csv.writer(f)
+[?2004l[?2004h>     writer.writerow(['time', 'u1', 'u2', 'u3'])
+[?2004l[?2004h>     for i in range(n_steps):
+[?2004l[?2004h>         writer.writerow([f'{time_data[i]:.3f}', f'{u[i,0]:.6f}', f'{u[i,1]:.6f}', f'{u[i,2]:.6f}'])
+[?2004l[?2004h> 
+[?2004l[?2004h> print(f"\nSimulation complete. Output written to /app/output/response.csv")
+[?2004l[?2004h> print(f"Max displacements: u1={np.max(np.abs(u[:,0])):.6f}, u2={np.max(np.abs(u[:,1])):.6f}, u3={np.max(np.abs(u[:,2])):.6f}")
+[?2004l[?2004h> EOF
+[?2004l[?2004hroot@aa803a54905b:/app# python3 /app/simulate.py
+[?2004lNatural frequencies (rad/s): [ 6.29384245 17.63495468 25.48324785]
+1st mode omega: 6.293842454258952
+3rd mode omega: 25.48324784527069
+Rayleigh damping coefficients: alpha=0.2018907906912316, beta=0.0012587684908517906
+Mass matrix:
+[[2000.    0.    0.]
+ [   0. 2000.    0.]
+ [   0.    0. 2000.]]
+Stiffness matrix:
+[[ 800000. -400000.       0.]
+ [-400000.  800000. -400000.]
+ [      0. -400000.  400000.]]
+Damping matrix:
+[[1410.79637406 -503.50739634    0.        ]
+ [-503.50739634 1410.79637406 -503.50739634]
+ [   0.         -503.50739634  907.28897772]]
+
+Newmark constants: a0=10000.0, a1=100.0, a2=200.0, a3=1.0, a4=1.0, a5=0.0
+
+Simulation complete. Output written to /app/output/response.csv
+Max displacements: u1=0.074816, u2=0.133214, u3=0.171159
+[?2004hroot@aa803a54905b:/app# head -20 /app/output/response.csv
+[?2004ltime,u1,u2,u3
+0.000,0.000000,0.000000,0.000000
+0.020,-0.000011,-0.000011,-0.000012
+0.040,-0.000031,-0.000032,-0.000032
+0.060,-0.000025,-0.000030,-0.000030
+0.080,0.000023,0.000016,0.000015
+0.100,0.000054,0.000046,0.000044
+0.120,-0.000005,-0.000010,-0.000013
+0.140,-0.000139,-0.000143,-0.000147
+0.160,-0.000296,-0.000310,-0.000315
+0.180,-0.000434,-0.000480,-0.000487
+0.200,-0.000577,-0.000681,-0.000693
+0.220,-0.000741,-0.000934,-0.000957
+0.240,-0.000892,-0.001201,-0.001248
+0.260,-0.001050,-0.001500,-0.001589
+0.280,-0.001213,-0.001823,-0.001974
+0.300,-0.001317,-0.002095,-0.002332
+0.320,-0.001343,-0.002287,-0.002632
+0.340,-0.001315,-0.002407,-0.002879
+0.360,-0.001279,-0.002487,-0.003096
+[?2004hroot@aa803a54905b:/app# tail -10 /app/output/response.csv
+[?2004l19.820,-0.005621,-0.010687,-0.013901
+19.840,-0.005428,-0.010400,-0.013613
+19.860,-0.005199,-0.009974,-0.013072
+19.880,-0.004936,-0.009416,-0.012289
+19.900,-0.004636,-0.008732,-0.011284
+19.920,-0.004293,-0.007928,-0.010081
+19.940,-0.003898,-0.007009,-0.008715
+19.960,-0.003441,-0.005983,-0.007221
+19.980,-0.002915,-0.004858,-0.005636
+20.000,-0.002315,-0.003647,-0.003997
+[?2004hroot@aa803a54905b:/app# wc -l /app/output/response.csv
+[?2004l1002 /app/output/response.csv
+[?2004hroot@aa803a54905b:/app# python3 -c "
+[?2004l[?2004h> import numpy as np
+[?2004l[?2004h> 
+[?2004l[?2004h> # Verify the natural frequencies calculation
+[?2004l[?2004h> m = 2000.0
+[?2004l[?2004h> k = 400000.0
+[?2004l[?2004h> M = np.diag([m, m, m])
+[?2004l[?2004h> K = np.array([[2*k, -k, 0], [-k, 2*k, -k], [0, -k, k]])
+[?2004l[?2004h> 
+[?2004l[?2004h> eigenvalues, eigenvectors = np.linalg.eig(np.linalg.inv(M) @ K)
+[?2004l[?2004h> natural_freqs = np.sqrt(eigenvalues)
+[?2004l[?2004h> natural_freqs_sorted = np.sort(natural_freqs)
+[?2004l[?2004h> print('Natural frequencies (rad/s):', natural_freqs_sorted)
+[?2004l[?2004h> print('Mode 1 (Hz):', natural_freqs_sorted[0]/(2*np.pi))
+[?2004l[?2004h> print('Mode 3 (Hz):', natural_freqs_sorted[2]/(2*np.pi))
+[?2004l[?2004h> "
+[?2004lNatural frequencies (rad/s): [ 6.29384245 17.63495468 25.48324785]
+Mode 1 (Hz): 1.0016961376369384
+Mode 3 (Hz): 4.055784860610721
+[?2004hroot@aa803a54905b:/app# head -5 /app/output/response.csv && echo '...' && tail -5 /app/output/response.csv
+[?2004ltime,u1,u2,u3
+0.000,0.000000,0.000000,0.000000
+0.020,-0.000011,-0.000011,-0.000012
+0.040,-0.000031,-0.000032,-0.000032
+0.060,-0.000025,-0.000030,-0.000030
+...
+19.920,-0.004293,-0.007928,-0.010081
+19.940,-0.003898,-0.007009,-0.008715
+19.960,-0.003441,-0.005983,-0.007221
+19.980,-0.002915,-0.004858,-0.005636
+20.000,-0.002315,-0.003647,-0.003997
+[?2004hroot@aa803a54905b:/app# python3 -c "
+[?2004l[?2004h> import numpy as np
+[?2004l[?2004h> 
+[?2004l[?2004h> # Verify integration constants
+[?2004l[?2004h> dt = 0.02
+[?2004l[?2004h> gamma = 0.5
+[?2004l[?2004h> beta = 0.25
+[?2004l[?2004h> 
+[?2004l[?2004h> a0 = 1.0 / (beta * dt**2)
+[?2004l[?2004h> a1 = gamma / (beta * dt)
+[?2004l[?2004h> a2 = 1.0 / (beta * dt)
+[?2004l[?2004h> a3 = 1.0 / (2*beta) - 1
+[?2004l[?2004h> a4 = gamma / beta - 1
+[?2004l[?2004h> a5 = dt * (gamma / (2*beta) - 1)
+[?2004l[?2004h> 
+[?2004l[?2004h> print('a0 =', a0, '(expected: 1/(0.25*0.02^2) = 10000)')
+[?2004l[?2004h> print('a1 =', a1, '(expected: 0.5/(0.25*0.02) = 100)')
+[?2004l[?2004h> print('a2 =', a2, '(expected: 1/(0.25*0.02) = 200)')
+[?2004l[?2004h> print('a3 =', a3, '(expected: 1/(2*0.25) - 1 = 1.0)')
+[?2004l[?2004h> print('a4 =', a4, '(expected: 0.5/0.25 - 1 = 1.0)')
+[?2004l[?2004h> print('a5 =', a5, '(expected: 0.02*(0.5/(2*0.25) - 1) = 0.0)')
+[?2004l[?2004h> "
+[?2004la0 = 10000.0 (expected: 1/(0.25*0.02^2) = 10000)
+a1 = 100.0 (expected: 0.5/(0.25*0.02) = 100)
+a2 = 200.0 (expected: 1/(0.25*0.02) = 200)
+a3 = 1.0 (expected: 1/(2*0.25) - 1 = 1.0)
+a4 = 1.0 (expected: 0.5/0.25 - 1 = 1.0)
+a5 = 0.0 (expected: 0.02*(0.5/(2*0.25) - 1) = 0.0)
+[?2004hroot@aa803a54905b:/app# cat /app/simulate.py | grep -A 20 'Time stepping'
+[?2004l# Time stepping
+for i in range(n_steps - 1):
+    # Effective load at t+dt
+    # P_eff = -M*iota*accel(t+dt) + M*(a0*u_t + a2*v_t + a3*a_t) + C*(a1*u_t + a4*v_t + a5*a_t)
+    P_eff = -M @ (iota * accel_data[i+1]) + \
+            M @ (a0 * u[i] + a2 * v[i] + a3 * a[i]) + \
+            C @ (a1 * u[i] + a4 * v[i] + a5 * a[i])
+    
+    # Solve for displacement
+    u[i+1] = np.linalg.solve(K_eff, P_eff)
+    
+    # Update acceleration and velocity
+    a[i+1] = a0 * (u[i+1] - u[i]) - a2 * v[i] - a3 * a[i]
+    v[i+1] = v[i] + dt * ((1 - gamma) * a[i] + gamma * a[i+1])
+
+# Write output
+with open('/app/output/response.csv', 'w', newline='') as f:
+    writer = csv.writer(f)
+    writer.writerow(['time', 'u1', 'u2', 'u3'])
+    for i in range(n_steps):
+        writer.writerow([f'{time_data[i]:.3f}', f'{u[i,0]:.6f}', f'{u[i,1]:.6f}', f'{u[i,2]:.6f}'])
+[?2004hroot@aa803a54905b:/app# ls -la /app/output/ && head -3 /app/output/response.csv && tail -3 /app/output/response.csv
+[?2004ltotal 48
+drwxr-xr-x 1 root root  4096 Apr  9 23:56 .
+drwxr-xr-x 1 root root  4096 Apr  9 23:56 ..
+-rw-r--r-- 1 root root 36036 Apr  9 23:56 response.csv
+time,u1,u2,u3
+0.000,0.000000,0.000000,0.000000
+0.020,-0.000011,-0.000011,-0.000012
+19.960,-0.003441,-0.005983,-0.007221
+19.980,-0.002915,-0.004858,-0.005636
+20.000,-0.002315,-0.003647,-0.003997
+[?2004hroot@aa803a54905b:/app# 

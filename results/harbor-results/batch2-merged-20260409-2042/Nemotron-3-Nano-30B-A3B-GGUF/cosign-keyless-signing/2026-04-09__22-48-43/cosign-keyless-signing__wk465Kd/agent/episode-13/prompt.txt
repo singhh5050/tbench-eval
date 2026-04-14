@@ -1,0 +1,89 @@
+New Terminal Output:
+
+root@8884a9b806ea:/app# cat > /app/verify_artifact.sh << 'EOF'
+> #!/bin/bash
+> set -e
+>
+> # Check if artifact path is provided
+> if [ $# -ne 1 ]; then
+>     echo "Usage: $0 <artifact-path>" >&2
+>     exit 1
+> fi
+>
+> ARTIFACT_PATH="$1"
+> ARTIFACT_NAME=$(basename "$ARTIFACT_PATH")
+>
+> # Verify required files exist
+> for f in "$ARTIFACT_PATH" "/app/signed/${ARTIFACT_NAME}.sig" "/app/signed/${ARTIFACT_NAME}.provenance.json" "/app/signed/${ARTIFACT_NAME}.provenance.sig" "/ap
+p/signed/${ARTIFACT_NAME}.chain.pem"; do
+>     if [ ! -f "$f" ]; then
+>         echo "VERIFICATION_FAILED: Required file $f not found" >&2
+>         exit 1
+>     fi
+> done
+>
+> # Extract signing certificate from chain (first certificate in chain file)
+> SIGNING_CERT="/app/signing/cert_$(echo "$ARTIFACT_NAME" | sed 's/\./\\./g' <<< "build-").pem"
+> if [ ! -f "$SIGNING_CERT" ]; then
+>     echo "VERIFICATION_FAILED: Signing certificate not found" >&2
+>     exit 1
+> fi
+>
+> # Verify certificate chain using OpenSSL
+> if ! openssl verify -CAfile <(cat "/app/signed/${ARTIFACT_NAME}.chain.pem" | tr -d '\n') -untrusted "/app/signed/${ARTIFACT_NAME}.chain.pem" "$SIGNING_CERT" 2
+>/dev/null; then
+>     echo "VERIFICATION_FAILED: Certificate chain validation failed" >&2
+>     exit 1
+> fi
+>
+> # Extract public key from signing certificate
+> PUBKEY=$(openssl x509 -in "$SIGNING_CERT" -pubkey -noout)
+>
+> # Verify artifact signature
+> if ! echo "$PUBKEY" | openssl pkey -pubin -outform DER | openssl dgst -sha256 -verify - -signature "/app/signed/${ARTIFACT_NAME}.sig" "$ARTIFACT_PATH"; then
+>     echo "VERIFICATION_FAILED: Artifact signature verification failed" >&2
+>     exit 1
+> fi
+>
+> # Verify provenance signature
+> if ! echo "$PUBKEY" | openssl pkey -pubin -outform DER | openssl dgst -sha256 -verify - -signature "/app/signed/${ARTIFACT_NAME}.provenance.sig" "/app/signed/
+${ARTIFACT_NAME}.provenance.json"; then
+>     echo "VERIFICATION_FAILED: Provenance signature verification failed" >&2
+>     exit 1
+> fi
+>
+> # Validate provenance JSON content
+> if ! jq -e '.artifact == "'$ARTIFACT_NAME'"' "/app/signed/${ARTIFACT_NAME}.provenance.json" >/dev/null 2>&1; then
+>     echo "VERIFICATION_FAILED: Provenance artifact field mismatch" >&2
+>     exit 1
+> fi
+>
+> # Verify SHA256 checksum
+> EXPECTED_SHA256=$(jq -r '.sha256' "/app/signed/${ARTIFACT_NAME}.provenance.json")
+> ACTUAL_SHA256=$(sha256sum "$ARTIFACT_PATH" | cut -d' ' -f1)
+> if [ "$EXPECTED_SHA256" != "$ACTUAL_SHA256" ]; then
+>     echo "VERIFICATION_FAILED: SHA256 checksum mismatch" >&2
+>     exit 1
+> fi
+>
+> # Check required fields exist
+> REQUIRED_FIELDS="buildID artifact sha256 signedAt signer certificateChain"
+> for field in $REQUIRED_FIELDS; do
+>     if ! jq -e ".$field" "/app/signed/${ARTIFACT_NAME}.provenance.json" >/dev/null 2>&1; then
+>         echo "VERIFICATION_FAILED: Missing required field $field in provenance" >&2
+>         exit 1
+>     fi
+> done
+>
+> # All validations passed
+> echo "VERIFICATION_PASSED"
+> exit 0
+> EOF
+root@8884a9b806ea:/app# chmod +x /app/verify_artifact.sh
+root@8884a9b806ea:/app# /app/sign_artifact.sh /app/artifacts/test.txt build-001
+Certificate request self-signature ok
+subject=CN=build-build-001, O=SecureBuild, C=US
+Successfully signed test.txt with build ID build-001
+root@8884a9b806ea:/app# /app/verify_artifact.sh /app/artifacts/test.txt
+VERIFICATION_FAILED: Signing certificate not found
+root@8884a9b806ea:/app#

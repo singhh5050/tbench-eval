@@ -1,0 +1,191 @@
+New Terminal Output:
+
+root@566ae872a2c1:/app# cat > /app/program.py << 'EOL'
+ # Each book record is 28 bytes: 4+20+4
+    for i in range(0, len(content), 28):
+        record = content[i:i+28]
+        book_id = record[0:4].decode('ascii')
+        title = record[4:24].decode('ascii').strip()
+        owner = record[24:28].decode('ascii')
+        books[book_id] = {
+            'title': title,
+            'owner': owner
+        }
+    return books
+
+# Write ACCOUNTS.DAT
+def write_accounts(accounts):
+    records = []
+    for acc_id, data in accounts.items():
+        name = data['name'].ljust(20)[:20]
+        balance = f"{data['balance']:010}"
+        records.append(acc_id.encode('ascii') + name.encode('ascii') + balance.encode('ascii'))
+
+    with open('data/ACCOUNTS.DAT', 'wb') as f:
+        f.write(b''.join(records))
+
+# Write BOOKS.DAT
+def write_books(books):
+    records = []
+    for book_id, data in books.items():
+        title = data['title'].ljust(20)[:20]
+        owner = data['owner'].ljust(4)[:4]
+        records.append(book_id.encode('ascii') + title.encode('ascii') + owner.encode('ascii'))
+
+    with open('data/BOOKS.DAT', 'wb') as f:
+        f.write(b''.join(records))
+
+# Append to TRANSACTIONS.DAT
+def append_transaction(trans_data):
+    with open('data/TRANSACTIONS.DAT', 'ab') as f:
+        f.write(trans_data)
+
+# Main processing
+accounts = read_accounts()
+books = read_books()
+
+# Validate buyer and seller exist
+buyer_found = buyer_id in accounts
+seller_found = seller_id in accounts
+
+# Validate book exists and seller is owner
+book_found = book_id in books
+valid_owner = books[book_id]['owner'] == seller_id if book_found else False
+
+if buyer_found and seller_found and book_found and valid_owner:
+    # Update account balances
+    accounts[buyer_id]['balance'] -= amount
+    accounts[seller_id]['balance'] += amount
+
+    # Update book owner
+    books[book_id]['owner'] = buyer_id
+
+    # Write updated files
+    write_accounts(accounts)
+    write_books(books)
+
+    # Append transaction to TRANSACTIONS.DAT (4+10+4+4 = 22 bytes)
+    trans_record = (
+        buyer_id.encode('ascii') +
+        f"{amount:010}".encode('ascii') +
+        seller_id.encode('ascii') +
+        book_id.encode('ascii')
+    )
+    append_transaction(trans_record)
+
+    print("Transaction completed successfully")
+else:
+    print("Transaction failed due to validation errors")
+EOL
+> # Read input data
+> with open('src/INPUT.DAT', 'rb') as f:
+>     input_data = f.read()
+>
+> # Parse input record (fixed-length fields)
+> buyer_id = input_data[0:4].decode('ascii')
+> seller_id = input_data[4:8].decode('ascii')
+> book_id = input_data[8:12].decode('ascii')
+> amount_str = input_data[12:22].decode('ascii')
+> amount = int(amount_str)
+>
+> # Read ACCOUNTS.DAT
+> def read_accounts():
+>     accounts = {}
+>     with open('data/ACCOUNTS.DAT', 'rb') as f:
+>         content = f.read()
+>
+>     # Each account record is 34 bytes: 4+20+10
+>     for i in range(0, len(content), 34):
+>         record = content[i:i+34]
+>         acc_id = record[0:4].decode('ascii')
+>         acc_name = record[4:24].decode('ascii').strip()
+>         balance = int(record[24:34].decode('ascii'))
+>         accounts[acc_id] = {
+>             'name': acc_name,
+>             'balance': balance
+>         }
+>     return accounts
+>
+> # Read BOOKS.DAT
+> def read_books():
+>     books = {}
+>     with open('data/BOOKS.DAT', 'rb') as f:
+>         content = f.read()
+>
+>     # Each book record is 28 bytes: 4+20+4
+>     for i in range(0, len(content), 28):
+>         record = content[i:i+28]
+>         book_id = record[0:4].decode('ascii')
+>         title = record[4:24].decode('ascii').strip()
+>         owner = record[24:28].decode('ascii')
+>         books[book_id] = {
+>             'title': title,
+>             'owner': owner
+>         }
+>     return books
+>
+> # Write ACCOUNTS.DAT
+> def write_accounts(accounts):
+>     records = []
+>     for acc_id, data in accounts.items():
+>         name = data['name'].ljust(20)[:20]
+>         balance = f"{data['balance']:010}"
+>         records.append(acc_id.encode('ascii') + name.encode('ascii') + balance.encode('ascii'))
+>
+>     with open('data/ACCOUNTS.DAT', 'wb') as f:
+>         f.write(b''.join(records))
+>
+> # Write BOOKS.DAT
+> def write_books(books):
+>     records = []
+>     for book_id, data in books.items():
+>         title = data['title'].ljust(20)[:20]
+>         owner = data['owner'].ljust(4)[:4]
+>         records.append(book_id.encode('ascii') + title.encode('ascii') + owner.encode('ascii'))
+>
+>     with open('data/BOOKS.DAT', 'wb') as f:
+>         f.write(b''.join(records))
+>
+> # Append to TRANSACTIONS.DAT
+> def append_transaction(trans_data):
+>     with open('data/TRANSACTIONS.DAT', 'ab') as f:
+>         f.write(trans_data)
+>
+> # Main processing
+> accounts = read_accounts()
+> books = read_books()
+>
+> # Validate buyer and seller exist
+> buyer_found = buyer_id in accounts
+> seller_found = seller_id in accounts
+>
+> # Validate book exists and seller is owner
+> book_found = book_id in books
+> valid_owner = books[book_id]['owner'] == seller_id if book_found else False
+>
+> if buyer_found and seller_found and book_found and valid_owner:
+>     # Update account balances
+>     accounts[buyer_id]['balance'] -= amount
+>     accounts[seller_id]['balance'] += amount
+>
+>     # Update book owner
+>     books[book_id]['owner'] = buyer_id
+>
+>     # Write updated files
+>     write_accounts(accounts)
+>     write_books(books)
+>
+>     # Append transaction to TRANSACTIONS.DAT (4+10+4+4 = 22 bytes)
+>     trans_record = (
+>         buyer_id.encode('ascii') +
+>         f"{amount:010}".encode('ascii') +
+>         seller_id.encode('ascii') +
+>         book_id.encode('ascii')
+>     )
+>     append_transaction(trans_record)
+>
+>     print("Transaction completed successfully")
+> else:
+>     print("Transaction failed due to validation errors")
+> EOL
+root@566ae872a2c1:/app#

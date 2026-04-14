@@ -1,0 +1,70 @@
+New Terminal Output:
+
+root@2928fe68ba2e:/app# # Final summary - list all key files
+root@2928fe68ba2e:/app# echo "=== CA Files ==="
+=== CA Files ===
+root@2928fe68ba2e:/app# ls -la /app/ca/
+total 40
+drwxr-xr-x 1 root root 4096 Apr  9 23:47 .
+drwxr-xr-x 1 root root 4096 Apr  9 23:46 ..
+-rw-r--r-- 1 root root 3940 Apr  9 23:47 ca-chain.pem
+-rw------- 1 root root 3272 Apr  9 23:46 intermediate-ca-key.pem
+-rw-r--r-- 1 root root 1976 Apr  9 23:46 intermediate-ca.pem
+-rw-r--r-- 1 root root   41 Apr  9 23:49 intermediate-ca.srl
+-rw------- 1 root root 3272 Apr  9 23:46 root-ca-key.pem
+-rw-r--r-- 1 root root 1964 Apr  9 23:46 root-ca.pem
+-rw-r--r-- 1 root root   41 Apr  9 23:46 root-ca.srl
+root@2928fe68ba2e:/app#
+root@2928fe68ba2e:/app# echo ""
+
+root@2928fe68ba2e:/app# echo "=== Signed Artifacts ==="
+=== Signed Artifacts ===
+root@2928fe68ba2e:/app# ls -la /app/signed/
+total 72
+drwxr-xr-x 1 root root 4096 Apr  9 23:49 .
+drwxr-xr-x 1 root root 4096 Apr  9 23:46 ..
+-rw-r--r-- 1 root root 5299 Apr  9 23:48 app.bin.chain.pem
+-rw-r--r-- 1 root root  257 Apr  9 23:48 app.bin.provenance.json
+-rw-r--r-- 1 root root   72 Apr  9 23:48 app.bin.provenance.sig
+-rw-r--r-- 1 root root   71 Apr  9 23:48 app.bin.sig
+-rw-r--r-- 1 root root 5299 Apr  9 23:46 release.tar.gz.chain.pem
+-rw-r--r-- 1 root root  264 Apr  9 23:46 release.tar.gz.provenance.json
+-rw-r--r-- 1 root root   72 Apr  9 23:46 release.tar.gz.provenance.sig
+-rw-r--r-- 1 root root   71 Apr  9 23:46 release.tar.gz.sig
+-rw-r--r-- 1 root root 5299 Apr  9 23:49 sbom.json.chain.pem
+-rw-r--r-- 1 root root  259 Apr  9 23:49 sbom.json.provenance.json
+-rw-r--r-- 1 root root   72 Apr  9 23:49 sbom.json.provenance.sig
+-rw-r--r-- 1 root root   70 Apr  9 23:49 sbom.json.sig
+root@2928fe68ba2e:/app#
+root@2928fe68ba2e:/app# echo ""
+
+root@2928fe68ba2e:/app# echo "=== Signing Directory (should be empty - ephemeral keys destroyed) ==="
+=== Signing Directory (should be empty - ephemeral keys destroyed) ===
+root@2928fe68ba2e:/app# ls -la /app/signing/
+total 12
+drwxr-xr-x 1 root root 4096 Apr  9 23:49 .
+drwxr-xr-x 1 root root 4096 Apr  9 23:46 ..
+root@2928fe68ba2e:/app# # Verify CA certificates have correct attributes
+root@2928fe68ba2e:/app# echo "=== Root CA Attributes ==="
+=== Root CA Attributes ===
+root@2928fe68ba2e:/app# openssl x509 -in /app/ca/root-ca.pem -noout -subject -issuer -dates -ext basicConstraints,keyUsage
+subject=CN=Software Signing Root CA, O=SecureBuild, C=US
+issuer=CN=Software Signing Root CA, O=SecureBuild, C=US
+notBefore=Apr  9 23:46:19 2026 GMT
+notAfter=Apr  6 23:46:19 2036 GMT
+X509v3 Basic Constraints: critical
+    CA:TRUE
+X509v3 Key Usage: critical
+    Certificate Sign, CRL Sign
+root@2928fe68ba2e:/app# echo "=== Intermediate CA Attributes ==="
+=== Intermediate CA Attributes ===
+root@2928fe68ba2e:/app# openssl x509 -in /app/ca/intermediate-ca.pem -noout -subject -issuer -dates -ext basicConstraints,keyUsage
+subject=CN=Build Pipeline Intermediate CA, O=SecureBuild, C=US
+issuer=CN=Software Signing Root CA, O=SecureBuild, C=US
+notBefore=Apr  9 23:46:20 2026 GMT
+notAfter=Apr  8 23:46:20 2031 GMT
+X509v3 Basic Constraints: critical
+    CA:TRUE, pathlen:0
+X509v3 Key Usage: critical
+    Digital Signature, Certificate Sign
+root@2928fe68ba2e:/app#

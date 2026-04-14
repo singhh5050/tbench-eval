@@ -1,0 +1,109 @@
+New Terminal Output:
+
+root@1adde69d8662:/workdir# python3 << 'EOF'
+> from PIL import Image
+_colors[:5]}")
+    print(f"  Last 5 unique colors: {unique_colors[-5:]}")
+
+    # Check if number is in center
+    height, width = max_y - min_y + 1, max_x - min_x + 1
+    center_y, center_x = (min_y + max_y) // 2, (min_x + max_x) // 2
+    print(f"  Region: {width}x{height}, center: ({center_x}, {center_y})")
+    print()
+EOF
+> import numpy as np
+> import os
+>
+> tiles_dir = '/workdir/data/tiles/'
+> tile_files = ['tile_001.png', 'tile_002.png', 'tile_003.png', 'tile_004.png']
+>
+> for tile_file in tile_files:
+>     path = os.path.join(tiles_dir, tile_file)
+>     img = Image.open(path)
+>     arr = np.array(img)
+>
+>     bg_color = arr[0, 0]
+>
+>     # Create a simpler visualization - just show where foreground is
+>     is_background = np.all(arr == bg_color, axis=2)
+>
+>     # Get bounding box
+>     fg_pixels = np.argwhere(~is_background)
+>     min_y, min_x = fg_pixels.min(axis=0)
+>     max_y, max_x = fg_pixels.max(axis=0)
+>
+>     # Get the number region
+>     region = arr[min_y:max_y+1, min_x:max_x+1]
+>
+>     # Find the dominant non-background color in the region
+>     flat_region = region.reshape(-1, 3)
+>     unique_colors = np.unique(flat_region, axis=0)
+>
+>     print(f"{tile_file} (bg={list(bg_color)}):")
+>     print(f"  Number of unique colors in region: {len(unique_colors)}")
+>     print(f"  First 5 unique colors: {unique_colors[:5]}")
+>     print(f"  Last 5 unique colors: {unique_colors[-5:]}")
+>
+>     # Check if number is in center
+>     height, width = max_y - min_y + 1, max_x - min_x + 1
+>     center_y, center_x = (min_y + max_y) // 2, (min_x + max_x) // 2
+>     print(f"  Region: {width}x{height}, center: ({center_x}, {center_y})")
+>     print()
+> EOF
+tile_001.png (bg=[np.uint8(0), np.uint8(0), np.uint8(255)]):
+  Number of unique colors in region: 61
+  First 5 unique colors: [[0 0 0]
+ [0 0 1]
+ [0 0 2]
+ [0 0 3]
+ [0 0 4]]
+  Last 5 unique colors: [[205 205 205]
+ [219 219 219]
+ [224 224 224]
+ [237 237 237]
+ [245 245 245]]
+  Region: 9x12, center: (99, 101)
+
+tile_002.png (bg=[np.uint8(255), np.uint8(0), np.uint8(0)]):
+  Number of unique colors in region: 22
+  First 5 unique colors: [[ 0  0  0]
+ [ 1  0  0]
+ [ 5  0  0]
+ [11  0  0]
+ [12  0  0]]
+  Last 5 unique colors: [[231   0   0]
+ [239   0   0]
+ [240 240 240]
+ [241 241 241]
+ [255   0   0]]
+  Region: 7x12, center: (99, 101)
+
+tile_003.png (bg=[np.uint8(255), np.uint8(255), np.uint8(0)]):
+  Number of unique colors in region: 39
+  First 5 unique colors: [[0 0 0]
+ [1 1 0]
+ [2 2 0]
+ [5 5 0]
+ [6 6 0]]
+  Last 5 unique colors: [[242 242 242]
+ [247 247 247]
+ [248 248   0]
+ [252 252 252]
+ [255 255   0]]
+  Region: 10x12, center: (99, 101)
+
+tile_004.png (bg=[np.uint8(0), np.uint8(255), np.uint8(0)]):
+  Number of unique colors in region: 55
+  First 5 unique colors: [[0 0 0]
+ [0 1 0]
+ [0 2 0]
+ [0 3 0]
+ [0 4 0]]
+  Last 5 unique colors: [[208 208 208]
+ [212 212 212]
+ [215 215 215]
+ [234 234 234]
+ [244 244 244]]
+  Region: 9x12, center: (100, 97)
+
+root@1adde69d8662:/workdir#

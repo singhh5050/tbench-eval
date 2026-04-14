@@ -1,0 +1,23 @@
+{
+  "analysis": "The POST endpoints are returning 422 errors because the request body format is not being parsed correctly. I need to update the FastAPI app to use Pydantic models for the request body to properly handle JSON input.",
+  "plan": "Update the FastAPI application to use Pydantic models for the request bodies, which will ensure proper JSON parsing for POST requests.",
+  "commands": [
+    {
+      "keystrokes": "cat > /app/api/app.py << 'EOF'\nfrom fastapi import FastAPI\nfrom fastapi.responses import JSONResponse\nfrom pydantic import BaseModel\nfrom typing import List, Optional\nimport pickle\nimport numpy as np\nimport pandas as pd\n\n# Global variable for the model\nbest_model = None\nmodel_name = \"random_forest\"\n\n# Request/Response models\nclass PredictInput(BaseModel):\n    features: List[float]\n\nclass PredictBatchInput(BaseModel):\n    features_list: List[List[float]]\n\n# Initialize FastAPI app\napp = FastAPI(title=\"California Housing Prediction API\")\n\n@app.on_event(\"startup\")\nasync def load_model():\n    global best_model\n    with open('/app/models/best_model.pkl', 'rb') as f:\n        best_model = pickle.load(f)\n    print(f\"Model loaded: {type(best_model).__name__}\")\n\n@app.get(\"/health\")\nasync def health_check():\n    return {\n        \"status\": \"healthy\",\n        \"model_loaded\": best_model is not None\n    }\n\n@app.get(\"/model-info\")\nasync def get_model_info():\n    return {\n        \"model_name\": model_name,\n        \"model_type\": type(best_model).__name__ if best_model else \"unknown\",\n        \"features_count\": 8\n    }\n\n@app.post(\"/predict\")\nasync def predict_single(input_data: PredictInput):\n    if best_model is None:\n        return JSONResponse(content={\"error\": \"Model not loaded\"}, status_code=503)\n    \n    features_array = np.array(input_data.features).reshape(1, -1)\n    prediction = best_model.predict(features_array)[0]\n    \n    return {\n        \"prediction\": float(prediction),\n        \"model_name\": model_name\n    }\n\n@app.post(\"/predict-batch\")\nasync def predict_batch(input_data: PredictBatchInput):\n    if best_model is None:\n        return JSONResponse(content={\"error\": \"Model not loaded\"}, status_code=503)\n    \n    features_array = np.array(input_data.features_list)\n    predictions = best_model.predict(features_array)\n    \n    return {\n        \"predictions\": [float(p) for p in predictions],\n        \"model_name\": model_name,\n        \"count\": len(predictions)\n    }\nEOF\n",
+      "duration": 1.0
+    },
+    {
+      "keystrokes": "kill %1 2>/dev/null; sleep 1\n",
+      "duration": 2.0
+    },
+    {
+      "keystrokes": "cd /app && uvicorn api.app:app --host 0.0.0.0 --port 8000 &\n",
+      "duration": 3.0
+    },
+    {
+      "keystrokes": "sleep 2 && curl -s http://localhost:8000/health\n",
+      "duration": 3.0
+    }
+  ],
+  "task_complete": false
+}

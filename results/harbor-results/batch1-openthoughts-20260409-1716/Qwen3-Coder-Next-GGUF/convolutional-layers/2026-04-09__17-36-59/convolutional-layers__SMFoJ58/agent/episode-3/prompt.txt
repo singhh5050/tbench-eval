@@ -1,0 +1,197 @@
+New Terminal Output:
+
+root@b05171444938:/app# python3 << 'EOF'
+> import numpy as np
+> import sys
+> sys.path.insert(0, '/app')
+>
+> from src import *
+>
+> print("Testing all layers...\n")
+>
+> # Test padding
+> print("=== Testing padding ===")
+> x = np.ones((2, 4, 4, 3), dtype=np.float64)
+> padded = zero_pad(x, 1)
+> print(f"Original shape: {x.shape}")
+> print(f"Padded shape: {padded.shape}")
+> assert padded.shape == (2, 6, 6, 3), f"Expected (2, 6, 6, 3), got {padded.shape}"
+> print("zero_pad: OK\n")
+>
+> # Test get_output_shape
+> print("=== Testing get_output_shape ===")
+> out = get_output_shape((28, 28), 3, 1, 1)
+> print(f"(28, 28) with k=3, s=1, p=1: {out}")
+> assert out == (28, 28), f"Expected (28, 28), got {out}"
+>
+> out = get_output_shape((32, 32), 4, 2, 1)
+> print(f"(32, 32) with k=4, s=2, p=1: {out}")
+> assert out == (16, 16), f"Expected (16, 16), got {out}"
+> print("get_output_shape: OK\n")
+>
+> # Test BaseLayer (abstract)
+> print("=== Testing BaseLayer ===")
+> try:
+>     base = BaseLayer()
+>     print("ERROR: Should not be able to instantiate BaseLayer")
+> except TypeError as e:
+>     print(f"Cannot instantiate BaseLayer (expected): {e}")
+> print("BaseLayer: OK\n")
+>
+> # Test Conv2D
+> print("=== Testing Conv2D ===")
+> conv = Conv2D(3, 16, 3, stride=1, padding=1)
+> x = np.random.randn(2, 28, 28, 3).astype(np.float64)
+> out = conv.forward(x)
+> print(f"Input: {x.shape}")
+> print(f"Output: {out.shape}")
+> assert out.shape == (2, 28, 28, 16), f"Expected (2, 28, 28, 16), got {out.shape}"
+> assert hasattr(conv, 'weights') and hasattr(conv, 'bias')
+> print("Conv2D: OK\n")
+>
+> # Test Conv2D with stride and dilation
+> print("=== Testing Conv2D with stride and dilation ===")
+> conv = Conv2D(3, 8, 3, stride=2, padding=0, dilation=1)
+> x = np.random.randn(2, 32, 32, 3).astype(np.float64)
+> out = conv.forward(x)
+> print(f"Input: {x.shape}")
+> print(f"Output: {out.shape}")
+> assert out.shape == (2, 15, 15, 8), f"Expected (2, 15, 15, 8), got {out.shape}"
+> print("Conv2D stride/dilation: OK\n")
+>
+> # Test Conv2DTranspose
+> print("=== Testing Conv2DTranspose ===")
+> conv_t = Conv2DTranspose(8, 16, 3, stride=2, padding=1)
+> x = np.random.randn(2, 16, 16, 8).astype(np.float64)
+> out = conv_t.forward(x)
+> print(f"Input: {x.shape}")
+> print(f"Output: {out.shape}")
+> expected_out_h = (16 - 1) * 2 - 2 * 1 + 3
+> expected_out_w = (16 - 1) * 2 - 2 * 1 + 3
+> assert out.shape == (2, expected_out_h, expected_out_w, 16), f"Expected (2, {expected_out_h}, {expected_out_w}, 16), got {out.shape}"
+> print("Conv2DTranspose: OK\n")
+>
+> # Test MaxPool2D
+> print("=== Testing MaxPool2D ===")
+> pool = MaxPool2D(2, stride=2)
+> x = np.random.randn(2, 32, 32, 8).astype(np.float64)
+> out = pool.forward(x)
+> print(f"Input: {x.shape}")
+> print(f"Output: {out.shape}")
+> assert out.shape == (2, 16, 16, 8), f"Expected (2, 16, 16, 8), got {out.shape}"
+> print("MaxPool2D: OK\n")
+>
+> # Test AvgPool2D
+> print("=== Testing AvgPool2D ===")
+> pool = AvgPool2D(2, stride=2)
+> x = np.random.randn(2, 32, 32, 8).astype(np.float64)
+> out = pool.forward(x)
+> print(f"Input: {x.shape}")
+> print(f"Output: {out.shape}")
+> assert out.shape == (2, 16, 16, 8), f"Expected (2, 16, 16, 8), got {out.shape}"
+> print("AvgPool2D: OK\n")
+>
+> # Test BatchNorm2D
+> print("=== Testing BatchNorm2D ===")
+> bn = BatchNorm2D(16)
+> x = np.random.randn(4, 8, 8, 16).astype(np.float64)
+> out = bn.forward(x, training=True)
+> print(f"Input: {x.shape}")
+> print(f"Output: {out.shape}")
+> assert out.shape == (4, 8, 8, 16), f"Expected (4, 8, 8, 16), got {out.shape}"
+> assert hasattr(bn, 'gamma') and hasattr(bn, 'beta')
+> assert hasattr(bn, 'running_mean') and hasattr(bn, 'running_var')
+> print("BatchNorm2D: OK\n")
+>
+> # Test ReLU
+> print("=== Testing ReLU ===")
+> relu = ReLU()
+> x = np.array([[-1, 0, 1], [-2, 0.5, 2]], dtype=np.float64)
+> out = relu.forward(x)
+> expected = np.array([[0, 0, 1], [0, 0.5, 2]], dtype=np.float64)
+> assert np.allclose(out, expected), f"Expected {expected}, got {out}"
+> print("ReLU: OK\n")
+>
+> # Test LeakyReLU
+> print("=== Testing LeakyReLU ===")
+> lrelu = LeakyReLU(negative_slope=0.01)
+> x = np.array([[-1, 0, 1], [-2, 0.5, 2]], dtype=np.float64)
+> out = lrelu.forward(x)
+> expected = np.array([[-0.01, 0, 1], [-0.02, 0.5, 2]], dtype=np.float64)
+> assert np.allclose(out, expected), f"Expected {expected}, got {out}"
+> assert lrelu.negative_slope == 0.01
+> print("LeakyReLU: OK\n")
+>
+> # Test Sigmoid
+> print("=== Testing Sigmoid ===")
+> sigmoid = Sigmoid()
+> x = np.array([0.0, 1.0, -1.0], dtype=np.float64)
+> out = sigmoid.forward(x)
+> # sigmoid(0) = 0.5, sigmoid(1) ~ 0.731, sigmoid(-1) ~ 0.269
+> expected = np.array([0.5, 0.73105858, 0.26894142])
+> assert np.allclose(out, expected, atol=1e-5), f"Expected {expected}, got {out}"
+> print("Sigmoid: OK\n")
+>
+> print("="*50)
+> print("ALL TESTS PASSED!")
+> print("="*50)
+> EOF
+Testing all layers...
+
+=== Testing padding ===
+Original shape: (2, 4, 4, 3)
+Padded shape: (2, 6, 6, 3)
+zero_pad: OK
+
+=== Testing get_output_shape ===
+(28, 28) with k=3, s=1, p=1: (28, 28)
+(32, 32) with k=4, s=2, p=1: (16, 16)
+get_output_shape: OK
+
+=== Testing BaseLayer ===
+Cannot instantiate BaseLayer (expected): Can't instantiate abstract class BaseLayer without an implementation for abstract method 'forward'
+BaseLayer: OK
+
+=== Testing Conv2D ===
+Input: (2, 28, 28, 3)
+Output: (2, 28, 28, 16)
+Conv2D: OK
+
+=== Testing Conv2D with stride and dilation ===
+Input: (2, 32, 32, 3)
+Output: (2, 15, 15, 8)
+Conv2D stride/dilation: OK
+
+=== Testing Conv2DTranspose ===
+Input: (2, 16, 16, 8)
+Output: (2, 31, 31, 16)
+Conv2DTranspose: OK
+
+=== Testing MaxPool2D ===
+Input: (2, 32, 32, 8)
+Output: (2, 16, 16, 8)
+MaxPool2D: OK
+
+=== Testing AvgPool2D ===
+Input: (2, 32, 32, 8)
+Output: (2, 16, 16, 8)
+AvgPool2D: OK
+
+=== Testing BatchNorm2D ===
+Input: (4, 8, 8, 16)
+Output: (4, 8, 8, 16)
+BatchNorm2D: OK
+
+=== Testing ReLU ===
+ReLU: OK
+
+=== Testing LeakyReLU ===
+LeakyReLU: OK
+
+=== Testing Sigmoid ===
+Sigmoid: OK
+
+==================================================
+ALL TESTS PASSED!
+==================================================
+root@b05171444938:/app#

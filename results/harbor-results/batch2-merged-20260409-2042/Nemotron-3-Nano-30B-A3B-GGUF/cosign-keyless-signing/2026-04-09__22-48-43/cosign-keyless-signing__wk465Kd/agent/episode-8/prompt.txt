@@ -1,0 +1,44 @@
+New Terminal Output:
+
+root@8884a9b806ea:/app# cat > /app/setup_ca.sh << 'EOF'
+> #!/bin/bash
+> set -e
+>
+> # Create directory structure
+> mkdir -p /app/ca /app/signing /app/signed
+>
+> # Create Root CA private key
+> openssl genpkey -algorithm EC -pkeyopt ec_paramgen_curve:prime256v1 -out /app/ca/root-ca-key.pem
+>
+> # Create Root CA self-signed certificate
+> openssl req -x509 -new -nodes -key /app/ca/root-ca-key.pem -sha256 -days 3650 -out /app/ca/root-ca.pem -subj "/CN=Software Signing Root CA/O=SecureBuild/C=US"
+>
+> # Create Intermediate CA private key
+> openssl genpkey -algorithm EC -pkeyopt ec_paramgen_curve:prime256v1 -out /app/ca/intermediate-ca-key.pem
+>
+> # Create Intermediate CA CSR
+> openssl req -new -key /app/ca/intermediate-ca-key.pem -out /app/ca/intermediate-ca.csr -subj "/CN=Build Pipeline Intermediate CA/O=SecureBuild/C=US"
+>
+> # Sign Intermediate CA with Root CA
+> openssl x509 -req -in /app/ca/intermediate-ca.csr -CA /app/ca/root-ca.pem -CAkey /app/ca/root-ca-key.pem -CAcreateserial -out /app/ca/intermediate-ca.pem -day
+s 1825 -sha256
+>
+> # Clean up temporary files
+> rm -f /app/ca/intermediate-ca.csr
+>
+> # Create serial file
+> echo 01 > /app/ca/serial
+>
+> # Verify all required files exist
+> for f in /app/ca/root-ca.pem /app/ca/intermediate-ca.pem; do
+>     if [ ! -f "$f" ]; then
+>         echo "Error: $f not created" >&2
+>         exit 1
+>     fi
+> done
+> EOF
+root@8884a9b806ea:/app# chmod +x /app/setup_ca.sh
+root@8884a9b806ea:/app# /app/setup_ca.sh
+Certificate request self-signature ok
+subject=CN=Build Pipeline Intermediate CA, O=SecureBuild, C=US
+root@8884a9b806ea:/app#

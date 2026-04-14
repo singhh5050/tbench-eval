@@ -1,0 +1,293 @@
+New Terminal Output:
+root@8d75f47cee9b:/app# cat > /app/merkle_cli.py << 'EOF'
+> #!/usr/bin/env python3
+> """Merkle Tree CLI Tool using SHA-512"""
+>
+> import argparse
+> import hashlib
+> import json
+> import os
+> import sys
+> from pathlib import Path
+>
+>
+> def sha512_hash(data):
+>     """Compute SHA-512 hash of bytes, return 128-char hex string."""
+>     if isinstance(data, str):
+>         data = data.encode('utf-8')
+>     return hashlib.sha512(data).hexdigest()
+>
+>
+> def sha512_concatenate(left, right):
+>     """Concatenate two hash strings and return their SHA-512 hash."""
+>     combined = left + right
+>     return sha512_hash(combined.encode('utf-8'))
+>
+>
+> class MerkleTree:
+>     """Merkle Tree implementation with SHA-512."""
+>
+>     def __init__(self):
+>         self.leaves = []  # List of (file_path, hash) tuples
+>         self.proofs = {}  # file_path -> list of [side, hash] pairs
+>         self.file_hashes = {}  # file_path -> leaf hash
+>         self.root_hash = None
+>
+>     def build_from_directory(self, directory):
+>         """Scan directory and build Merkle tree."""
+>         self.leaves = []
+>         self.proofs = {}
+>         self.file_hashes = {}
+>
+>         dir_path = Path(directory)
+>         abs_dir = dir_path.resolve()
+>
+>         # Collect all regular files
+>         files = []
+>         for item in sorted(dir_path.rglob('*')):
+>             if item.is_file() and not item.is_symlink():
+>                 rel_path = str(item.relative_to(dir_path))
+>                 files.append((rel_path, item))
+>
+>         # Sort for deterministic ordering
+>         files.sort(key=lambda x: x[0])
+>
+>         # Hash each file
+>         for rel_path, file_path in files:
+>             with open(file_path, 'rb') as f:
+>                 file_hash = sha512_hash(f.read())
+>             self.leaves.append((rel_path, file_hash))
+>             self.file_hashes[rel_path] = file_hash
+>
+>         # Build the tree
+>         self._build_tree()
+>
+>     def _build_tree(self):
+>         """Build the Merkle tree and generate proofs."""
+>         if not self.leaves:
+>             self.root_hash = sha512_hash(b'')
+>             return
+>
+>         # Get just the hashes in order
+>         hashes = [h for _, h in self.leaves]
+>
+>         # Generate proofs for each leaf
+>         for i, (file_path, _) in enumerate(self.leaves):
+>             self.proofs[file_path] = self._generate_proof(hashes, i)
+>
+>         # Build to root
+>         while len(hashes) > 1:
+>             next_level = []
+>             for j in range(0, len(hashes), 2):
+of(args):
+    """Generate Merkle proof for a file."""
+    data = load_merkle_data()
+    if data is None:
+        print("Error: No merkle_data.json found. Run scan first.", file=sys.stderr)
+        return 1
+
+    file_path = args.file_path
+
+    if file_path not in data['file_hashes']:
+        print(f"Error: File '{file_path}' not found in Merkle tree", file=sys.stderr)
+   >                 if j + 1 < len(hashes):
+>                     combined = sha512_concatenate(hashes[j], hashes[j + 1])
+>                 else:
+>                     # Duplicate last node if odd number
+>                     combined = sha512_concatenate(hashes[j], hashes[j])
+>                 next_level.append(combined)
+>             hashes = next_level
+>
+>         self.root_hash = hashes[0]
+>
+>     def _generate_proof(self, hashes, leaf_index):
+>         """Generate Merkle proof for leaf at given index."""
+>         proof = []
+>         current_level = hashes[:]
+>
+>         while len(current_level) > 1:
+>             # Determine sibling
+>             if leaf_index % 2 == 0:
+>                 # We're on the left, sibling is on right
+>                 sibling_index = leaf_index + 1
+>                 side = "right"
+>             else:
+>                 # We're on the right, sibling is on left
+>                 sibling_index = leaf_index - 1
+>                 side = "left"
+>
+>             if sibling_index < len(current_level):
+>                 proof.append([side, current_level[sibling_index]])
+>             else:
+>                 # Sibling doesn't exist, use our own hash (duplication case)
+>                 proof.append([side, current_level[leaf_index]])
+>
+>             # Move to next level
+>             next_level = []
+>             for j in range(0, len(current_level), 2):
+>                 if j + 1 < len(current_level):
+>                     combined = sha512_concatenate(current_level[j], current_level[j + 1])
+>                 else:
+>                     combined = sha512_concatenate(current_level[j], current_level[j])
+>                 next_level.append(combined)
+>
+>             current_level = next_level
+>             leaf_index = leaf_index // 2
+>
+>         return proof
+>
+>     def get_proof(self, file_path):
+>         """Get Merkle proof for a file."""
+>         return self.proofs.get(file_path)
+>
+>     def to_dict(self, scanned_dir):
+>         """Convert to dictionary for JSON storage."""
+>         return {
+>             "ro
+[... output limited to 10000 bytes; 70 interior bytes omitted ...]
+hashes']:
+>         print(f"Error: File '{file_path}' not found in Merkle tree", file=sys.stderr)
+>         return 1
+>
+>     proof = data['proofs'].get(file_path, [])
+>
+>     output = {
+>         "file_path": file_path,
+>         "proof": proof
+>     }
+>
+>     print(json.dumps(output, indent=2))
+>     return 0
+>
+>
+> def cmd_verify(args):
+>     """Verify a file's integrity against stored proof."""
+>     data = load_merkle_data()
+>     if data is None:
+>         print("Error: No merkle_data.json found. Run scan first.", file=sys.stderr)
+>         return 1
+>
+>     file_path = args.file_path
+>     proof_file = Path(args.proof_file)
+>
+>     # Load proof from file
+>     if not proof_file.exists():
+>         print(f"Error: Proof file '{proof_file}' does not exist", file=sys.stderr)
+>         return 1
+>
+>     with open(proof_file, 'r') as f:
+>         proof_data = json.load(f)
+>
+>     # Get current hash of the file
+>     try:
+>         # Try relative path first (from scanned directory)
+>         scanned_dir = Path(data['scanned_directory'])
+>         abs_path = scanned_dir / file_path
+>
+>         if not abs_path.exists():
+>             # Try as absolute path
+>             abs_path = Path(file_path)
+>             if not abs_path.exists():
+>                 print(f"Error: File not found: {file_path}", file=sys.stderr)
+>                 return 1
+>
+>         with open(abs_path, 'rb') as f:
+>             current_hash = sha512_hash(f.read())
+>     except Exception as e:
+>         print(f"Error reading file: {e}", file=sys.stderr)
+>         return 1
+>
+>     # Reconstruct root from proof
+>     current = current_hash
+>     for side, sibling in proof_data['proof']:
+>         if side == "left":
+>             current = sha512_concatenate(sibling, current)
+>         else:
+>             current = sha512_concatenate(current, sibling)
+>
+>     # Check results
+>     root_matches = (current == data['root_hash'])
+>     file_hash_matches_storage = (current_hash == data['file_hashes'].get(file_path))
+>
+>     # Check for added/deleted files
+>     stored_files = set(data['file_hashes'].keys())
+>
+>     # Get current files in scanned directory
+>     scanned_dir = Path(data['scanned_directory'])
+>     current_files = set()
+>     if scanned_dir.exists():
+>         for item in scanned_dir.rglob('*'):
+>             if item.is_file() and not item.is_symlink():
+>                 rel_path = str(item.relative_to(scanned_dir))
+>                 current_files.add(rel_path)
+>
+>     added_files = current_files - stored_files
+>     deleted_files = stored_files - current_files
+>
+>     # Check for modified files
+>     modified_files = set()
+>     for fp in stored_files & current_files:
+>         if fp != file_path:  # Don't check the file we're verifying
+>             abs_fp = scanned_dir / fp
+>             if abs_fp.exists():
+>                 with open(abs_fp, 'rb') as f:
+>                     stored_hash = data['file_hashes'][fp]
+>                     current_h = sha512_hash(f.read())
+>                     if stored_hash != current_h:
+>                         modified_files.add(fp)
+>
+>     success = root_matches and file_hash_matches_storage and not added_files and not deleted_files and not modified_files
+>
+>     output = {
+>         "file_path": file_path,
+>         "root_matches": root_matches,
+>         "file_hash_matches_storage": file_hash_matches_storage,
+>         "added_files": list(added_files),
+>         "deleted_files": list(deleted_files),
+>         "modified_files": list(modified_files)
+>     }
+>
+>     if success:
+>         print("Verification successful!")
+>         print(f"File hash: {current_hash}")
+>         print(f"Root hash matches: {root_matches}")
+>         return 0
+>     else:
+>         print("Verification failed!")
+>         print(json.dumps(output, indent=2))
+>         return 1
+>
+>
+> def main():
+>     parser = argparse.ArgumentParser(description='Merkle Tree CLI Tool')
+>     subparsers = parser.add_subparsers(dest='command', required=True)
+>
+>     # Scan command
+>     scan_parser = subparsers.add_parser('scan', help='Scan directory and build Merkle tree')
+>     scan_parser.add_argument('directory', help='Directory to scan')
+>
+>     # Proof command
+>     proof_parser = subparsers.add_parser('proof', help='Generate Merkle proof for a file')
+>     proof_parser.add_argument('file_path', help='File path (relative to scanned directory)')
+>
+>     # Verify command
+>     verify_parser = subparsers.add_parser('verify', help='Verify file integrity')
+>     verify_parser.add_argument('file_path', help='File path to verify')
+>     verify_parser.add_argument('proof_file', help='Path to proof JSON file')
+>
+>     args = parser.parse_args()
+>
+>     if args.command == 'scan':
+>         return cmd_scan(args)
+>     elif args.command == 'proof':
+>         return cmd_proof(args)
+>     elif args.command == 'verify':
+>         return cmd_verify(args)
+>
+>     return 1
+>
+>
+> if __name__ == '__main__':
+>     sys.exit(main())
+> EOF
+root@8d75f47cee9b:/app#

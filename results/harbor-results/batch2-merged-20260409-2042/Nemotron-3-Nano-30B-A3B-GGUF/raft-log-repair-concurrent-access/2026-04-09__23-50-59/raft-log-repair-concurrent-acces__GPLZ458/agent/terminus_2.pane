@@ -1,0 +1,155 @@
+[?2004hroot@bdc4553eea9d:/app# asciinema rec --stdin /logs/agent/recording.cast
+[?2004l[0;32masciinema: recording asciicast to /logs/agent/recording.cast[0m
+[0;32masciinema: press <ctrl-d> or type "exit" when you're done[0m
+[?2004hroot@bdc4553eea9d:/app# clear
+[?2004l[H[J[3J[?2004hroot@bdc4553eea9d:/app# cat > /app/solution.py << 'EOF'
+[?2004l[?2004h> import re
+[?2004l[?2004h> from collections import defaultdict
+[?2004l[?2004h> 
+[?2004l[?2004h> def solve(lines: list[str]) -> str:
+[?2004l[?2004h>     node_re = re.compile(r'^n[0-9]+$')
+[?2004l[?2004h>     entries = []
+[?2004l[?2004h>     for line in lines:
+[?2004l[?2004h>         stripped = line.strip()
+[?2004l[?2004h>         if not stripped or stripped.startswith('#'):
+[?2004lglobal_votes:
+                    violations[idx] = 'BAD_DUPLICATE_VOTE'
+                    break
+                global_votes.add((node, term))
+            elif op == 'LEADER':
+                if term in leader_terms_seen:
+                    violations[idx] = 'BAD_LEADER_ORDER'
+                    break
+                leader_terms_seen.add(term)
+            elif op == 'APPEND':
+                append_terms.append((term, data))
+                append_seen_so_far = True
+            elif op == 'COMMIT':
+                if not append_seen_so_far:
+                    violations[idx] = 'BAD_COMMIT_ORDER'
+                    break
+                commit_terms.append(term)
+        if idx in violations:
+            continue
+        if not append_terms:
+            winning_term = None
+        else:
+            max_term = max(t for t, _ in append_terms)
+            max_data_set = {d for t, d in append_terms if t == max_term}
+            if len(max_data_set) > 1:
+                violations[idx] = 'BAD_CONFLICT'
+            winning_term = max_term
+        if idx not in violations and winning_term is not None:
+            for ct in commit_terms:
+                if ct != winning_term:
+                    violations[idx] = 'BAD_COMMIT_ORDER'
+                    break
+        if winning_term is not None:
+            if not commit_terms or any(ct != winning_term for ct in commit_terms):
+                need_repair.append((idx, winning_term))
+    bad_lines = sorted([f"BAD {idx} {reason}" for idx, reason in violations.items()])
+    unique_repairs = {}
+    for idx, term in need_repair:
+        unique_repairs[idx] = (term, idx)
+    ins_lines = sorted([f"INS {term} {idx} COMMIT" for idx, (term, _) in unique_repairs.items()], key=lambda x: (int(x.split()[2]), int(x.split()[1])))
+    if not bad_lines and not ins_lines:
+        return "OK"
+    return "\n".join(bad_lines + ins_lines)
+EOF
+[?2004h>             continue
+[?2004l[?2004h>         parts = stripped.split()
+[?2004l[?2004h>         if len(parts) not in (4, 5):
+[?2004l[?2004h>             break
+[?2004l[?2004h>         try:
+[?2004l[?2004h>             term = int(parts[0])
+[?2004l[?2004h>             if term < 0:
+[?2004l[?2004h>                 raise ValueError
+[?2004l[?2004h>             idx = int(parts[1])
+[?2004l[?2004h>             if idx < 1:
+[?2004l[?2004h>                 raise ValueError
+[?2004l[?2004h>             node = parts[2]
+[?2004l[?2004h>             if not node_re.fullmatch(node):
+[?2004l[?2004h>                 raise ValueError
+[?2004l[?2004h>             op = parts[3]
+[?2004l[?2004h>             if op not in ('VOTE', 'APPEND', 'COMMIT', 'LEADER'):
+[?2004l[?2004h>                 raise ValueError
+[?2004l[?2004h>             if op in ('VOTE', 'COMMIT', 'LEADER') and len(parts) != 4:
+[?2004l[?2004h>                 raise ValueError
+[?2004l[?2004h>             if op == 'APPEND' and len(parts) != 5:
+[?2004l[?2004h>                 raise ValueError
+[?2004l[?2004h>         except ValueError:
+[?2004l[?2004h>             break
+[?2004l[?2004h>         data = parts[4] if op == 'APPEND' else None
+[?2004l[?2004h>         if any(e.term == term and e.node == node and e.op == op and e.data == data for e in entries):
+[?2004l[?2004h>             continue
+[?2004l[?2004h>         entries.append((term, idx, node, op, data))
+[?2004l[?2004h>     by_idx = defaultdict(list)
+[?2004l[?2004h>     for e in entries:
+[?2004l[?2004h>         by_idx[e[1]].append(e)
+[?2004l[?2004h>     sorted_indices = sorted(by_idx.keys())
+[?2004l[?2004h>     violations = {}
+[?2004l[?2004h>     need_repair = []
+[?2004l[?2004h>     global_votes = set()
+[?2004l[?2004h>     leader_terms_seen = set()
+[?2004l[?2004h>     for idx in sorted_indices:
+[?2004l[?2004h>         evs = by_idx[idx]
+[?2004l[?2004h>         prev_term = -1
+[?2004l[?2004h>         for ev in evs:
+[?2004l[?2004h>             term = ev[0]
+[?2004l[?2004h>             if term < prev_term:
+[?2004l[?2004h>                 violations[idx] = 'BAD_TERM_REGRESSION'
+[?2004l[?2004h>                 break
+[?2004l[?2004h>             prev_term = term
+[?2004l[?2004h>         if idx in violations:
+[?2004l[?2004h>             continue
+[?2004l[?2004h>         append_terms = []
+[?2004l[?2004h>         commit_terms = []
+[?2004l[?2004h>         append_seen_so_far = False
+[?2004l[?2004h>         for ev in evs:
+[?2004l[?2004h>             term, node, op, data = ev[0], ev[2], ev[3], ev[4]
+[?2004l[?2004h>             if op == 'VOTE':
+[?2004l[?2004h>                 if (node, term) in global_votes:
+[?2004l[?2004h>                     violations[idx] = 'BAD_DUPLICATE_VOTE'
+[?2004l[?2004h>                     break
+[?2004l[?2004h>                 global_votes.add((node, term))
+[?2004l[?2004h>             elif op == 'LEADER':
+[?2004l[?2004h>                 if term in leader_terms_seen:
+[?2004l[?2004h>                     violations[idx] = 'BAD_LEADER_ORDER'
+[?2004l[?2004h>                     break
+[?2004l[?2004h>                 leader_terms_seen.add(term)
+[?2004l[?2004h>             elif op == 'APPEND':
+[?2004l[?2004h>                 append_terms.append((term, data))
+[?2004l[?2004h>                 append_seen_so_far = True
+[?2004l[?2004h>             elif op == 'COMMIT':
+[?2004l[?2004h>                 if not append_seen_so_far:
+[?2004l[?2004h>                     violations[idx] = 'BAD_COMMIT_ORDER'
+[?2004l[?2004h>                     break
+[?2004l[?2004h>                 commit_terms.append(term)
+[?2004l[?2004h>         if idx in violations:
+[?2004l[?2004h>             continue
+[?2004l[?2004h>         if not append_terms:
+[?2004l[?2004h>             winning_term = None
+[?2004l[?2004h>         else:
+[?2004l[?2004h>             max_term = max(t for t, _ in append_terms)
+[?2004l[?2004h>             max_data_set = {d for t, d in append_terms if t == max_term}
+[?2004l[?2004h>             if len(max_data_set) > 1:
+[?2004l[?2004h>                 violations[idx] = 'BAD_CONFLICT'
+[?2004l[?2004h>             winning_term = max_term
+[?2004l[?2004h>         if idx not in violations and winning_term is not None:
+[?2004l[?2004h>             for ct in commit_terms:
+[?2004l[?2004h>                 if ct != winning_term:
+[?2004l[?2004h>                     violations[idx] = 'BAD_COMMIT_ORDER'
+[?2004l[?2004h>                     break
+[?2004l[?2004h>         if winning_term is not None:
+[?2004l[?2004h>             if not commit_terms or any(ct != winning_term for ct in commit_terms):
+[?2004l[?2004h>                 need_repair.append((idx, winning_term))
+[?2004l[?2004h>     bad_lines = sorted([f"BAD {idx} {reason}" for idx, reason in violations.items()])
+[?2004l[?2004h>     unique_repairs = {}
+[?2004l[?2004h>     for idx, term in need_repair:
+[?2004l[?2004h>         unique_repairs[idx] = (term, idx)
+[?2004l[?2004h>     ins_lines = sorted([f"INS {term} {idx} COMMIT" for idx, (term, _) in unique_repairs.items()], key=lambda x: (int(x.split()[2]), int(x.split()[1])))
+[?2004l[?2004h>     if not bad_lines and not ins_lines:
+[?2004l[?2004h>         return "OK"
+[?2004l[?2004h>     return "\n".join(bad_lines + ins_lines)
+[?2004l[?2004h> EOF
+[?2004l[?2004hroot@bdc4553eea9d:/app# 

@@ -1,0 +1,767 @@
+[?2004hroot@1fe2173fccbd:/app/src# asciinema rec --stdin /logs/agent/recording.cast
+[?2004l[0;32masciinema: recording asciicast to /logs/agent/recording.cast[0m
+[0;32masciinema: press <ctrl-d> or type "exit" when you're done[0m
+[?2004hroot@1fe2173fccbd:/app/src# clear
+[?2004l[H[J[3J[?2004hroot@1fe2173fccbd:/app/src# ls -R /app
+[?2004l/app:
+src
+
+/app/src:
+config	main.py
+
+/app/src/config:
+config.yaml
+[?2004hroot@1fe2173fccbd:/app/src# cat /app/src/config/config.yaml
+[?2004ldefaults:
+  - _self_
+
+notes: my-experiment
+
+debug: false
+train:
+  batch_size: 32
+  learning_rate: 1e-5
+  max_num_epochs: 100
+[?2004hroot@1fe2173fccbd:/app/src# pip install "git+https://github.com/facebookresearch/hydra.git@v1.3.0#subdirectory=plugins/hydra_submitit_launcher"
+[?2004lCollecting git+https://github.com/facebookresearch/hydra.git@v1.3.0#subdirectory=plugins/hydra_submitit_launcher
+  Cloning https://github.com/facebookresearch/hydra.git (to revision v1.3.0) to /tmp/pip-req-build-6kbs_em8
+  Running command git clone --filter=blob:none --quiet https://github.com/facebookresearch/hydra.git /tmp/pip-req-build-6kbs_em8
+  Running command git checkout -q 273ce9c6e1bd54cfb0b594a4a924a4d3c9b5425f
+  Resolved https://github.com/facebookresearch/hydra.git to commit 273ce9c6e1bd54cfb0b594a4a924a4d3c9b5425f
+  Installing build dependencies ... [?25l- \ | done
+[?25h  Getting requirements to build wheel ... [?25l- done
+[?25h  Preparing metadata (pyproject.toml) ... [?25l- done
+[?25hRequirement already satisfied: hydra-core>=1.1.0.dev7 in /usr/local/lib/python3.13/site-packages (from hydra-submitit-launcher==1.3.0.dev0) (1.3.0)
+Collecting submitit>=1.3.3 (from hydra-submitit-launcher==1.3.0.dev0)
+  Downloading submitit-1.5.4-py3-none-any.whl.metadata (7.4 kB)
+Requirement already satisfied: omegaconf~=2.2 in /usr/local/lib/python3.13/site-packages (from hydra-core>=1.1.0.dev7->hydra-submitit-launcher==1.3.0.dev0) (2.3.0)
+Requirement already satisfied: antlr4-python3-runtime==4.9.* in /usr/local/lib/python3.13/site-packages (from hydra-core>=1.1.0.dev7->hydra-submitit-launcher==1.3.0.dev0) (4.9.3)
+Requirement already satisfied: packaging in /usr/local/lib/python3.13/site-packages (from hydra-core>=1.1.0.dev7->hydra-submitit-launcher==1.3.0.dev0) (26.0)
+Requirement already satisfied: PyYAML>=5.1.0 in /usr/local/lib/python3.13/site-packages (from omegaconf~=2.2->hydra-core>=1.1.0.dev7->hydra-submitit-launcher==1.3.0.dev0) (6.0.3)
+Collecting cloudpickle>=1.2.1 (from submitit>=1.3.3->hydra-submitit-launcher==1.3.0.dev0)
+  Downloading cloudpickle-3.1.2-py3-none-any.whl.metadata (7.1 kB)
+Collecting typing_extensions>=3.7.4.2 (from submitit>=1.3.3->hydra-submitit-launcher==1.3.0.dev0)
+  Downloading typing_extensions-4.15.0-py3-none-any.whl.metadata (3.3 kB)
+Downloading submitit-1.5.4-py3-none-any.whl (76 kB)
+Downloading cloudpickle-3.1.2-py3-none-any.whl (22 kB)
+Downloading typing_extensions-4.15.0-py3-none-any.whl (44 kB)
+Building wheels for collected packages: hydra-submitit-launcher
+  Building wheel for hydra-submitit-launcher (pyproject.toml) ... [?25l- done
+[?25h  Created wheel for hydra-submitit-launcher: filename=hydra_submitit_launcher-1.3.0.dev0-py3-none-any.whl size=5535 sha256=0fe8d4a2df4aba436212e9e4bb92a3a01c3b2d83da9ce2f3218d9dfd6f0c903e
+  Stored in directory: /tmp/pip-ephem-wheel-cache-vs4qymxp/wheels/96/8f/bd/2050e89f3ab5829e1ef61b765bbd4695f8608389affdd1ab8e
+Successfully built hydra-submitit-launcher
+Installing collected packages: typing_extensions, cloudpickle, submitit, hydra-submitit-launcher
+[?25l[2K   [38;5;70m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m [32m4/4[0m [hydra-submitit-launcher]
+[?25h[1A[2KSuccessfully installed cloudpickle-3.1.2 hydra-submitit-launcher-1.3.0.dev0 submitit-1.5.4 typing_extensions-4.15.0
+[33mWARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager, possibly rendering your system unusable. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv. Use the --root-user-action option if you know what you are doing and want to suppress this warning.[0m[33m
+[0m[?2004hroot@1fe2173fccbd:/app/src# mkdir -p /app/src/config/mode
+[?2004l[?2004hroot@1fe2173fccbd:/app/src# cat <<'EOF' > /app/src/config/mode/debug.yaml
+[?2004l[?2004h> debug: true
+[?2004l[?2004h> train:
+[?2004l[?2004h>   max_num_epochs: 1
+[?2004l[?2004h> EOF
+[?2004l[?2004hroot@1fe2173fccbd:/app/src# cat <<'EOF' > /app/src/config/slurm.yaml
+[?2004l[?2004h> hydra:
+[?2004l[?2004h>   launcher:
+[?2004l[?2004h>     _target_: hydra_plugins.hydra_submitit_launcher.submitit_launcher.SlurmLauncher
+[?2004l[?2004h>     additional_parameters:
+[?2004l[?2004h>       wckey: ''
+[?2004l[?2004h>     srun_args:
+[?2004l[?2004h>       - --cpu-bind=none
+[?2004l[?2004h> EOF
+[?2004l[?2004hroot@1fe2173fccbd:/app/src# python /app/src/main.py +mode=debug --cfg job
+[?2004lnotes: my-experiment
+debug: false
+train:
+  batch_size: 32
+  learning_rate: 1.0e-05
+  max_num_epochs: 100
+mode:
+  debug: true
+  train:
+    max_num_epochs: 1
+[?2004hroot@1fe2173fccbd:/app/src# python /app/src/main.py -cn=slurm --cfg job
+[?2004lIn 'slurm': ConfigKeyError raised while composing config:
+Key 'additional_parameters' not in 'BasicLauncherConf'
+    full_key: hydra.launcher.additional_parameters
+    object_type=BasicLauncherConf
+
+Set the environment variable HYDRA_FULL_ERROR=1 for a complete stack trace.
+[?2004hroot@1fe2173fccbd:/app/src# python /app/src/main.py -cn=slurm --cfg hydra
+[?2004lIn 'slurm': ConfigKeyError raised while composing config:
+Key 'additional_parameters' not in 'BasicLauncherConf'
+    full_key: hydra.launcher.additional_parameters
+    object_type=BasicLauncherConf
+
+Set the environment variable HYDRA_FULL_ERROR=1 for a complete stack trace.
+[?2004hroot@1fe2173fccbd:/app/src# python /app/src/main.py --cfg job
+[?2004lnotes: my-experiment
+debug: false
+train:
+  batch_size: 32
+  learning_rate: 1.0e-05
+  max_num_epochs: 100
+[?2004hroot@1fe2173fccbd:/app/src# cat <<'EOF' > /app/src/config/mode/debug.yaml
+[?2004l[?2004h> _self_:
+[?2004l[?2004h>   debug: true
+[?2004l[?2004h>   train:
+[?2004l[?2004h>     max_num_epochs: 1
+[?2004l[?2004h> EOF
+[?2004l[?2004hroot@1fe2173fccbd:/app/src# cat <<'EOF' > /app/src/config/slurm.yaml
+[?2004l[?2004h> hydra:
+[?2004l[?2004h>   launcher:
+[?2004l[?2004h>     _target_: hydra_plugins.hydra_submitit_launcher.submitit_launcher.SlurmLauncher
+[?2004l[?2004h>     submitit_params:
+[?2004l[?2004h>       additional_parameters:
+[?2004l[?2004h>         wckey: ''
+[?2004l[?2004h>     srun_args:
+[?2004l[?2004h>       - --cpu-bind=none
+[?2004l[?2004h> EOF
+[?2004l[?2004hroot@1fe2173fccbd:/app/src# python /app/src/main.py +mode=debug --cfg job
+[?2004lnotes: my-experiment
+debug: false
+train:
+  batch_size: 32
+  learning_rate: 1.0e-05
+  max_num_epochs: 100
+mode:
+  _self_:
+    debug: true
+    train:
+      max_num_epochs: 1
+[?2004hroot@1fe2173fccbd:/app/src# python /app/src/main.py -cn=slurm --cfg job
+[?2004lIn 'slurm': ConfigKeyError raised while composing config:
+Key 'submitit_params' not in 'BasicLauncherConf'
+    full_key: hydra.launcher.submitit_params
+    object_type=BasicLauncherConf
+
+Set the environment variable HYDRA_FULL_ERROR=1 for a complete stack trace.
+[?2004hroot@1fe2173fccbd:/app/src# python /app/src/main.py -cn=slurm --cfg hydra
+[?2004lIn 'slurm': ConfigKeyError raised while composing config:
+Key 'submitit_params' not in 'BasicLauncherConf'
+    full_key: hydra.launcher.submitit_params
+    object_type=BasicLauncherConf
+
+Set the environment variable HYDRA_FULL_ERROR=1 for a complete stack trace.
+[?2004hroot@1fe2173fccbd:/app/src# cat <<'EOF' > /app/src/config/mode/debug.yaml
+[?2004l[?2004h> defaults: []
+[?2004l[?2004h> debug: true
+[?2004l[?2004h> train:
+[?2004l[?2004h>   max_num_epochs: 1
+[?2004l[?2004h> EOF
+[?2004l[?2004hroot@1fe2173fccbd:/app/src# python - <<'PY'
+[?2004l[?2004h> import inspect, textwrap, sys
+[?2004l[?2004h> from hydra_plugins.hydra_submitit_launcher.submitit_launcher import SlurmLauncher
+[?2004l[?2004h> from omegaconf import OmegaConf
+[?2004l[?2004h> cfg = OmegaConf.structured(SlurmLauncher)
+[?2004l[?2004h> print(OmegaConf.to_yaml(cfg))
+[?2004l[?2004h> PY
+[?2004lTraceback (most recent call last):
+  File [35m"<stdin>"[0m, line [35m4[0m, in [35m<module>[0m
+  File [35m"/usr/local/lib/python3.13/site-packages/omegaconf/omegaconf.py"[0m, line [35m125[0m, in [35mstructured[0m
+    return [31mOmegaConf.create[0m[1;31m(obj, parent, flags)[0m
+           [31m~~~~~~~~~~~~~~~~[0m[1;31m^^^^^^^^^^^^^^^^^^^^[0m
+  File [35m"/usr/local/lib/python3.13/site-packages/omegaconf/omegaconf.py"[0m, line [35m178[0m, in [35mcreate[0m
+    return [31mOmegaConf._create_impl[0m[1;31m([0m
+           [31m~~~~~~~~~~~~~~~~~~~~~~[0m[1;31m^[0m
+        [1;31mobj=obj,[0m
+        [1;31m^^^^^^^^[0m
+        [1;31mparent=parent,[0m
+        [1;31m^^^^^^^^^^^^^^[0m
+        [1;31mflags=flags,[0m
+        [1;31m^^^^^^^^^^^^[0m
+    [1;31m)[0m
+    [1;31m^[0m
+  File [35m"/usr/local/lib/python3.13/site-packages/omegaconf/omegaconf.py"[0m, line [35m900[0m, in [35m_create_impl[0m
+    [31mformat_and_raise[0m[1;31m(node=None, key=None, value=None, msg=str(e), cause=e)[0m
+    [31m~~~~~~~~~~~~~~~~[0m[1;31m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  File [35m"/usr/local/lib/python3.13/site-packages/omegaconf/_utils.py"[0m, line [35m899[0m, in [35mformat_and_raise[0m
+    [31m_raise[0m[1;31m(ex, cause)[0m
+    [31m~~~~~~[0m[1;31m^^^^^^^^^^^[0m
+  File [35m"/usr/local/lib/python3.13/site-packages/omegaconf/_utils.py"[0m, line [35m797[0m, in [35m_raise[0m
+    [1;31mraise ex.with_traceback(sys.exc_info()[2])[0m  # set env var OC_CAUSE=1 for full trace
+    [1;31m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  File [35m"/usr/local/lib/python3.13/site-packages/omegaconf/omegaconf.py"[0m, line [35m891[0m, in [35m_create_impl[0m
+    raise ValidationError(
+    ...<2 lines>...
+    )
+[1;35momegaconf.errors.ValidationError[0m: [35mInput class 'SlurmLauncher' is not a structured config. did you forget to decorate it as a dataclass?
+    full_key: 
+    object_type=None[0m
+[?2004hroot@1fe2173fccbd:/app/src# python - <<'PY'
+[?2004l[?2004h> import inspect, textwrap, sys
+[?2004l[?2004h> from hydra_plugins.hydra_submitit_launcher.submitit_launcher import SlurmLauncher
+[?2004l[?2004h> source = inspect.getsource(SlurmLauncher)
+[?2004l[?2004h> print(source)
+[?2004l[?2004h> PY
+[?2004lclass SlurmLauncher(BaseSubmititLauncher):
+    _EXECUTOR = "slurm"
+
+[?2004hroot@1fe2173fccbd:/app/src# python - <<'PY'
+[?2004l[?2004h> import inspect, sys
+[?2004l[?2004h> from hydra_plugins.hydra_submitit_launcher.submitit_launcher import BaseSubmititLauncher
+[?2004l[?2004h> print(inspect.getsource(BaseSubmititLauncher))
+[?2004l[?2004h> PY
+[?2004lclass BaseSubmititLauncher(Launcher):
+
+    _EXECUTOR = "abstract"
+
+    def __init__(self, **params: Any) -> None:
+        self.params = {}
+        for k, v in params.items():
+            if OmegaConf.is_config(v):
+                v = OmegaConf.to_container(v, resolve=True)
+            self.params[k] = v
+
+        self.config: Optional[DictConfig] = None
+        self.task_function: Optional[TaskFunction] = None
+        self.sweep_configs: Optional[TaskFunction] = None
+        self.hydra_context: Optional[HydraContext] = None
+
+    def setup(
+        self,
+        *,
+        hydra_context: HydraContext,
+        task_function: TaskFunction,
+        config: DictConfig,
+    ) -> None:
+        self.config = config
+        self.hydra_context = hydra_context
+        self.task_function = task_function
+
+    def __call__(
+        self,
+        sweep_overrides: List[str],
+        job_dir_key: str,
+        job_num: int,
+        job_id: str,
+        singleton_state: Dict[type, Singleton],
+    ) -> JobReturn:
+        # lazy import to ensure plugin discovery remains fast
+        import submitit
+
+        assert self.hydra_context is not None
+        assert self.config is not None
+        assert self.task_function is not None
+
+        Singleton.set_state(singleton_state)
+        setup_globals()
+        sweep_config = self.hydra_context.config_loader.load_sweep_config(
+            self.config, sweep_overrides
+        )
+
+        with open_dict(sweep_config.hydra.job) as job:
+            # Populate new job variables
+            job.id = submitit.JobEnvironment().job_id  # type: ignore
+            sweep_config.hydra.job.num = job_num
+
+        return run_job(
+            hydra_context=self.hydra_context,
+            task_function=self.task_function,
+            config=sweep_config,
+            job_dir_key=job_dir_key,
+            job_subdir_key="hydra.sweep.subdir",
+        )
+
+    def checkpoint(self, *args: Any, **kwargs: Any) -> Any:
+        """Resubmit the current callable at its current state with the same initial arguments."""
+        # lazy import to ensure plugin discovery remains fast
+        import submitit
+
+        return submitit.helpers.DelayedSubmission(self, *args, **kwargs)
+
+    def launch(
+        self, job_overrides: Sequence[Sequence[str]], initial_job_idx: int
+    ) -> Sequence[JobReturn]:
+        # lazy import to ensure plugin discovery remains fast
+        import submitit
+
+        assert self.config is not None
+
+        num_jobs = len(job_overrides)
+        assert num_jobs > 0
+        params = self.params
+        # build executor
+        init_params = {"folder": self.params["submitit_folder"]}
+        specific_init_keys = {"max_num_timeout"}
+
+        init_params.update(
+            **{
+                f"{self._EXECUTOR}_{x}": y
+                for x, y in params.items()
+                if x in specific_init_keys
+            }
+        )
+        init_keys = specific_init_keys | {"submitit_folder"}
+        executor = submitit.AutoExecutor(cluster=self._EXECUTOR, **init_params)
+
+        # specify resources/parameters
+        baseparams = set(OmegaConf.structured(BaseQueueConf).keys())
+        params = {
+            x if x in baseparams else f"{self._EXECUTOR}_{x}": y
+            for x, y in params.items()
+            if x not in init_keys
+        }
+        executor.update_parameters(**params)
+
+        log.info(
+            f"Submitit '{self._EXECUTOR}' sweep output dir : "
+            f"{self.config.hydra.sweep.dir}"
+        )
+        sweep_dir = Path(str(self.config.hydra.sweep.dir))
+        sweep_dir.mkdir(parents=True, exist_ok=True)
+        if "mode" in self.config.hydra.sweep:
+            mode = int(str(self.config.hydra.sweep.mode), 8)
+            os.chmod(sweep_dir, mode=mode)
+
+        job_params: List[Any] = []
+        for idx, overrides in enumerate(job_overrides):
+            idx = initial_job_idx + idx
+            lst = " ".join(filter_overrides(overrides))
+            log.info(f"\t#{idx} : {lst}")
+            job_params.append(
+                (
+                    list(overrides),
+                    "hydra.sweep.dir",
+                    idx,
+                    f"job_id_for_{idx}",
+                    Singleton.get_state(),
+                )
+            )
+
+        jobs = executor.map_array(self, *zip(*job_params))
+        return [j.results()[0] for j in jobs]
+
+[?2004hroot@1fe2173fccbd:/app/src# python - <<'PY'
+[?2004l[?2004h> from hydra.core.config_store import ConfigStore
+[?2004l[?2004h> cs = ConfigStore.instance()
+[?2004l[?2004h> # Retrieve the config node for the launcher group (usually 'hydra/launcher')
+[?2004l[?2004h> cfg = cs.get_config('hydra/launcher')
+[?2004l[?2004h> print(cfg)
+[?2004l[?2004h> PY
+[?2004lTraceback (most recent call last):
+  File [35m"<stdin>"[0m, line [35m4[0m, in [35m<module>[0m
+[1;35mAttributeError[0m: [35m'ConfigStore' object has no attribute 'get_config'[0m
+[?2004hroot@1fe2173fccbd:/app/src# python - <<'PY'
+[?2004l[?2004h> import inspect, sys
+[?2004l[?2004h> from hydra_plugins.hydra_submitit_launcher.submitit_launcher import BasicLauncherConf
+[?2004l[?2004h> print(inspect.getsource(BasicLauncherConf))
+[?2004l[?2004h> PY
+[?2004lTraceback (most recent call last):
+  File [35m"<stdin>"[0m, line [35m2[0m, in [35m<module>[0m
+[1;35mImportError[0m: [35mcannot import name 'BasicLauncherConf' from 'hydra_plugins.hydra_submitit_launcher.submitit_launcher' (/usr/local/lib/python3.13/site-packages/hydra_plugins/hydra_submitit_launcher/submitit_launcher.py)[0m
+[?2004hroot@1fe2173fccbd:/app/src# ls -R /usr/local/lib/python3.13/site-packages/hydra_plugins/hydra_submitit_launcher
+[?2004l/usr/local/lib/python3.13/site-packages/hydra_plugins/hydra_submitit_launcher:
+__init__.py  __pycache__  config.py  py.typed  submitit_launcher.py
+
+/usr/local/lib/python3.13/site-packages/hydra_plugins/hydra_submitit_launcher/__pycache__:
+__init__.cpython-313.pyc  config.cpython-313.pyc  submitit_launcher.cpython-313.pyc
+[?2004hroot@1fe2173fccbd:/app/src# cat /usr/local/lib/python3.13/site-packages/hydra_plugins/hydra_submitit_launcher/config.py
+[?2004l# Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved
+from dataclasses import dataclass, field
+from typing import Any, Dict, List, Optional
+
+from hydra.core.config_store import ConfigStore
+
+
+@dataclass
+class BaseQueueConf:
+    """Configuration shared by all executors"""
+
+    submitit_folder: str = "${hydra.sweep.dir}/.submitit/%j"
+
+    # maximum time for the job in minutes
+    timeout_min: int = 60
+    # number of cpus to use for each task
+    cpus_per_task: Optional[int] = None
+    # number of gpus to use on each node
+    gpus_per_node: Optional[int] = None
+    # number of tasks to spawn on each node
+    tasks_per_node: int = 1
+    # memory to reserve for the job on each node (in GB)
+    mem_gb: Optional[int] = None
+    # number of nodes to use for the job
+    nodes: int = 1
+    # name of the job
+    name: str = "${hydra.job.name}"
+    # redirect stderr to stdout
+    stderr_to_stdout: bool = False
+
+
+@dataclass
+class SlurmQueueConf(BaseQueueConf):
+    """Slurm configuration overrides and specific parameters"""
+
+    _target_: str = (
+        "hydra_plugins.hydra_submitit_launcher.submitit_launcher.SlurmLauncher"
+    )
+
+    # Params are used to configure sbatch, for more info check:
+    # https://github.com/facebookincubator/submitit/blob/master/submitit/slurm/slurm.py
+
+    # Following parameters are slurm specific
+    # More information: https://slurm.schedmd.com/sbatch.html
+    #
+    # slurm partition to use on the cluster
+    partition: Optional[str] = None
+    qos: Optional[str] = None
+    comment: Optional[str] = None
+    constraint: Optional[str] = None
+    exclude: Optional[str] = None
+    gres: Optional[str] = None
+    cpus_per_gpu: Optional[int] = None
+    gpus_per_task: Optional[int] = None
+    mem_per_gpu: Optional[str] = None
+    mem_per_cpu: Optional[str] = None
+    account: Optional[str] = None
+
+    # Following parameters are submitit specifics
+    #
+    # USR1 signal delay before timeout
+    signal_delay_s: int = 120
+    # Maximum number of retries on job timeout.
+    # Change this only after you confirmed your code can handle re-submission
+    # by properly resuming from the latest stored checkpoint.
+    # check the following for more info on slurm_max_num_timeout
+    # https://github.com/facebookincubator/submitit/blob/master/docs/checkpointing.md
+    max_num_timeout: int = 0
+    # Useful to add parameters which are not currently available in the plugin.
+    # Eg: {"mail-user": "blublu@fb.com", "mail-type": "BEGIN"}
+    additional_parameters: Dict[str, Any] = field(default_factory=dict)
+    # Maximum number of jobs running in parallel
+    array_parallelism: int = 256
+    # A list of commands to run in sbatch befure running srun
+    setup: Optional[List[str]] = None
+    # Any additional arguments that should be passed to srun
+    srun_args: Optional[List[str]] = None
+
+
+@dataclass
+class LocalQueueConf(BaseQueueConf):
+    _target_: str = (
+        "hydra_plugins.hydra_submitit_launcher.submitit_launcher.LocalLauncher"
+    )
+
+
+# finally, register two different choices:
+ConfigStore.instance().store(
+    group="hydra/launcher",
+    name="submitit_local",
+    node=LocalQueueConf(),
+    provider="submitit_launcher",
+)
+
+
+ConfigStore.instance().store(
+    group="hydra/launcher",
+    name="submitit_slurm",
+    node=SlurmQueueConf(),
+    provider="submitit_launcher",
+)
+[?2004hroot@1fe2173fccbd:/app/src# cat <<'EOF' > /app/src/config/mode/debug.yaml
+[?2004l[?2004h> _self_:
+[?2004l[?2004h>   debug: true
+[?2004l[?2004h>   train:
+[?2004l[?2004h>     max_num_epochs: 1
+[?2004l[?2004h> EOF
+[?2004l[?2004hroot@1fe2173fccbd:/app/src# cat <<'EOF' > /app/src/config/slurm.yaml
+[?2004l[?2004h> defaults:
+[?2004l[?2004h>   - hydra/launcher=submitit_slurm
+[?2004l[?2004h> hydra:
+[?2004l[?2004h>   launcher:
+[?2004l[?2004h>     additional_parameters:
+[?2004l[?2004h>       wckey: ''
+[?2004l[?2004h>     srun_args:
+[?2004l[?2004h>       - --cpu-bind=none
+[?2004l[?2004h> EOF
+[?2004l[?2004hroot@1fe2173fccbd:/app/src# python /app/src/main.py +mode=debug --cfg job
+[?2004lnotes: my-experiment
+debug: false
+train:
+  batch_size: 32
+  learning_rate: 1.0e-05
+  max_num_epochs: 100
+mode:
+  _self_:
+    debug: true
+    train:
+      max_num_epochs: 1
+[?2004hroot@1fe2173fccbd:/app/src# python /app/src/main.py -cn=slurm --cfg job
+[?2004l/usr/local/lib/python3.13/site-packages/hydra/_internal/defaults_list.py:251: UserWarning: In 'slurm': Defaults list is missing `_self_`. See https://hydra.cc/docs/1.2/upgrades/1.0_to_1.1/default_composition_order for more information
+  warnings.warn(msg, UserWarning)
+In 'slurm': Could not load 'hydra/launcher=submitit_slurm'.
+
+Config search path:
+	provider=hydra, path=pkg://hydra.conf
+	provider=main, path=file:///app/src/config
+	provider=schema, path=structured://
+
+Set the environment variable HYDRA_FULL_ERROR=1 for a complete stack trace.
+[?2004hroot@1fe2173fccbd:/app/src# python /app/src/main.py -cn=slurm --cfg hydra
+[?2004l/usr/local/lib/python3.13/site-packages/hydra/_internal/defaults_list.py:251: UserWarning: In 'slurm': Defaults list is missing `_self_`. See https://hydra.cc/docs/1.2/upgrades/1.0_to_1.1/default_composition_order for more information
+  warnings.warn(msg, UserWarning)
+In 'slurm': Could not load 'hydra/launcher=submitit_slurm'.
+
+Config search path:
+	provider=hydra, path=pkg://hydra.conf
+	provider=main, path=file:///app/src/config
+	provider=schema, path=structured://
+
+Set the environment variable HYDRA_FULL_ERROR=1 for a complete stack trace.
+[?2004hroot@1fe2173fccbd:/app/src# python /app/src/main.py --cfg job
+[?2004lnotes: my-experiment
+debug: false
+train:
+  batch_size: 32
+  learning_rate: 1.0e-05
+  max_num_epochs: 100
+[?2004hroot@1fe2173fccbd:/app/src# cat <<'EOF' > /app/src/config/mode/debug.yaml
+[?2004l[?2004h> defaults: []
+[?2004l[?2004h> _self_:
+[?2004l[?2004h>   debug: true
+[?2004l[?2004h>   train:
+[?2004l[?2004h>     max_num_epochs: 1
+[?2004l[?2004h> EOF
+[?2004l[?2004hroot@1fe2173fccbd:/app/src# cat <<'EOF' > /app/src/config/slurm.yaml
+[?2004l[?2004h> _self_:
+[?2004l[?2004h>   hydra:
+[?2004l[?2004h>     launcher:
+[?2004l[?2004h>       _target_: hydra_plugins.hydra_submitit_launcher.submitit_launcher.SlurmLauncher
+[?2004l[?2004h>       additional_parameters:
+[?2004l[?2004h>         wckey: ''
+[?2004l[?2004h>       srun_args:
+[?2004l[?2004h>         - --cpu-bind=none
+[?2004l[?2004h> EOF
+[?2004l[?2004hroot@1fe2173fccbd:/app/src# python /app/src/main.py +mode=debug --cfg job
+[?2004lnotes: my-experiment
+debug: false
+train:
+  batch_size: 32
+  learning_rate: 1.0e-05
+  max_num_epochs: 100
+mode:
+  _self_:
+    debug: true
+    train:
+      max_num_epochs: 1
+[?2004hroot@1fe2173fccbd:/app/src# python /app/src/main.py -cn=slurm --cfg job
+[?2004l_self_:
+  hydra:
+    launcher:
+      _target_: hydra_plugins.hydra_submitit_launcher.submitit_launcher.SlurmLauncher
+      additional_parameters:
+        wckey: ''
+      srun_args:
+      - --cpu-bind=none
+[?2004hroot@1fe2173fccbd:/app/src# python /app/src/main.py -cn=slurm --cfg hydra
+[?2004lhydra:
+  run:
+    dir: outputs/${now:%Y-%m-%d}/${now:%H-%M-%S}
+  sweep:
+    dir: multirun/${now:%Y-%m-%d}/${now:%H-%M-%S}
+    subdir: ${hydra.job.num}
+  launcher:
+    _target_: hydra._internal.core_plugins.basic_launcher.BasicLauncher
+  sweeper:
+    _target_: hydra._internal.core_plugins.basic_sweeper.BasicSweeper
+    max_batch_size: null
+    params: null
+  hydra_logging:
+    version: 1
+    formatters:
+      simple:
+        format: '[%(asctime)s][HYDRA] %(message)s'
+    handlers:
+      console:
+        class: logging.StreamHandler
+        formatter: simple
+        stream: ext://sys.stdout
+    root:
+      level: INFO
+      handlers:
+      - console
+    loggers:
+      logging_example:
+        level: DEBUG
+    disable_existing_loggers: false
+  job_logging:
+    version: 1
+    formatters:
+      simple:
+        format: '[%(asctime)s][%(name)s][%(levelname)s] - %(message)s'
+    handlers:
+      console:
+        class: logging.StreamHandler
+        formatter: simple
+        stream: ext://sys.stdout
+      file:
+        class: logging.FileHandler
+        formatter: simple
+        filename: ${hydra.runtime.output_dir}/${hydra.job.name}.log
+    root:
+      level: INFO
+      handlers:
+      - console
+      - file
+    disable_existing_loggers: false
+  env: {}
+  mode: null
+  searchpath: []
+  callbacks: {}
+  output_subdir: .hydra
+  overrides:
+    hydra: []
+    task: []
+  job:
+    name: main
+    chdir: null
+    override_dirname: ''
+    id: ???
+    num: ???
+    config_name: slurm
+    env_set: {}
+    env_copy: []
+    config:
+      override_dirname:
+        kv_sep: '='
+        item_sep: ','
+        exclude_keys: []
+  runtime:
+    version: 1.3.0
+    version_base: '1.3'
+    cwd: /app/src
+    config_sources:
+    - path: hydra.conf
+      schema: pkg
+      provider: hydra
+    - path: /app/src/config
+      schema: file
+      provider: main
+    - path: ''
+      schema: structured
+      provider: schema
+    output_dir: ???
+    choices:
+      hydra/env: default
+      hydra/callbacks: null
+      hydra/job_logging: default
+      hydra/hydra_logging: default
+      hydra/hydra_help: default
+      hydra/help: default
+      hydra/sweeper: basic
+      hydra/launcher: basic
+      hydra/output: default
+  verbose: false
+[?2004hroot@1fe2173fccbd:/app/src# python /app/src/main.py --cfg job
+[?2004lnotes: my-experiment
+debug: false
+train:
+  batch_size: 32
+  learning_rate: 1.0e-05
+  max_num_epochs: 100
+[?2004hroot@1fe2173fccbd:/app/src# cat <<'EOF' > /app/src/config/mode/debug.yaml
+[?2004l[?2004h> _self_: {}
+[?2004l[?2004h> debug: true
+[?2004l[?2004h> train:
+[?2004l[?2004h>   max_num_epochs: 1
+[?2004l[?2004h> EOF
+[?2004l[?2004hroot@1fe2173fccbd:/app/src# cat <<'EOF' > /app/src/config/slurm.yaml
+[?2004l[?2004h> defaults:
+[?2004l[?2004h>   - _self_
+[?2004l[?2004h>   - hydra/launcher=submitit_slurm
+[?2004l[?2004h> hydra:
+[?2004l[?2004h>   launcher:
+[?2004l[?2004h>     additional_parameters:
+[?2004l[?2004h>       wckey: ''
+[?2004l[?2004h>     srun_args:
+[?2004l[?2004h>       - --cpu-bind=none
+[?2004l[?2004h> EOF
+[?2004l[?2004hroot@1fe2173fccbd:/app/src# python /app/src/main.py +mode=debug --cfg job
+[?2004lnotes: my-experiment
+debug: false
+train:
+  batch_size: 32
+  learning_rate: 1.0e-05
+  max_num_epochs: 100
+mode:
+  _self_: {}
+  debug: true
+  train:
+    max_num_epochs: 1
+[?2004hroot@1fe2173fccbd:/app/src# python /app/src/main.py -cn=slurm --cfg job
+[?2004lIn 'slurm': Could not load 'hydra/launcher=submitit_slurm'.
+
+Config search path:
+	provider=hydra, path=pkg://hydra.conf
+	provider=main, path=file:///app/src/config
+	provider=schema, path=structured://
+
+Set the environment variable HYDRA_FULL_ERROR=1 for a complete stack trace.
+[?2004hroot@1fe2173fccbd:/app/src# python /app/src/main.py -cn=slurm --cfg hydra
+[?2004lIn 'slurm': Could not load 'hydra/launcher=submitit_slurm'.
+
+Config search path:
+	provider=hydra, path=pkg://hydra.conf
+	provider=main, path=file:///app/src/config
+	provider=schema, path=structured://
+
+Set the environment variable HYDRA_FULL_ERROR=1 for a complete stack trace.
+[?2004hroot@1fe2173fccbd:/app/src# python /app/src/main.py --cfg job
+[?2004lnotes: my-experiment
+debug: false
+train:
+  batch_size: 32
+  learning_rate: 1.0e-05
+  max_num_epochs: 100
+[?2004hroot@1fe2173fccbd:/app/src# cat <<'EOF' > /app/src/config/mode/debug.yaml
+[?2004l[?2004h> defaults:
+[?2004l[?2004h>   - _self_
+[?2004l[?2004h> debug: true
+[?2004l[?2004h> train:
+[?2004l[?2004h>   max_num_epochs: 1
+[?2004l[?2004h> EOF
+[?2004l[?2004hroot@1fe2173fccbd:/app/src# cat <<'EOF' > /app/src/config/slurm.yaml
+[?2004l[?2004h> defaults:
+[?2004l[?2004h>   - config.yaml
+[?2004l[?2004h>   - _self_
+[?2004l[?2004h> hydra:
+[?2004l[?2004h>   launcher:
+[?2004l[?2004h>     _target_: hydra_plugins.hydra_submitit_launcher.submitit_launcher.SlurmLauncher
+[?2004l[?2004h>     additional_parameters:
+[?2004l[?2004h>       wckey: ''
+[?2004l[?2004h>     srun_args:
+[?2004l[?2004h>       - --cpu-bind=none
+[?2004l[?2004h> EOF
+[?2004l[?2004hroot@1fe2173fccbd:/app/src# python /app/src/main.py +mode=debug --cfg job
+[?2004lnotes: my-experiment
+debug: false
+train:
+  batch_size: 32
+  learning_rate: 1.0e-05
+  max_num_epochs: 100
+mode:
+  debug: true
+  train:
+    max_num_epochs: 1
+[?2004hroot@1fe2173fccbd:/app/src# python /app/src/main.py -cn=slurm --cfg job
+[?2004lIn 'slurm': ConfigKeyError raised while composing config:
+Key 'additional_parameters' not in 'BasicLauncherConf'
+    full_key: hydra.launcher.additional_parameters
+    object_type=BasicLauncherConf
+
+Set the environment variable HYDRA_FULL_ERROR=1 for a complete stack trace.
+[?2004hroot@1fe2173fccbd:/app/src# python /app/src/main.py -cn=slurm --cfg hydra
+[?2004lIn 'slurm': ConfigKeyError raised while composing config:
+Key 'additional_parameters' not in 'BasicLauncherConf'
+    full_key: hydra.launcher.additional_parameters
+    object_type=BasicLauncherConf
+
+Set the environment variable HYDRA_FULL_ERROR=1 for a complete stack trace.
+[?2004hroot@1fe2173fccbd:/app/src# python /app/src/main.py --cfg job
+[?2004lnotes: my-experiment
+debug: false
+train:
+  batch_size: 32
+  learning_rate: 1.0e-05
+  max_num_epochs: 100
+[?2004hroot@1fe2173fccbd:/app/src# 

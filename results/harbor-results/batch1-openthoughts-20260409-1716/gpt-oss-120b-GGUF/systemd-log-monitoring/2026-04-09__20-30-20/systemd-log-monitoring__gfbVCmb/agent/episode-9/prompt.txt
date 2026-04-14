@@ -1,0 +1,20 @@
+New Terminal Output:
+
+root@3e9302d722d8:/opt/myapp# kill 1514 || true
+bash: kill: (1514) - No such process
+root@3e9302d722d8:/opt/myapp# rsyslogd -i /tmp/rsyslogd.pid
+root@3e9302d722d8:/opt/myapp# sleep 1
+root@3e9302d722d8:/opt/myapp# runuser -l myapp -c "/opt/myapp/app.py --log-level=INFO | logger -t myapp &"
+root@3e9302d722d8:/opt/myapp# sleep 5
+root@3e9302d722d8:/opt/myapp# cat /var/log/app_events.log | head -n 5
+root@3e9302d722d8:/opt/myapp# cat /var/log/app_errors.log | head -n 5
+root@3e9302d722d8:/opt/myapp# /usr/local/bin/check_service_health.sh
+{
+  "service": "myapp",
+  "time_window": "5 minutes",
+  "restarts": 0,
+  "errors": 0,
+  "restart_loop_detected": false,
+  "timestamp": "2026-04-10T02:36:35Z"
+}
+root@3e9302d722d8:/opt/myapp#

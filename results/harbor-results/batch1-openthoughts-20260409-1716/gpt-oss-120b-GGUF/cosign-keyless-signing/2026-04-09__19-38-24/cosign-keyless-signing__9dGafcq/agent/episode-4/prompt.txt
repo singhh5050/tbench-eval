@@ -1,0 +1,89 @@
+New Terminal Output:
+
+root@874732d32470:/app# cat > /app/sign_artifact.sh <<'EOS'
+> #!/usr/bin/env bash
+> set -euo pipefail
+>
+> if [[ $# -ne 2 ]]; then
+>   echo "Usage: $0 <artifact-path> <build-id>"
+>   exit 1
+> fi
+>
+> ARTIFACT="$1"
+> BUILD_ID="$2"
+> BASE_NAME="$(basename "$ARTIFACT")"
+>
+> # Verify artifact exists
+> if [[ ! -f "$ARTIFACT" ]]; then
+>   echo "Artifact not found: $ARTIFACT"
+>   exit 1
+> fi
+>
+> # Compute checksum
+> CHECKSUM=$(sha256sum "$ARTIFACT" | awk '{print $1}')
+>
+> # Directories
+> SIGNING_DIR="/app/signing"
+> SIGNED_DIR="/app/signed"
+> CA_DIR="/app/ca"
+>
+> # Ephemeral EC key (P‑256)
+> EPHEMERAL_KEY="$SIGNING_DIR/key_${BUILD_ID}.pem"
+> openssl ecparam -name prime256v1 -genkey -noout -out "$EPHEMERAL_KEY"
+>
+> # CSR for signing certificate
+> CSR="$SIGNING_DIR/csr_${BUILD_ID}.pem"
+> openssl req -new -key "$EPHEMERAL_KEY" -subj "/CN=build-${BUILD_ID},O=SecureBuild,C=US" -out "$CSR"
+>
+> # Create temporary extensions file for the signing certificate
+> EXTFILE=$(mktemp)
+> cat > "$EXTFILE" <<'EOT'
+> [ v3_sign ]
+> basicConstraints=critical,CA:FALSE
+> keyUsage=critical,digitalSignature
+> EOT
+>
+> # Signing certificate (valid 1 day)
+> CERT="$SIGNING_DIR/cert_${BUILD_ID}.pem"
+> openssl x509 -req -in "$CSR" -CA "$CA_DIR/intermediate-ca.pem" -CAkey "$CA_DIR/intermediate-ca-key.pem" -CAcreateserial \
+>   -days 1 -sha256 -extfile "$EXTFILE" -extensions v3_sign -out "$CERT"
+>
+> # Clean up the temporary extensions file
+> rm -f "$EXTFILE"
+>
+> # Sign the artifact
+> SIG_FILE="$SIGNED_DIR/${BASE_NAME}.sig"
+> openssl dgst -sha256 -sign "$EPHEMERAL_KEY" -out "$SIG_FILE" "$ARTIFACT"
+>
+> # Create provenance JSON
+> TIMESTAMP=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+> PROV_JSON="$SIGNED_DIR/${BASE_NAME}.provenance.json"
+> cat > "$PROV_JSON" <<JSON
+> {
+>   "buildID": "${BUILD_ID}",
+>   "artifact": "${BASE_NAME}",
+>   "sha256": "${CHECKSUM}",
+>   "signedAt": "${TIMESTAMP}",
+>   "signer": "build-${BUILD_ID}",
+>   "certificateChain": ["intermediate-ca", "root-ca"]
+> }
+> JSON
+>
+> # Sign provenance JSON
+> PROV_SIG="$SIGNED_DIR/${BASE_NAME}.provenance.sig"
+> openssl dgst -sha256 -sign "$EPHEMERAL_KEY" -out "$PROV_SIG" "$PROV_JSON"
+>
+> # Assemble certificate chain (signing cert + intermediate + root)
+> CHAIN_FILE="$SIGNED_DIR/${BASE_NAME}.chain.pem"
+> cat "$CERT" "$CA_DIR/intermediate-ca.pem" "$CA_DIR/root-ca.pem" > "$CHAIN_FILE"
+>
+> # Cleanup: delete private key and CSR
+> rm -f "$EPHEMERAL_KEY" "$CSR"
+> EOS
+root@874732d32470:/app# chmod +x /app/sign_artifact.sh
+root@874732d32470:/app# /app/sign_artifact.sh /app/artifacts/app.bin build-001
+Certificate request self-signature ok
+subject=CN=build-build-001,O=SecureBuild,C=US
+root@874732d32470:/app# /app/verify_artifact.sh /app/artifacts/app.bin
+VERIFICATION_PASSED
+root@874732d32470:/app#

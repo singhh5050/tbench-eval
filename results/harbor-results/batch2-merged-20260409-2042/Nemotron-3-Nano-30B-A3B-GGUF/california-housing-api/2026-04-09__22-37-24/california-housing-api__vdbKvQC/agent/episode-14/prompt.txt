@@ -1,0 +1,102 @@
+New Terminal Output:
+
+ModuleNotFoundError: No module named 'api'
+cat > /app/api/app.py << 'EOL'
+> from fastapi import FastAPI, HTTPException
+> from pydantic import BaseModel
+> import pickle
+> import numpy as np
+> import uvicorn
+>
+> # Load the best model at startup
+> with open('/app/models/best_model.pkl', 'rb') as f:
+>     best_model = pickle.load(f)
+>
+> # Create FastAPI app
+> app = FastAPI()
+>
+> # Request models
+> class PredictRequest(BaseModel):
+>     features: list[float]
+>
+> class PredictBatchRequest(BaseModel):
+>     features_list: list[list[float]]
+>
+> class HealthResponse(BaseModel):
+>     status: str
+>     model_loaded: bool
+>
+> class ModelInfoResponse(BaseModel):
+>     model_name: str
+>     model_type: str
+>     features_count: int
+>
+> class PredictResponse(BaseModel):
+>     prediction: float
+>     model_name: str
+>
+> class PredictBatchResponse(BaseModel):
+>     predictions: list[float]
+>     model_name: str
+>     count: int
+>
+> @app.get('/health')
+> async def health():
+>     return {
+>         'status': 'healthy',
+>         'model_loaded': True
+>     }
+>
+> @app.get('/model-info')
+> async def model_info():
+>     return {
+>         'model_name': 'random_forest',
+>         'model_type': 'Random Forest Regressor',
+>         'features_count': 8
+>     }
+>
+> @app.post('/predict', response_model=PredictResponse)
+> async def predict(request: PredictRequest):
+>     if len(request.features) != 8:
+>         raise HTTPException(status_code=400, detail='Exactly 8 features required')
+>
+>     # Convert to numpy array and reshape for prediction
+>     input_array = np.array(request.features).reshape(1, -1)
+>     prediction = best_model.predict(input_array)[0]
+>
+>     return {
+>         'prediction': float(prediction),
+>         'model_name': 'random_forest'
+>     }
+>
+> @app.post('/predict-batch', response_model=PredictBatchResponse)
+> async def predict_batch(request: PredictBatchRequest):
+>     if not request.features_list:
+>         raise HTTPException(status_code=400, detail='Features list cannot be empty')
+>
+>     # Validate each sample has exactly 8 features
+>     for i, features in enumerate(request.features_list):
+>         if len(features) != 8:
+>             raise HTTPException(status_code=400, detail=f'Sample {i} must have exactly 8 features')
+>
+>     # Convert to numpy array
+>     input_array = np.array(request.features_list)
+>     predictions = best_model.predict(input_array).tolist()
+>
+>     return {
+>         'predictions': predictions,
+>         'model_name': 'random_forest',
+>         'count': len(predictions)
+>     }
+>
+> if __name__ == '__main__':
+>     uvicorn.run('app:app', host='0.0.0.0', port=8000, reload=False)
+> EOL
+[1]+  Exit 1                  python3 /app/api/app.py
+root@e65884aa2bb3:/app# python3 /app/api/app.py &
+[1] 873
+root@e65884aa2bb3:/app# INFO:     Started server process [873]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+

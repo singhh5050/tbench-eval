@@ -1,0 +1,236 @@
+New Terminal Output:
+
+root@1adde69d8662:/workdir# python3 << 'EOF'
+> from PIL import Image
+> import numpy as np
+> import os
+>
+> tiles_dir = '/workdir/data/tiles/'
+> tile_files = ['tile_001.png', 'tile_002.png', 'tile_003.png', 'tile_004.png']
+>
+> for tile_file in tile_files:
+>     path = os.path.join(tiles_dir, tile_file)
+>     img = Image.open(path)
+>     arr = np.array(img)
+>
+>     bg_color = arr[0, 0]
+>
+>     # Find foreground pixels (non-background)
+>     is_background = np.all(arr == bg_color, axis=2)
+>     fg_pixels = np.argwhere(~is_background)
+>
+>     if len(fg_pixels) > 0:
+>         min_y, min_x = fg_pixels.min(axis=0)
+>         max_y, max_x = fg_pixels.max(axis=0)
+>
+>         print(f"{tile_file}:")
+>         print(f"  Number bounding box: ({min_x}, {min_y}) to ({max_x}, {max_y})")
+>         print(f"  Width: {max_x - min_x + 1}, Height: {max_y - min_y + 1}")
+>
+>         # Extract the number region
+>         number_arr = arr[min_y:max_y+1, min_x:max_x+1]
+>         print(f"  Region shape: {number_arr.shape}")
+>
+>         # Show a few sample pixels from the number region
+>         unique_vals = np.unique(number_arr.reshape(-1, 3), axis=0)
+>         print(f"  Number colors: {unique_vals}")
+>     print()
+> EOF
+tile_001.png:
+  Number bounding box: (95, 96) to (103, 107)
+  Width: 9, Height: 12
+  Region shape: (12, 9, 3)
+  Number colors: [[  0   0   0]
+ [  0   0   1]
+ [  0   0   2]
+ [  0   0   3]
+ [  0   0   4]
+ [  0   0   6]
+ [  0   0   8]
+ [  0   0   9]
+ [  0   0  10]
+ [  0   0  11]
+ [  0   0  14]
+ [  0   0  20]
+ [  0   0  22]
+ [  0   0  23]
+ [  0   0  24]
+ [  0   0  28]
+ [  0   0  35]
+ [  0   0  36]
+ [  0   0  48]
+ [  0   0  54]
+ [  0   0  56]
+ [  0   0  57]
+ [  0   0  82]
+ [  0   0  83]
+ [  0   0 123]
+ [  0   0 132]
+ [  0   0 180]
+ [  0   0 215]
+ [  0   0 225]
+ [  0   0 245]
+ [  3   3   3]
+ [  4   4   4]
+ [  6   6   6]
+ [ 10  10  15]
+ [ 17  17  19]
+ [ 25  25  25]
+ [ 30  30  32]
+ [ 40  40  40]
+ [ 61  61  61]
+ [ 67  67  67]
+ [ 68  68  68]
+ [ 75  75  75]
+ [ 79  79  79]
+ [ 84  84  84]
+ [116 116 116]
+ [118 118 120]
+ [147 147 147]
+ [162 162 162]
+ [162 162 163]
+ [163 163 163]
+ [169 169 170]
+ [187 187 187]
+ [191 191 191]
+ [192 192 192]
+ [193 193 193]
+ [198 198 198]
+ [205 205 205]
+ [219 219 219]
+ [224 224 224]
+ [237 237 237]
+ [245 245 245]]
+
+tile_002.png:
+  Number bounding box: (96, 96) to (102, 107)
+  Width: 7, Height: 12
+  Region shape: (12, 7, 3)
+  Number colors: [[  0   0   0]
+ [  1   0   0]
+ [  5   0   0]
+ [ 11   0   0]
+ [ 12   0   0]
+ [ 14   0   0]
+ [ 15   0   0]
+ [ 16  16  16]
+ [ 24  24  24]
+ [ 31   0   0]
+ [ 51   0   0]
+ [ 54   0   0]
+ [ 56   0   0]
+ [ 89   0   0]
+ [109 109 109]
+ [160 160 160]
+ [195 195 195]
+ [231   0   0]
+ [239   0   0]
+ [240 240 240]
+ [241 241 241]
+ [255   0   0]]
+
+tile_003.png:
+  Number bounding box: (95, 96) to (104, 107)
+  Width: 10, Height: 12
+  Region shape: (12, 10, 3)
+  Number colors: [[  0   0   0]
+ [  1   1   0]
+ [  2   2   0]
+ [  5   5   0]
+ [  6   6   0]
+ [  7   7   7]
+ [  8   8   0]
+ [ 10  10   0]
+ [ 13  13  13]
+ [ 15  15   0]
+ [ 24  24   0]
+ [ 26  26  26]
+ [ 27  27   0]
+ [ 38  38   0]
+ [ 41  41   0]
+ [ 60  60  60]
+ [ 74  74  74]
+ [ 86  86  86]
+ [ 91  91  90]
+ [ 93  93   0]
+ [101 101   0]
+ [149 149 149]
+ [160 160   0]
+ [162 162 162]
+ [165 165   0]
+ [175 175 175]
+ [181 181   0]
+ [192 192 192]
+ [195 195   0]
+ [198 198 198]
+ [200 200 200]
+ [213 213 213]
+ [240 240 240]
+ [242 242   0]
+ [242 242 242]
+ [247 247 247]
+ [248 248   0]
+ [252 252 252]
+ [255 255   0]]
+
+tile_004.png:
+  Number bounding box: (96, 92) to (104, 103)
+  Width: 9, Height: 12
+  Region shape: (12, 9, 3)
+  Number colors: [[  0   0   0]
+ [  0   1   0]
+ [  0   2   0]
+ [  0   3   0]
+ [  0   4   0]
+ [  0   5   0]
+ [  0   6   0]
+ [  0   7   0]
+ [  0   8   0]
+ [  0  15   0]
+ [  0  19   0]
+ [  0  27   0]
+ [  0  29   0]
+ [  0  30   0]
+ [  0  34   0]
+ [  0  35   0]
+ [  0  37   0]
+ [  0  44   0]
+ [  0  69   0]
+ [  0  75   0]
+ [  0 157   0]
+ [  0 158   0]
+ [  0 185   0]
+ [  0 197   0]
+ [  0 214   0]
+ [  0 234   0]
+ [  0 255   0]
+ [  1   1   1]
+ [  2   2   2]
+ [ 11  11  11]
+ [ 12  12  12]
+ [ 21  21  21]
+ [ 21  26  21]
+ [ 35  35  35]
+ [ 40  40  40]
+ [ 40  44  40]
+ [ 55  55  55]
+ [ 70  70  70]
+ [ 85  85  85]
+ [ 89  89  89]
+ [ 95  95  95]
+ [ 97  97  97]
+ [ 98  99  98]
+ [157 157 157]
+ [173 173 173]
+ [180 181 180]
+ [192 192 192]
+ [193 193 193]
+ [195 195 195]
+ [204 204 204]
+ [208 208 208]
+ [212 212 212]
+ [215 215 215]
+ [234 234 234]
+ [244 244 244]]
+
+root@1adde69d8662:/workdir#

@@ -1,0 +1,85 @@
+New Terminal Output:
+
+root@b05171444938:/app# cat /app/src/activation.py
+import numpy as np
+from .base import BaseLayer
+
+
+class ReLU(BaseLayer):
+    """Rectified Linear Unit activation function."""
+
+    def __init__(self):
+        super().__init__()
+
+    def forward(self, x: np.ndarray) -> np.ndarray:
+        """
+        Args:
+            x: input array of any shape, dtype float64
+
+        Returns:
+            output of same shape, dtype float64
+            Formula: max(0, x)
+        """
+        return np.maximum(0, x).astype(np.float64)
+
+
+class LeakyReLU(BaseLayer):
+    """Leaky Rectified Linear Unit activation function."""
+
+    def __init__(self, negative_slope: float = 0.01):
+        """
+        Args:
+            negative_slope: slope for negative values (default 0.01)
+        """
+        super().__init__()
+        self.negative_slope = negative_slope
+
+    def forward(self, x: np.ndarray) -> np.ndarray:
+        """
+        Args:
+            x: input array of any shape, dtype float64
+
+        Returns:
+            output of same shape, dtype float64
+            Formula: x if x > 0 else negative_slope * x
+        """
+        return np.where(x > 0, x, self.negative_slope * x).astype(np.float64)
+
+
+class Sigmoid(BaseLayer):
+    """Sigmoid activation function."""
+
+    def __init__(self):
+        super().__init__()
+
+    def forward(self, x: np.ndarray) -> np.ndarray:
+        """
+        Args:
+            x: input array of any shape, dtype float64
+
+        Returns:
+            output of same shape, dtype float64
+            Formula: 1 / (1 + exp(-x))
+            Numerically stable for large positive/negative values
+        """
+        # Numerically stable sigmoid
+        # For positive x: 1 / (1 + exp(-x))
+        # For negative x: exp(x) / (1 + exp(x))
+        positive_mask = x >= 0
+        negative_mask = ~positive_mask
+
+        result = np.zeros_like(x, dtype=np.float64)
+
+        # For positive values
+        pos_x = x[positive_mask]
+        result[positive_mask] = 1.0 / (1.0 + np.exp(-pos_x))
+
+        # For negative values
+        neg_x = x[negative_mask]
+        exp_x = np.exp(neg_x)
+        result[negative_mask] = exp_x / (1.0 + exp_x)
+
+        return result
+root@b05171444938:/app# python3 -c "from src import *; print('Import successful')"
+Import successful
+root@b05171444938:/app#

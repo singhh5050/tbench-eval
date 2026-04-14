@@ -1,0 +1,62 @@
+New Terminal Output:
+
+root@1fe2173fccbd:/app/src# cat <<'EOF' > /app/src/config/mode/debug.yaml
+> _self_:
+>   debug: true
+>   train:
+>     max_num_epochs: 1
+> EOF
+root@1fe2173fccbd:/app/src# cat <<'EOF' > /app/src/config/slurm.yaml
+> defaults:
+>   - hydra/launcher=submitit_slurm
+> hydra:
+>   launcher:
+>     additional_parameters:
+>       wckey: ''
+>     srun_args:
+>       - --cpu-bind=none
+> EOF
+root@1fe2173fccbd:/app/src# python /app/src/main.py +mode=debug --cfg job
+notes: my-experiment
+debug: false
+train:
+  batch_size: 32
+  learning_rate: 1.0e-05
+  max_num_epochs: 100
+mode:
+  _self_:
+    debug: true
+    train:
+      max_num_epochs: 1
+root@1fe2173fccbd:/app/src# python /app/src/main.py -cn=slurm --cfg job
+/usr/local/lib/python3.13/site-packages/hydra/_internal/defaults_list.py:251: UserWarning: In 'slurm': Defaults list is missing `_self_`. See https://hydra.cc/d
+ocs/1.2/upgrades/1.0_to_1.1/default_composition_order for more information
+  warnings.warn(msg, UserWarning)
+In 'slurm': Could not load 'hydra/launcher=submitit_slurm'.
+
+Config search path:
+        provider=hydra, path=pkg://hydra.conf
+        provider=main, path=file:///app/src/config
+        provider=schema, path=structured://
+
+Set the environment variable HYDRA_FULL_ERROR=1 for a complete stack trace.
+root@1fe2173fccbd:/app/src# python /app/src/main.py -cn=slurm --cfg hydra
+/usr/local/lib/python3.13/site-packages/hydra/_internal/defaults_list.py:251: UserWarning: In 'slurm': Defaults list is missing `_self_`. See https://hydra.cc/d
+ocs/1.2/upgrades/1.0_to_1.1/default_composition_order for more information
+  warnings.warn(msg, UserWarning)
+In 'slurm': Could not load 'hydra/launcher=submitit_slurm'.
+
+Config search path:
+        provider=hydra, path=pkg://hydra.conf
+        provider=main, path=file:///app/src/config
+        provider=schema, path=structured://
+
+Set the environment variable HYDRA_FULL_ERROR=1 for a complete stack trace.
+root@1fe2173fccbd:/app/src# python /app/src/main.py --cfg job
+notes: my-experiment
+debug: false
+train:
+  batch_size: 32
+  learning_rate: 1.0e-05
+  max_num_epochs: 100
+root@1fe2173fccbd:/app/src#

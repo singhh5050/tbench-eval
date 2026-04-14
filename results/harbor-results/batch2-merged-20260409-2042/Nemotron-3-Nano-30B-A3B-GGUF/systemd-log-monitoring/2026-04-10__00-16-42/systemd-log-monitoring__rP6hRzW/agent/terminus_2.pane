@@ -1,0 +1,169 @@
+[?2004hroot@a50e1f4425c3:/opt/myapp# asciinema rec --stdin /logs/agent/recording.cast
+[?2004l[0;32masciinema: recording asciicast to /logs/agent/recording.cast[0m
+[0;32masciinema: press <ctrl-d> or type "exit" when you're done[0m
+[?2004hroot@a50e1f4425c3:/opt/myapp# clear
+[?2004l[H[J[3J[?2004hroot@a50e1f4425c3:/opt/myapp# mkdir -p /opt/myapp
+[?2004l[?2004hroot@a50e1f4425c3:/opt/myapp# cd /opt/myapp
+[?2004l[?2004hroot@a50e1f4425c3:/opt/myapp# cat > app.py << 'EOF'
+[?2004l[?2004h> #!/usr/bin/env python3
+[?2004l[?2004h> import argparse
+[?2004l[?2004h> import json
+[?2004l[?2004h> import logging
+[?2004l[?2004h> import sys
+[?2004l[?2004h> import datetime
+[?2004l[?2004h> 
+[?2004l[?2004h> # Parse command line arguments
+[?2004l[?2004h> parser = argparse.ArgumentParser()
+[?2004l[?2004h> parser.add_argument('--log-level', default='INFO', choices=['INFO', 'WARN', 'ERROR'])
+[?2004l[?2004h> args = parser.parse_args()
+[?2004l[?2004h> 
+[?2004l[?2004h> # Configure logger
+[?2004l[?2004h> logger = logging.getLogger()
+[?2004l[?2004h> logger.setLevel(args.log_level)
+[?2004l[?2004h> 
+[?2004l[?2004h> # Create formatter that outputs JSON
+[?2004l[?2004h> class JsonFormatter(logging.Formatter):
+[?2004l[?2004h>     def format(self, record):
+[?2004l[?2004h>         # Create standardized JSON structure
+[?2004l[?2004h>         log_entry = {
+[?2004l[?2004h>             "timestamp": datetime.datetime.utcnow().replace(microsecond=0).isoformat() + "Z",
+[?2004l[?2004h>             "level": args.log_level,
+[?2004l[?2004h>             "message": record.getMessage(),
+[?2004l[?2004h>             "service": "myapp"
+[?2004l[?2004h>         }
+[?2004l[?2004h>         return json.dumps(log_entry)
+[?2004l[?2004h> 
+[?2004l[?2004h> # Create handler that outputs to stdout
+[?2004l[?2004h> handler = logging.StreamHandler(sys.stdout)
+[?2004l[?2004h> formatter = JsonFormatter()
+[?2004l[?2004h> handler.setFormatter(formatter)
+[?2004l[?2004h> 
+[?2004l[?2004h> # Add handler to logger
+[?2004l[?2004h> logger.addHandler(handler)
+[?2004l[?2004h> 
+[?2004l[?2004h> # Log continuously at 10-second intervals
+[?2004l[?2004h> while True:
+[?2004l[?2004h>     logger.info("Service heartbeat - checking system health")
+[?2004l[?2004h>     # Also log WARN and ERROR messages if level is set appropriately
+[?2004l[?2004h>     if args.log_level == 'ERROR':
+[?2004l[?2004h>         logger.error("Simulated error condition for testing")
+[?2004l[?2004h>     elif args.log_level == 'WARN':
+[?2004l[?2004h>         logger.warning("Simulated warning condition for testing")
+[?2004l[?2004h>     elif args.log_level == 'INFO':
+[?2004l[?2004h>         logger.info("Service is running normally")
+[?2004l[?2004h>     elif args.log_level == 'DEBUG':
+[?2004l[?2004h>         logger.debug("Debug information for developers")
+[?2004l[?2004h>     
+[?2004l[?2004h>     sys.stdout.flush()
+[?2004l[?2004h>     time.sleep(10)
+[?2004l[?2004h> EOF
+[?2004l[?2004hroot@a50e1f4425c3:/opt/myapp# chmod +x app.py
+[?2004l[?2004hroot@a50e1f4425c3:/opt/myapp# groupadd myapp
+[?2004lgroupadd: group 'myapp' already exists
+[?2004hroot@a50e1f4425c3:/opt/myapp# useradd -r -s /usr/sbin/nologin -d /opt/myapp -g myapp myapp
+[?2004luseradd: user 'myapp' already exists
+[?2004hroot@a50e1f4425c3:/opt/myapp# chown -R myapp:myapp /opt/myapp
+[?2004l[?2004hroot@a50e1f4425c3:/opt/myapp# cat > app.py << 'EOF'
+[?2004l[?2004h> #!/usr/bin/env python3
+[?2004l[?2004h> import argparse
+[?2004l[?2004h> import json
+[?2004l[?2004h> import logging
+[?2004l[?2004h> import sys
+[?2004l[?2004h> import datetime
+[?2004l[?2004h> import time
+[?2004l[?2004h> 
+[?2004l[?2004h> # Parse command line arguments
+[?2004l[?2004h> parser = argparse.ArgumentParser()
+[?2004l[?2004h> parser.add_argument('--log-level', default='INFO', choices=['INFO', 'WARN', 'ERROR'])
+[?2004l[?2004h> args = parser.parse_args()
+[?2004l[?2004h> 
+[?2004l[?2004h> # Configure logger
+[?2004l[?2004h> logger = logging.getLogger()
+[?2004l[?2004h> logger.setLevel(args.log_level)
+[?2004l[?2004h> 
+[?2004l[?2004h> # Create formatter that outputs JSON
+[?2004l[?2004h> class JsonFormatter(logging.Formatter):
+[?2004l[?2004h>     def format(self, record):
+[?2004l[?2004h>         # Create standardized JSON structure
+[?2004l[?2004h>         log_entry = {
+[?2004l[?2004h>             "timestamp": datetime.datetime.utcnow().replace(microsecond=0).isoformat() + "Z",
+[?2004l[?2004h>             "level": args.log_level,
+[?2004l[?2004h>             "message": record.getMessage(),
+[?2004l[?2004h>             "service": "myapp"
+[?2004l[?2004h>         }
+[?2004l[?2004h>         return json.dumps(log_entry)
+[?2004l[?2004h> 
+[?2004l[?2004h> # Create handler that outputs to stdout
+[?2004l[?2004h> handler = logging.StreamHandler(sys.stdout)
+[?2004l[?2004h> formatter = JsonFormatter()
+[?2004l[?2004h> handler.setFormatter(formatter)
+[?2004l[?2004h> 
+[?2004l[?2004h> # Add handler to logger
+[?2004l[?2004h> logger.addHandler(handler)
+[?2004l[?2004h> 
+[?2004l[?2004h> # Log continuously at 10-second intervals
+[?2004l[?2004h> while True:
+[?2004l[?2004h>     logger.info("Service heartbeat - checking system health")
+[?2004l[?2004h>     # Also log WARN and ERROR messages if level is set appropriately
+[?2004l[?2004h>     if args.log_level == 'ERROR':
+[?2004l[?2004h>         logger.error("Simulated error condition for testing")
+[?2004l[?2004h>     elif args.log_level == 'WARN':
+[?2004l[?2004h>         logger.warning("Simulated warning condition for testing")
+[?2004l[?2004h>     elif args.log_level == 'INFO':
+[?2004l[?2004h>         logger.info("Service is running normally")
+[?2004l[?2004h>     elif args.log_level == 'DEBUG':
+[?2004l[?2004h>         logger.debug("Debug information for developers")
+[?2004l[?2004h>     
+[?2004l[?2004h>     sys.stdout.flush()
+[?2004l[?2004h>     time.sleep(10)
+[?2004l[?2004h> EOF
+[?2004l[?2004hroot@a50e1f4425c3:/opt/myapp# cat > /etc/systemd/system/myapp.service << 'EOF'
+[?2004l[?2004h> [Unit]
+[?2004l[?2004h> Description=My Application Service
+[?2004l[?2004h> After=network.target
+[?2004l[?2004h> 
+[?2004l[?2004h> [Service]
+[?2004l[?2004h> Type=simple
+[?2004l[?2004h> User=myapp
+[?2004l[?2004h> WorkingDirectory=/opt/myapp
+[?2004l[?2004h> ExecStart=/opt/myapp/app.py --log-level=INFO
+[?2004l[?2004h> Restart=on-failure
+[?2004l[?2004h> RestartSec=5
+[?2004l[?2004h> 
+[?2004l[?2004h> [Install]
+[?2004l[?2004h> WantedBy=multi-user.target
+[?2004l[?2004h> EOF
+[?2004l[?2004hroot@a50e1f4425c3:/opt/myapp# mkdir -p /etc/rsyslog.d
+[?2004l[?2004hroot@a50e1f4425c3:/opt/myapp# cat > /etc/rsyslog.d/50-myapp.conf << 'EOF'
+[?2004l[?2004h> # Filter for myapp program
+[?2004l[?2004h> if $programname == 'myapp' then
+[?2004l[?2004h>     /var/log/app_events.log
+[?2004l[?2004h>     stop
+[?2004l[?2004h> 
+[?2004l[?2004h> # Route ERROR level events to app_errors.log
+[?2004l[?2004h> if $programname == 'myapp' and $msg contains '"level":"ERROR"' then /var/log/app_errors.log
+[?2004l[?2004h> & stop
+[?2004l[?2004h> EOF
+[?2004l[?2004hroot@a50e1f4425c3:/opt/myapp# touch /var/log/app_events.log /var/log/app_errors.log
+[?2004l[?2004hroot@a50e1f4425c3:/opt/myapp# chown myapp:myapp /var/log/app_events.log /var/log/app_errors.log
+[?2004l[?2004hroot@a50e1f4425c3:/opt/myapp# chmod 644 /var/log/app_events.log /var/log/app_errors.log
+[?2004l[?2004hroot@a50e1f4425c3:/opt/myapp# systemctl start myapp.service
+[?2004lbash: systemctl: command not found
+[?2004hroot@a50e1f4425c3:/opt/myapp# systemctl status myapp.service --no-pager
+[?2004lbash: systemctl: command not found
+[?2004hroot@a50e1f4425c3:/opt/myapp# tail -f /var/log/app_events.log
+[?2004l/usr/local/bin/check_service_health.sh
+logrotate -d /etc/logrotate.d/myapp
+cat /etc/systemd/system/myapp.service
+cat /etc/rsyslog.d/50-myapp.conf
+cat /etc/logrotate.d/myapp
+cat /usr/local/bin/check_service_health.sh
+su - myapp -c "/opt/myapp/app.py --log-level=INFO & sleep 5; kill $?"
+cat /var/log/app_events.log
+cat /etc/systemd/system/myapp.service
+cat /etc/rsyslog.d/50-myapp.conf
+cat /etc/logrotate.d/myapp
+cat /usr/local/bin/check_service_health.sh
+su - myapp -c "/opt/myapp/app.py --log-level=INFO & sleep 3; kill $?"
+cat /var/log/app_events.log
+/usr/local/bin/check_service_health.sh

@@ -1,0 +1,436 @@
+[?2004hroot@cf0e6d7292d0:/app# asciinema rec --stdin /logs/agent/recording.cast
+[?2004l[0;32masciinema: recording asciicast to /logs/agent/recording.cast[0m
+[0;32masciinema: press <ctrl-d> or type "exit" when you're done[0m
+[?2004hroot@cf0e6d7292d0:/app# clear
+[?2004l[H[J[3J[?2004hroot@cf0e6d7292d0:/app# cat > /app/merkle_cli.py <<'PY'
+[?2004l[?2004h> #!/usr/bin/env python3
+[?2004l[?2004h> import argparse, os, json, hashlib, sys
+[?2004l[?2004h> 
+[?2004l[?2004h> def sha512_hex(data: bytes) -> str:
+[?2004l[?2004h>     return hashlib.sha512(data).hexdigest()
+[?2004l[?2004h> 
+[?2004l[?2004h> def compute_file_hash(path: str) -> str:
+[?2004l[?2004h>     h = hashlib.sha512()
+[?2004l[?2004h>     with open(path, 'rb') as f:
+[?2004l[?2004h>         while True:
+[?2004l[?2004h>             chunk = f.read(8192)
+[?2004l[?2004h>             if not chunk:
+[?2004l[?2004h>                 break
+[?2004l[?2004h>             h.update(chunk)
+[?2004l[?2004h>     return h.hexdigest()
+[?2004l[?2004h> 
+[?2004l[?2004h> def build_merkle_tree(file_hashes):
+[?2004l[?2004h>     """Build Merkle tree and return root hash and proofs.
+[?2004l[?2004h>     file_hashes: list of (relative_path, leaf_hash) in deterministic order.
+[?2004l[?2004h>     Returns (root_hash, proofs_dict) where proofs_dict maps path -> list of [direction, sibling_hash].
+[?2004l[?2004h>     """
+[?2004l[?2004h>     if not file_hashes:
+[?2004l[?2004h>         return "", {}
+[?2004l[?2004h>     leaf_paths = [p for p, _ in file_hashes]
+[?2004l[?2004h>     leaf_hashes = [h for _, h in file_hashes]
+[?2004l[?2004h>     proofs = {p: [] for p in leaf_paths}
+[?2004l[?2004h>     # each element: (hash, [leaf_indices])
+[?2004l[?2004h>     level = [(leaf_hashes[i], [i]) for i in range(len(leaf_hashes))]
+[?2004l[?2004h>     while len(level) > 1:
+[?2004l[?2004h>         if len(level) % 2 == 1:
+[?2004l[?2004h>             # duplicate last element for odd count
+[?2004l[?2004h>             level.append(level[-1])
+[?2004l[?2004h>         new_level = []
+[?2004l[?2004h>         for i in range(0, len(level), 2):
+[?2004l[?2004h>             left_hash, left_idxs = level[i]
+[?2004l[?2004h>             right_hash, right_idxs = level[i + 1]
+[?2004l[?2004h>             parent_hash = sha512_hex((left_hash + right_hash).encode())
+[?2004l[?2004h>             # update proofs for leaves in left subtree
+[?2004l[?2004h>             for idx in left_idxs:
+[?2004l[?2004h>                 path = leaf_paths[idx]
+[?2004l[?2004h>                 proofs[path].append(["right", right_hash])
+[?2004l[?2004h>             # update proofs for leaves in right subtree
+[?2004l[?2004h>             for idx in right_idxs:
+[?2004l[?2004h>                 path = leaf_paths[idx]
+[?2004l[?2004h>                 proofs[path].append(["left", left_hash])
+[?2004l[?2004h>             new_level.append((parent_hash, left_idxs + right_idxs))
+[?2004l[?2004h>         level = new_level
+[?2004l[?2004h>     root_hash = level[0][0]
+[?2004l[?2004h>     return root_hash, proofs
+[?2004l[?2004h> 
+[?2004l[?2004h> def load_data():
+[?2004l[?2004h>     if not os.path.exists('/app/merkle_data.json'):
+[?2004l[?2004h>         return None
+[?2004l[?2004h>     with open('/app/merkle_data.json', 'r') as f:
+[?2004l[?2004h>         return json.load(f)
+[?2004l[?2004h> 
+[?2004l[?2004h> def save_data(data):
+[?2004l[?2004h>     with open('/app/merkle_data.json', 'w') as f:
+[?2004l[?2004h>         json.dump(data, f, indent=2)
+[?2004l[?2004h> 
+[?2004l[?2004h> def cmd_scan(args):
+[?2004l[?2004h>     target_dir = os.path.abspath(args.directory)
+[?2004l[?2004h>     file_entries = []
+[?2004l[?2004h>     for root, dirs, files in os.walk(target_dir):
+[?2004l[?2004h>         # ignore symlinks and non-regular files
+[?2004l[?2004h>         for name in files:
+[?2004l[?2004h>             full_path = os.path.join(root, name)
+[?2004l[?2004h>             if not os.path.islink(full_path) and os.path.isfile(full_path):
+[?2004l[?2004h>                 rel_path = os.path.relpath(full_path, start=target_dir)
+[?2004l[?2004h>                 rel_path = rel_path.replace(os.sep, '/')                file_hash = compute_file_hash(full_path)
+[?2004l[?2004h>                 file_entries.append((rel_path, file_hash))
+[?2004l[?2004h>     # sort entries for deterministic order
+[?2004l[?2004h>     file_entries.sort(key=lambda x: x[0])
+[?2004l[?2004h>     root_hash, proofs = build_merkle_tree(file_entries)
+[?2004l[?2004h>     file_hashes_dict = {p: h for p, h in file_entries}
+[?2004l[?2004h>     data = {
+[?2004l[?2004h>         "root_hash": root_hash,
+[?2004l[?2004h>         "proofs": proofs,
+[?2004l[?2004h>         "file_hashes": file_hashes_dict,
+[?2004l[?2004h>         "scanned_directory": target_dir,
+[?2004l[?2004h>     }
+[?2004l[?2004h>     save_data(data)
+[?2004l[?2004h>     print(f"Scanned {len(file_entries)} files. Root hash: {root_hash}")
+[?2004l[?2004h> 
+[?2004l[?2004h> def cmd_proof(args):
+[?2004l[?2004h>     data = load_data()
+[?2004l[?2004h>     if data is None:
+[?2004l[?2004h>         print("Error: merkle_data.json not found. Run scan first.", file=sys.stderr)
+[?2004l[?2004h>         sys.exit(1)
+[?2004l[?2004h>     proof = data.get("proofs", {}).get(args.file_path)
+[?2004l[?2004h>     if proof is None:
+[?2004l[?2004h>         print(f"Error: No proof found for '{args.file_path}'.", file=sys.stderr)
+[?2004l[?2004h>         sys.exit(1)
+[?2004l[?2004h>     output = {"file_path": args.file_path, "proof": proof}
+[?2004l[?2004h>     print(json.dumps(output, indent=2))
+[?2004l[?2004h> 
+[?2004l[?2004h> def reconstruct_root_from_proof(leaf_hash, proof):
+[?2004l[?2004h>     cur = leaf_hash
+[?2004l[?2004h>     for direction, sibling in proof:
+[?2004l[?2004h>         if direction == "right":
+[?2004l[?2004h>             combined = cur + sibling
+[?2004l[?2004h>         else:  # left
+[?2004l[?2004h>             combined = sibling + cur
+[?2004l[?2004h>         cur = sha512_hex(combined.encode())
+[?2004l[?2004h>     return cur
+[?2004l[?2004h> 
+[?2004l[?2004h> def cmd_verify(args):
+[?2004l[?2004h>     data = load_data()
+[?2004l[?2004h>     if data is None:
+[?2004l[?2004h>         print("Error: merkle_data.json not found. Run scan first.", file=sys.stderr)
+[?2004l[?2004h>         sys.exit(1)
+[?2004l[?2004h>     # Load proof JSON
+[?2004l[?2004h>     try:
+[?2004l[?2004h>         with open(args.proof_file, 'r') as f:
+[?2004l[?2004h>             proof_json = json.load(f)
+[?2004l[?2004h>     except Exception as e:
+[?2004l[?2004h>         print(f"Error reading proof file: {e}", file=sys.stderr)
+[?2004l[?2004h>         sys.exit(1)
+[?2004l[?2004h>     proof = proof_json.get("proof")
+[?2004l[?2004h>     if proof is None:
+[?2004l[?2004h>         print("Invalid proof file: missing 'proof' field.", file=sys.stderr)
+[?2004l[?2004h>         sys.exit(1)
+[?2004l[?2004h>     # Resolve file path
+[?2004l[?2004h>     file_path = args.file_path
+[?2004l[?2004h>     if not os.path.isabs(file_path):
+[?2004l[?2004h>         # relative to scanned directory
+[?2004l[?2004h>         scanned_dir = data.get("scanned_directory", "")
+[?2004l[?2004h>         file_path = os.path.join(scanned_dir, file_path)
+[?2004l[?2004h>     if not os.path.isfile(file_path):
+[?2004l[?2004h>         print(f"Verification failed: file '{args.file_path}' does not exist.")
+[?2004l[?2004h>         sys.exit(1)
+[?2004l[?2004h>     leaf_hash = compute_file_hash(file_path)
+[?2004l[?2004h>     computed_root = reconstruct_root_from_proof(leaf_hash, proof)
+[?2004l[?2004h>     stored_root = data.get("root_hash", "")
+[?2004l[?2004h>     if computed_root == stored_root:
+[?2004l[?2004h>         print("Verification succeeded.")
+[?2004l[?2004h>         sys.exit(0)
+[?2004l[?2004h>     else:
+[?2004l[?2004h>         print("Verification failed: computed root does not match stored root.")
+[?2004l[?2004h>         sys.exit(1)
+[?2004l[?2004h> 
+[?2004l[?2004h> def main():
+[?2004l[?2004h>     parser = argparse.ArgumentParser(description="Merkle Tree CLI Tool with SHA-512")
+[?2004l[?2004h>     subparsers = parser.add_subparsers(dest="command", required=True)
+[?2004l[?2004h>     # scan
+[?2004l[?2004h>     scan_parser = subparsers.add_parser("scan", help="Scan a directory and build a Merkle tree")
+[?2004l[?2004h>     scan_parser.add_argument("directory", help="Target directory to scan")
+[?2004l[?2004h>     scan_parser.set_defaults(func=cmd_scan)
+[?2004l[?2004h>     # proof
+[?2004l[?2004h>     proof_parser = subparsers.add_parser("proof", help="Generate Merkle proof for a file")
+[?2004l[?2004h>     proof_parser.add_argument("file_path", help="Relative path of the file as stored in merkle_data.json")
+[?2004l[?2004h>     proof_parser.set_defaults(func=cmd_proof)
+[?2004l[?2004h>     # verify
+[?2004l[?2004h>     verify_parser = subparsers.add_parser("verify", help="Verify a file against a Merkle proof")
+[?2004l[?2004h>     verify_parser.add_argument("file_path", help="Path to the file to verify (relative or absolute)")
+[?2004l[?2004h>     verify_parser.add_argument("proof_file", help="JSON file containing the proof (output of proof command)")
+[?2004l[?2004h>     verify_parser.set_defaults(func=cmd_verify)
+[?2004l[?2004h>     args = parser.parse_args()
+[?2004l[?2004h>     args.func(args)
+[?2004l[?2004h> 
+[?2004l[?2004h> if __name__ == "__main__":
+[?2004l[?2004h>     main()
+[?2004l[?2004h> PY
+[?2004l[?2004hroot@cf0e6d7292d0:/app# chmod +x /app/merkle_cli.py
+[?2004l[?2004hroot@cf0e6d7292d0:/app# mkdir -p /app/test_data/subdir
+[?2004l[?2004hroot@cf0e6d7292d0:/app# echo 'Hello World' > /app/test_data/file1.txt
+[?2004l[?2004hroot@cf0e6d7292d0:/app# echo 'Another file' > /app/test_data/subdir/file2.txt
+[?2004l[?2004hroot@cf0e6d7292d0:/app# python3 /app/merkle_cli.py scan /app/test_data
+[?2004l  File [35m"/app/merkle_cli.py"[0m, line [35m70[0m
+    rel_path = rel_path.replace(os.sep, '/')                [1;31mfile_hash[0m = compute_file_hash(full_path)
+                                                            [1;31m^^^^^^^^^[0m
+[1;35mSyntaxError[0m: [35minvalid syntax[0m
+[?2004hroot@cf0e6d7292d0:/app# python3 /app/merkle_cli.py proof file1.txt > /app/proof_file1.json
+[?2004l  File [35m"/app/merkle_cli.py"[0m, line [35m70[0m
+    rel_path = rel_path.replace(os.sep, '/')                [1;31mfile_hash[0m = compute_file_hash(full_path)
+                                                            [1;31m^^^^^^^^^[0m
+[1;35mSyntaxError[0m: [35minvalid syntax[0m
+[?2004hroot@cf0e6d7292d0:/app# python3 /app/merkle_cli.py verify file1.txt /app/proof_file1.json
+[?2004l  File [35m"/app/merkle_cli.py"[0m, line [35m70[0m
+    rel_path = rel_path.replace(os.sep, '/')                [1;31mfile_hash[0m = compute_file_hash(full_path)
+                                                            [1;31m^^^^^^^^^[0m
+[1;35mSyntaxError[0m: [35minvalid syntax[0m
+[?2004hroot@cf0e6d7292d0:/app# cat > /app/merkle_cli.py <<'PY'
+[?2004l1:
+        if len(level) % 2 == 1:
+            # duplicate last element for odd count
+            level.append(level[-1])
+        new_level = []
+        for i in range(0, len(level), 2):
+            left_hash, left_idxs = level[i]
+            right_hash, right_idxs = level[i + 1]
+            parent_hash = sha512_hex((left_hash + right_hash).encode())
+            # update proofs for leaves in left subtree
+            for idx in left_idxs:
+                path = leaf_paths[idx]
+                proofs[path].append(["right", right_hash])
+            # update proofs for leaves in right subtree
+            for idx in right_idxs:
+                path = leaf_paths[idx]
+                proofs[path].append(["left", left_hash])
+            new_level.append((parent_hash, left_idxs + right_idxs))
+        level = new_level
+    root_hash = level[0][0]
+    return root_hash, proofs
+
+def load_data():
+    if not os.path.exists('/app/merkle_data.json'):
+        return None
+    with open('/app/merkle_data.json', 'r') as f:
+        return json.load(f)
+
+def save_data(data):
+    with open('/app/merkle_data.json', 'w') as f:
+        json.dump(data, f, indent=2)
+
+def cmd_scan(args):
+    target_dir = os.path.abspath(args.directory)
+    file_entries = []
+    for root, dirs, files in os.walk(target_dir):
+        for name in files:
+            full_path = os.path.join(root, name)
+            if not os.path.islink(full_path) and os.path.isfile(full_path):
+                rel_path = os.path.relpath(full_path, start=target_dir)
+                rel_path = rel_path.replace(os.sep, '/')
+                file_hash = compute_file_hash(full_path)
+                file_entries.append((rel_path, file_hash))
+    # sort entries for deterministic order
+    file_entries.sort(key=lambda x: x[0])
+    root_hash, proofs = build_merkle_tree(file_entries)
+    file_hashes_dict = {p: h for p, h in file_entries}
+    data = {
+        "root_hash": root_hash,
+        "proofs": proofs,
+        "file_hashes": file_hashes_dict,
+        "scanned_directory": target_dir,
+    }
+    save_data(data)
+    print(f"Scanned {len(file_entries)} files. Root hash: {root_hash}")
+
+def cmd_proof(args):
+    data = load_data()
+    if data is None:
+        print("Error: merkle_data.json not found. Run scan first.", file=sys.stderr)
+        sys.exit(1)
+    proof = data.get("proofs", {}).get(args.file_path)
+    if proof is None:
+        print(f"Error: No proof found for '{args.file_path}'.", file=sys.stderr)
+        sys.exit(1)
+    output = {"file_path": args.file_path, "proof": proof}
+    print(json.dumps(output, indent=2))
+
+def reconstruct_root_from_proof(leaf_hash, proof):
+    cur = leaf_hash
+    for direction, sibling in proof:
+        if direction == "right":
+            combined = cur + sibling
+        else:  # left
+            combined = sibling + cur
+        cur = sha512_hex(combined.encode())
+    return cur
+
+def cmd_verify(args):
+    data = load_data()
+    if data is None:
+        print("Error: merkle_data.json not found. Run scan first.", file=sys.stderr)
+        sys.exit(1)
+    try:
+        with open(args.proof_file, '[?2004h> #!/usr/bin/env python3
+[?2004l[?2004h> import argparse, os, json, hashlib, sys
+[?2004l[?2004h> 
+[?2004l[?2004h> def sha512_hex(data: bytes) -> str:
+[?2004l[?2004h>     return hashlib.sha512(data).hexdigest()
+[?2004l[?2004h> 
+[?2004l[?2004h> def compute_file_hash(path: str) -> str:
+[?2004l[?2004h>     h = hashlib.sha512()
+[?2004l[?2004h>     with open(path, 'rb') as f:
+[?2004l[?2004h>         while True:
+[?2004l[?2004h>             chunk = f.read(8192)
+[?2004l[?2004h>             if not chunk:
+[?2004l[?2004h>                 break
+[?2004l[?2004h>             h.update(chunk)
+[?2004l[?2004h>     return h.hexdigest()
+[?2004l[?2004h> 
+[?2004l[?2004h> def build_merkle_tree(file_hashes):
+[?2004l[?2004h>     """Build Merkle tree and return root hash and proofs.
+[?2004l[?2004h>     file_hashes: list of (relative_path, leaf_hash) in deterministic order.
+[?2004l[?2004h>     Returns (root_hash, proofs_dict) where proofs_dict maps path -> list of [direction, sibling_hash].
+[?2004l[?2004h>     """
+[?2004l[?2004h>     if not file_hashes:
+[?2004l[?2004h>         return "", {}
+[?2004l[?2004h>     leaf_paths = [p for p, _ in file_hashes]
+[?2004l[?2004h>     leaf_hashes = [h for _, h in file_hashes]
+[?2004l[?2004h>     proofs = {p: [] for p in leaf_paths}
+[?2004l[?2004h>     # each element: (hash, [leaf_indices])
+[?2004l[?2004h>     level = [(leaf_hashes[i], [i]) for i in range(len(leaf_hashes))]
+[?2004l[?2004h>     while len(level) > 1:
+[?2004l[?2004h>         if len(level) % 2 == 1:
+[?2004l[?2004h>             # duplicate last element for odd count
+[?2004l[?2004h>             level.append(level[-1])
+[?2004l[?2004h>         new_level = []
+[?2004l[?2004h>         for i in range(0, len(level), 2):
+[?2004l[?2004h>             left_hash, left_idxs = level[i]
+[?2004l[?2004h>             right_hash, right_idxs = level[i + 1]
+[?2004l[?2004h>             parent_hash = sha512_hex((left_hash + right_hash).encode())
+[?2004l[?2004h>             # update proofs for leaves in left subtree
+[?2004l[?2004h>             for idx in left_idxs:
+[?2004l[?2004h>                 path = leaf_paths[idx]
+[?2004l[?2004h>                 proofs[path].append(["right", right_hash])
+[?2004l[?2004h>             # update proofs for leaves in right subtree
+[?2004l[?2004h>             for idx in right_idxs:
+[?2004l[?2004h>                 path = leaf_paths[idx]
+[?2004l[?2004h>                 proofs[path].append(["left", left_hash])
+[?2004l[?2004h>             new_level.append((parent_hash, left_idxs + right_idxs))
+[?2004l[?2004h>         level = new_level
+[?2004l[?2004h>     root_hash = level[0][0]
+[?2004l[?2004h>     return root_hash, proofs
+[?2004l[?2004h> 
+[?2004l[?2004h> def load_data():
+[?2004l[?2004h>     if not os.path.exists('/app/merkle_data.json'):
+[?2004l[?2004h>         return None
+[?2004l[?2004h>     with open('/app/merkle_data.json', 'r') as f:
+[?2004l[?2004h>         return json.load(f)
+[?2004l[?2004h> 
+[?2004l[?2004h> def save_data(data):
+[?2004l[?2004h>     with open('/app/merkle_data.json', 'w') as f:
+[?2004l[?2004h>         json.dump(data, f, indent=2)
+[?2004l[?2004h> 
+[?2004l[?2004h> def cmd_scan(args):
+[?2004l[?2004h>     target_dir = os.path.abspath(args.directory)
+[?2004l[?2004h>     file_entries = []
+[?2004l[?2004h>     for root, dirs, files in os.walk(target_dir):
+[?2004l[?2004h>         for name in files:
+[?2004l[?2004h>             full_path = os.path.join(root, name)
+[?2004l[?2004h>             if not os.path.islink(full_path) and os.path.isfile(full_path):
+[?2004l[?2004h>                 rel_path = os.path.relpath(full_path, start=target_dir)
+[?2004l[?2004h>                 rel_path = rel_path.replace(os.sep, '/')
+[?2004l[?2004h>                 file_hash = compute_file_hash(full_path)
+[?2004l[?2004h>                 file_entries.append((rel_path, file_hash))
+[?2004l[?2004h>     # sort entries for deterministic order
+[?2004l[?2004h>     file_entries.sort(key=lambda x: x[0])
+[?2004l[?2004h>     root_hash, proofs = build_merkle_tree(file_entries)
+[?2004l[?2004h>     file_hashes_dict = {p: h for p, h in file_entries}
+[?2004l[?2004h>     data = {
+[?2004l[?2004h>         "root_hash": root_hash,
+[?2004l[?2004h>         "proofs": proofs,
+[?2004l[?2004h>         "file_hashes": file_hashes_dict,
+[?2004l[?2004h>         "scanned_directory": target_dir,
+[?2004l[?2004h>     }
+[?2004l[?2004h>     save_data(data)
+[?2004l[?2004h>     print(f"Scanned {len(file_entries)} files. Root hash: {root_hash}")
+[?2004l[?2004h> 
+[?2004l[?2004h> def cmd_proof(args):
+[?2004l[?2004h>     data = load_data()
+[?2004l[?2004h>     if data is None:
+[?2004l[?2004h>         print("Error: merkle_data.json not found. Run scan first.", file=sys.stderr)
+[?2004l[?2004h>         sys.exit(1)
+[?2004l[?2004h>     proof = data.get("proofs", {}).get(args.file_path)
+[?2004l[?2004h>     if proof is None:
+[?2004l[?2004h>         print(f"Error: No proof found for '{args.file_path}'.", file=sys.stderr)
+[?2004l[?2004h>         sys.exit(1)
+[?2004l[?2004h>     output = {"file_path": args.file_path, "proof": proof}
+[?2004l[?2004h>     print(json.dumps(output, indent=2))
+[?2004l[?2004h> 
+[?2004l[?2004h> def reconstruct_root_from_proof(leaf_hash, proof):
+[?2004l[?2004h>     cur = leaf_hash
+[?2004l[?2004h>     for direction, sibling in proof:
+[?2004l[?2004h>         if direction == "right":
+[?2004l[?2004h>             combined = cur + sibling
+[?2004l[?2004h>         else:  # left
+[?2004l[?2004h>             combined = sibling + cur
+[?2004l[?2004h>         cur = sha512_hex(combined.encode())
+[?2004l[?2004h>     return cur
+[?2004l[?2004h> 
+[?2004l[?2004h> def cmd_verify(args):
+[?2004l[?2004h>     data = load_data()
+[?2004l[?2004h>     if data is None:
+[?2004l[?2004h>         print("Error: merkle_data.json not found. Run scan first.", file=sys.stderr)
+[?2004l[?2004h>         sys.exit(1)
+[?2004l[?2004h>     try:
+[?2004l[?2004h>         with open(args.proof_file, 'r') as f:
+[?2004l[?2004h>             proof_json = json.load(f)
+[?2004l[?2004h>     except Exception as e:
+[?2004l[?2004h>         print(f"Error reading proof file: {e}", file=sys.stderr)
+[?2004l[?2004h>         sys.exit(1)
+[?2004l[?2004h>     proof = proof_json.get("proof")
+[?2004l[?2004h>     if proof is None:
+[?2004l[?2004h>         print("Invalid proof file: missing 'proof' field.", file=sys.stderr)
+[?2004l[?2004h>         sys.exit(1)
+[?2004l[?2004h>     file_path = args.file_path
+[?2004l[?2004h>     if not os.path.isabs(file_path):
+[?2004l[?2004h>         scanned_dir = data.get("scanned_directory", "")
+[?2004l[?2004h>         file_path = os.path.join(scanned_dir, file_path)
+[?2004l[?2004h>     if not os.path.isfile(file_path):
+[?2004l[?2004h>         print(f"Verification failed: file '{args.file_path}' does not exist.")
+[?2004l[?2004h>         sys.exit(1)
+[?2004l[?2004h>     leaf_hash = compute_file_hash(file_path)
+[?2004l[?2004h>     computed_root = reconstruct_root_from_proof(leaf_hash, proof)
+[?2004l[?2004h>     stored_root = data.get("root_hash", "")
+[?2004l[?2004h>     if computed_root == stored_root:
+[?2004l[?2004h>         print("Verification succeeded.")
+[?2004l[?2004h>         sys.exit(0)
+[?2004l[?2004h>     else:
+[?2004l[?2004h>         print("Verification failed: computed root does not match stored root.")
+[?2004l[?2004h>         sys.exit(1)
+[?2004l[?2004h> 
+[?2004l[?2004h> def main():
+[?2004l[?2004h>     parser = argparse.ArgumentParser(description="Merkle Tree CLI Tool with SHA-512")
+[?2004l[?2004h>     subparsers = parser.add_subparsers(dest="command", required=True)
+[?2004l[?2004h>     scan_parser = subparsers.add_parser("scan", help="Scan a directory and build a Merkle tree")
+[?2004l[?2004h>     scan_parser.add_argument("directory", help="Target directory to scan")
+[?2004l[?2004h>     scan_parser.set_defaults(func=cmd_scan)
+[?2004l[?2004h>     proof_parser = subparsers.add_parser("proof", help="Generate Merkle proof for a file")
+[?2004l[?2004h>     proof_parser.add_argument("file_path", help="Relative path of the file as stored in merkle_data.json")
+[?2004l[?2004h>     proof_parser.set_defaults(func=cmd_proof)
+[?2004l[?2004h>     verify_parser = subparsers.add_parser("verify", help="Verify a file against a Merkle proof")
+[?2004l[?2004h>     verify_parser.add_argument("file_path", help="Path to the file to verify (relative or absolute)")
+[?2004l[?2004h>     verify_parser.add_argument("proof_file", help="JSON file containing the proof (output of proof command)")
+[?2004l[?2004h>     verify_parser.set_defaults(func=cmd_verify)
+[?2004l[?2004h>     args = parser.parse_args()
+[?2004l[?2004h>     args.func(args)
+[?2004l[?2004h> 
+[?2004l[?2004h> if __name__ == "__main__":
+[?2004l[?2004h>     main()
+[?2004l[?2004h> PY
+[?2004l[?2004hroot@cf0e6d7292d0:/app# chmod +x /app/merkle_cli.py
+[?2004l[?2004hroot@cf0e6d7292d0:/app# python3 /app/merkle_cli.py scan /app/test_data
+[?2004lScanned 5 files. Root hash: b2eede94f2c9c77d5c7a27a8ed9dc83423b3fa3d454deeab54ee1aa42bb45d211789e5878566e664bb771b121c7719bc72ae8fb9aeae255ab4586226a7304e3c
+[?2004hroot@cf0e6d7292d0:/app# python3 /app/merkle_cli.py proof file1.txt > /app/proof_file1.json
+[?2004l[?2004hroot@cf0e6d7292d0:/app# python3 /app/merkle_cli.py verify file1.txt /app/proof_file1.json
+[?2004lVerification succeeded.
+[?2004hroot@cf0e6d7292d0:/app# 

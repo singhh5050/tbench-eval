@@ -1,0 +1,47 @@
+New Terminal Output:
+
+root@b12cd1002d87:/app# python3 -c "
+> import sys
+> from pathlib import Path
+> sys.path.append('/app/task_file/scripts')
+> from model import SupplyChainModel
+>
+> model = SupplyChainModel()
+> result = model.evaluate(
+>     input_dir=Path('/app/task_file/input_data'),
+>     output_file=Path('/app/task_file/output_data/assignments.jsonl')
+> )
+>
+> print(f'Valid: {result[\"is_valid\"]}')
+> if result['is_valid']:
+>     print(f'Total Score: {result[\"total_score\"]:.4f} (threshold: 0.6468)')
+>     print(f'Cost Score: {result[\"cost_score\"]:.4f} (threshold: 0.6965)')
+>     print(f'On-Time Score: {result[\"on_time_delivery_score\"]:.4f} (threshold: 0.995)')
+>     print(f'Balance Score: {result[\"warehouse_balance_score\"]:.4f} (threshold: 0.2548)')
+>
+>     # Check thresholds
+>     meets_total = result['total_score'] >= 0.6468
+>     meets_cost = result['cost_score'] >= 0.6965
+>     meets_ontime = result['on_time_delivery_score'] >= 0.995
+>     meets_balance = result['warehouse_balance_score'] >= 0.2548
+>
+>     print(f'\nThreshold Check:')
+>     print(f'  Total: {\"PASS\" if meets_total else \"FAIL\"}')
+>     print(f'  Cost: {\"PASS\" if meets_cost else \"FAIL\"}')
+>     print(f'  On-Time: {\"PASS\" if meets_ontime else \"FAIL\"}')
+>     print(f'  Balance: {\"PASS\" if meets_balance else \"FAIL\"}')
+> else:
+>     print(f'Errors: {result[\"validation_errors\"][:10]}')
+> "
+Valid: True
+Total Score: 0.7164 (threshold: 0.6468)
+Cost Score: 1.0000 (threshold: 0.6965)
+On-Time Score: 1.0000 (threshold: 0.995)
+Balance Score: 0.4677 (threshold: 0.2548)
+
+Threshold Check:
+  Total: PASS
+  Cost: PASS
+  On-Time: PASS
+  Balance: PASS
+root@b12cd1002d87:/app#

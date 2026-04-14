@@ -1,0 +1,143 @@
+Current terminal state:
+New Terminal Output:
+
+root@bbde8db6c54f:/app# python3 get_schedule.py alice > alice_schedule.txt
+root@bbde8db6c54f:/app# python3 get_schedule.py bob > bob_schedule.txt
+root@bbde8db6c54f:/app# python3 get_schedule.py charlie > charlie_schedule.txt
+root@bbde8db6c54f:/app# python3 get_schedule.py dana > dana_schedule.txt
+root@bbde8db6c54f:/app# cat > parse_and_generate.py <<'PY'
+> #!/usr/bin/env python3
+> import json, re
+> from datetime import datetime, timedelta
+>
+> def month_to_num(m):
+>     return datetime.strptime(m, "%B").month
+>
+> def parse_date(s):
+>     return datetime.strptime(s, "%Y-%m-%d").date()
+>
+> def date_range(start, end):
+>     d = start
+>     while d <= end:
+>         yield d
+>         d += timedelta(days=1)
+>
+> def complement(busy, year_start, year_end):
+>     busy = sorted(busy)
+>     avail = []
+>     cur = year_start
+>     for b_start, b_end in busy:
+>         if cur < b_start:
+>             avail.append({"start": cur.isoformat(), "end": (b_start - timedelta(days=1)).isoformat()})
+>         cur = max(cur, b_end + timedelta(days=1))
+>     if cur <= year_end:
+>         avail.append({"start": cur.isoformat(), "end": year_end.isoformat()})
+>     return avail
+>
+> year_start = datetime(2025,1,1).date()
+> year_end   = datetime(2025,12,31).date()
+>
+> availability = {}
+>
+> # Alice (UNAVAILABLE periods)
+> busy = []
+> with open('alice_schedule.txt') as f:
+>     for line in f:
+>         m = re.search(r'UNAVAILABLE:\s*(\d{4}-\d{2}-\d{2})\s*to\s*(\d{4}-\d{2}-\d{2})', line)
+>         if m:
+>             busy.append((parse_date(m.group(1)), parse_date(m.group(2))))
+> availability['alice'] = complement(busy, year_start, year_end)
+>
+> # Dana (BUSY periods similar to Alice)
+> busy = []
+> with open('dana_schedule.txt') as f:
+>     for line in f:
+>         m = re.search(r'BUSY:\s*(\d{4}-\d{2}-\d{2})\s*to\s*(\d{4}-\d{2}-\d{2})', line)
+>         if m:
+>             busy.append((parse_date(m.group(1)), parse_date(m.group(2))))
+> availability['dana'] = complement(busy, year_start, year_end)
+>
+> # Charlie (TRAVEL_TEXT – unavailable periods)
+> busy = []
+> with open('charlie_schedule.txt') as f:
+>     for line in f:
+>         # Full month range like "January 2025 - May 2025"
+>         m = re.search(r'(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{4})\s*-\s*(January|February|March|April|
+May|June|July|August|September|October|November|December)\s+(\d{4})', line)
+>         if m:
+>             start = datetime(int(m.group(2)), month_to_num(m.group(1)), 1).date()
+>             end_month = month_to_num(m.group(3))
+>             # last day of end month
+>             if end_month == 12:
+>                 end = datetime(int(m.group(4)), 12, 31).date()
+>             else:
+>                 end = (datetime(int(m.group(4)), end_month+1, 1) - timedelta(days=1)).date()
+>             busy.append((start, end))
+>             continue
+>         # Day range within a month e.g., "June 15-30, 2025"
+>         m = re.search(r'(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d+)-(\d+),\s*(\d{4})', line)
+>         if m:
+>             month = month_to_num(m.group(1))
+>             year = int(m.group(4))
+>             start = datetime(year, month, int(m.group(2))).date()
+>             end   = datetime(year, month, int(m.group(3))).date()
+>             busy.append((start, end))
+>             continue
+>         # Single date range like "July 26-27, 2025" handled above
+>         # Single full month range handled above
+>         # Also handle "August 4-31, 2025"
+>         # Already covered.
+> availability['charlie'] = complement(busy, year_start, year_end)
+>
+> # Bob (SHIFT CSV – off days are available)
+> available_days = []
+> with open('bob_schedule.txt') as f:
+>     for line in f:
+>         m = re.search(r'SHIFT:\s*(\d{4}-\d{2}-\d{2}),off,', line)
+>         if m:
+>             available_days.append(parse_date(m.group(1)))
+> # Merge consecutive days into ranges
+> available_days.sort()
+> avail = []
+> if available_days:
+>     start = prev = available_days[0]
+>     for d in available_days[1:]:
+>         if d == prev + timedelta(days=1):
+>             prev = d
+>         else:
+>             avail.append({"start": start.isoformat(), "end": prev.isoformat()})
+>             start = prev = d
+>     avail.append({"start": start.isoformat(), "end": prev.isoformat()})
+> availability['bob'] = avail
+>
+> # Write JSON
+> with open('all_availability.json', 'w') as f:
+>     json.dump(availability, f, indent=2)
+> PY
+root@bbde8db6c54f:/app# python3 parse_and_generate.py
+root@bbde8db6c54f:/app# python3 find_overlap.py 7 all_availability.json
+Looking for 7-day overlaps...
+Found 14 possible windows
+Best option: July 28, 2025 - August 03, 2025
+Available: alice, dana, charlie, bob (4/4 people)
+Results saved to overlap_results.json
+root@bbde8db6c54f:/app# cat > extract_best.py <<'PY'
+> #!/usr/bin/env python3
+> import json, sys
+> with open('overlap_results.json') as f:
+>     data = json.load(f)
+> if data.get('overlapping_windows'):
+>     best = data['overlapping_windows'][0]
+>     line = f"{best['start']} to {best['end']}"
+> else:
+>     line = 'No suitable dates'
+> with open('vacation_dates.txt', 'w') as out:
+>     out.write(line + '\n')
+> PY
+root@bbde8db6c54f:/app# python3 extract_best.py
+root@bbde8db6c54f:/app# cat vacation_dates.txt
+2025-07-28 to 2025-08-03
+root@bbde8db6c54f:/app#
+
+
+Are you sure you want to mark the task as complete? This will trigger your solution to be graded and you won't be able to make any further corrections. If so, include "task_complete": true in your JSON response again.

@@ -1,0 +1,48 @@
+New Terminal Output:
+
+root@b05171444938:/app# python3 << 'EOF'
+> import numpy as np
+> import sys
+> sys.path.insert(0, '/app')
+>
+> from src import *
+>
+> print("Testing all layers with correct channel counts...\n")
+>
+> # Test all outputs are float64 with correct channel counts
+> print("=== Verifying float64 dtype ===")
+> for layer_name, layer, in_ch in [
+>     ('Conv2D', Conv2D(3, 4, 3), 3),
+>     ('Conv2DTranspose', Conv2DTranspose(4, 5, 3), 4),
+>     ('MaxPool2D', MaxPool2D(2), 4),
+>     ('AvgPool2D', AvgPool2D(2), 4),
+>     ('BatchNorm2D', BatchNorm2D(4), 4),
+>     ('ReLU', ReLU(), 4),
+>     ('LeakyReLU', LeakyReLU(), 4),
+>     ('Sigmoid', Sigmoid(), 4),
+> ]:
+>     x = np.random.randn(2, 8, 8, in_ch).astype(np.float64)
+>     out = layer.forward(x) if hasattr(layer, 'forward') else layer(x)
+>     assert out.dtype == np.float64, f"{layer_name} should output float64, got {out.dtype}"
+>     print(f"{layer_name}: float64 OK")
+>
+> print("\n" + "="*50)
+> print("ALL LAYERS VERIFIED!")
+> print("="*50)
+> EOF
+Testing all layers with correct channel counts...
+
+=== Verifying float64 dtype ===
+Conv2D: float64 OK
+Conv2DTranspose: float64 OK
+MaxPool2D: float64 OK
+AvgPool2D: float64 OK
+BatchNorm2D: float64 OK
+ReLU: float64 OK
+LeakyReLU: float64 OK
+Sigmoid: float64 OK
+
+==================================================
+ALL LAYERS VERIFIED!
+==================================================
+root@b05171444938:/app#

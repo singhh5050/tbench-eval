@@ -1,0 +1,29 @@
+Previous response had warnings:
+WARNINGS: - Extra text detected before JSON object
+- Extra text detected after JSON object
+
+New Terminal Output:
+
+root@aa803a54905b:/app# cat /app/simulate.py | grep -A 20 'Time stepping'
+# Time stepping
+for i in range(n_steps - 1):
+    # Effective load at t+dt
+    # P_eff = -M*iota*accel(t+dt) + M*(a0*u_t + a2*v_t + a3*a_t) + C*(a1*u_t + a4*v_t + a5*a_t)
+    P_eff = -M @ (iota * accel_data[i+1]) + \
+            M @ (a0 * u[i] + a2 * v[i] + a3 * a[i]) + \
+            C @ (a1 * u[i] + a4 * v[i] + a5 * a[i])
+
+    # Solve for displacement
+    u[i+1] = np.linalg.solve(K_eff, P_eff)
+
+    # Update acceleration and velocity
+    a[i+1] = a0 * (u[i+1] - u[i]) - a2 * v[i] - a3 * a[i]
+    v[i+1] = v[i] + dt * ((1 - gamma) * a[i] + gamma * a[i+1])
+
+# Write output
+with open('/app/output/response.csv', 'w', newline='') as f:
+    writer = csv.writer(f)
+    writer.writerow(['time', 'u1', 'u2', 'u3'])
+    for i in range(n_steps):
+        writer.writerow([f'{time_data[i]:.3f}', f'{u[i,0]:.6f}', f'{u[i,1]:.6f}', f'{u[i,2]:.6f}'])
+root@aa803a54905b:/app#

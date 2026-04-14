@@ -1,0 +1,63 @@
+[?2004hroot@90a0c630d774:/app# asciinema rec --stdin /logs/agent/recording.cast
+[?2004l[0;32masciinema: recording asciicast to /logs/agent/recording.cast[0m
+[0;32masciinema: press <ctrl-d> or type "exit" when you're done[0m
+[?2004hroot@90a0c630d774:/app# clear
+[?2004l[H[J[3J[?2004hroot@90a0c630d774:/app# head -n 5 /app/data.csv
+[?2004lparticipant_id,first_name,last_name,birth_date,address,phone_number,country,institute,occupation,register_time
+bd9b6f88-b84f-4c4d-90f8-b67fe2f1a29a,Citra,Nurdiyanti,05 Feb 1991,"Gg. Monginsidi No. 08
+Medan, Aceh 80734",(0151) 081 2706,Georgia,UD Prakasa Mandasari,Business Intelligence Engineer,1617634046.0
+7dfe3391-6f40-47b6-b4db-0c76ebaf5fc3,Aris,Setiawan,11 Jan 1993,"Gg. Rajawali Timur No. 7
+Prabumulih, MA 09434",+62 (036) 461 7027,Korea Utara,Universitas Diponegoro,Frontend Engineer,1617634018.0
+[?2004hroot@90a0c630d774:/app# cat > /app/process.py << 'EOF'
+[?2004l[?2004h> import csv, re, datetime
+[?2004l[?2004h> 
+[?2004l[?2004h> 
+[?2004l[?2004h> def process_address(addr):
+[?2004l[?2004h>     # Extract postal_code: last sequence of digits at end of address
+[?2004l[?2004h>     postal = re.search(r'(\d+)\s*$', addr)
+[?2004l[?2004h>     postal_code = postal.group(1) if postal else ''
+[?2004l[?2004h>     # Split by newline and get the last part
+[?2004l[?2004h>     parts = addr.splitlines()
+[?2004l[?2004h>     last_part = parts[-1].strip()
+[?2004l[?2004h>     # City is the part before the first comma
+[?2004l[?2004h>     city = last_part.split(',')[0].strip()
+[?2004l[?2004h>     return postal_code, city
+[?2004l[?2004h> 
+[?2004l[?2004h> 
+[?2004l[?2004h> def format_birth_date(bd):
+[?2004l[?2004h>     try:
+[?2004l[?2004h>         dt = datetime.datetime.strptime(bd, "%d %b %Y")
+[?2004l[?2004h>         return dt.strftime("%Y-%m-%d")
+[?2004l[?2004h>     except Exception:
+[?2004l[?2004h>         return bd
+[?2004l[?2004h> 
+[?2004l[?2004h> 
+[?2004l[?2004h> def generate_team_name(row):
+[?2004l[?2004h>     # FL: uppercase initials of first and last name
+[?2004l[?2004h>     fl = (row['first_name'][0] + row['last_name'][0]).upper()
+[?2004l[?2004h>     # I: first letter of each word in institute
+[?2004l[?2004h>     institute_letters = ''.join([word[0] for word in row['institute'].split()])
+[?2004l[?2004h>     return f"{fl}-{row['country']}-{institute_letters}"
+[?2004l[?2004h> 
+[?2004l[?2004h> 
+[?2004l[?2004h> with open('/app/data.csv', 'r') as f_in, open('/app/result.csv', 'w', newline='') as f_out:
+[?2004l[?2004h>     reader = csv.DictReader(f_in)
+[?2004l[?2004h>     fieldnames = ['participant_id', 'first_name', 'last_name', 'birth_date', 'address', 'phone_number', 'country', 'institute', 'occupation', 'register_time', 'postal_code', 'city', 'team_name']
+[?2004l[?2004h>     writer = csv.DictWriter(f_out, fieldnames=fieldnames)
+[?2004l[?2004h>     writer.writeheader()
+[?2004l[?2004h>     for row in reader:
+[?2004l[?2004h>         postal_code, city = process_address(row['address'])
+[?2004l[?2004h>         row['birth_date'] = format_birth_date(row['birth_date'])
+[?2004l[?2004h>         row['postal_code'] = postal_code
+[?2004l[?2004h>         row['city'] = city
+[?2004l[?2004h>         row['team_name'] = generate_team_name(row)
+[?2004l[?2004h>         writer.writerow(row)
+[?2004l[?2004h> EOF
+[?2004l[?2004hroot@90a0c630d774:/app# python3 /app/process.py
+[?2004l[?2004hroot@90a0c630d774:/app# head -n 5 /app/result.csv
+[?2004lparticipant_id,first_name,last_name,birth_date,address,phone_number,country,institute,occupation,register_time,postal_code,city,team_name
+bd9b6f88-b84f-4c4d-90f8-b67fe2f1a29a,Citra,Nurdiyanti,1991-02-05,"Gg. Monginsidi No. 08
+Medan, Aceh 80734",(0151) 081 2706,Georgia,UD Prakasa Mandasari,Business Intelligence Engineer,1617634046.0,80734,Medan,CN-Georgia-UPM
+7dfe3391-6f40-47b6-b4db-0c76ebaf5fc3,Aris,Setiawan,1993-01-11,"Gg. Rajawali Timur No. 7
+Prabumulih, MA 09434",+62 (036) 461 7027,Korea Utara,Universitas Diponegoro,Frontend Engineer,1617634018.0,09434,Prabumulih,AS-Korea Utara-UD
+[?2004hroot@90a0c630d774:/app# 

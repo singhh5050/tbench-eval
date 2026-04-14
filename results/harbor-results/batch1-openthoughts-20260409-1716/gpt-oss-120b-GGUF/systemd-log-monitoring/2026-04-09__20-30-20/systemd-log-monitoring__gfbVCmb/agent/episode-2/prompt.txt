@@ -1,0 +1,33 @@
+Previous response had warnings:
+WARNINGS: - Extra text detected before JSON object
+
+New Terminal Output:
+
+root@3e9302d722d8:/opt/myapp# apt-get update -y >/dev/null 2>&1
+root@3e9302d722d8:/opt/myapp# apt-get install -y systemd rsyslog >/dev/null 2>&1
+root@3e9302d722d8:/opt/myapp# mkdir -p /home/myapp/.config/systemd/user
+root@3e9302d722d8:/opt/myapp# cp /etc/systemd/system/myapp.service /home/myapp/.config/systemd/user/
+root@3e9302d722d8:/opt/myapp# chown -R myapp:myapp /home/myapp/.config/systemd/user
+root@3e9302d722d8:/opt/myapp# runuser -l myapp -c "systemctl --user daemon-reload"
+root@3e9302d722d8:/opt/myapp# runuser -l myapp -c "systemctl --user enable --now myapp.service"
+root@3e9302d722d8:/opt/myapp# sed -i 's/journalctl -u "$SERVICE"/journalctl --user -u "$SERVICE"/g' /usr/local/bin/check_service_health.sh
+root@3e9302d722d8:/opt/myapp# cat > /etc/rsyslog.d/50-myapp.conf <<'EOF'
+> module(load="imjournal" StateFile="imjournal.state" SysSock="/run/user/$(id -u myapp)/systemd/journal/socket")
+> # Route myapp JSON logs
+> if $programname == 'myapp' and $msg contains '"level":"ERROR"' then /var/log/app_errors.log
+> if $programname == 'myapp' then /var/log/app_events.log
+> & stop
+> EOF
+root@3e9302d722d8:/opt/myapp# systemctl restart rsyslog
+System has not been booted with systemd as init system (PID 1). Can't operate.
+Failed to connect to bus: Host is down
+root@3e9302d722d8:/opt/myapp# /usr/local/bin/check_service_health.sh
+{
+  "service": "myapp",
+  "time_window": "5 minutes",
+  "restarts": 0,
+  "errors": 0,
+  "restart_loop_detected": false,
+  "timestamp": "2026-04-10T02:32:39Z"
+}
+root@3e9302d722d8:/opt/myapp#

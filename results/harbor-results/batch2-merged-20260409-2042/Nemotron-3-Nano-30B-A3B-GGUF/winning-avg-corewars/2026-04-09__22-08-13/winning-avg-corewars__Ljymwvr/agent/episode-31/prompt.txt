@@ -1,0 +1,56 @@
+New Terminal Output:
+
+root@77bd7acbed24:/app# cat > my_warrior.red << 'EOF'
+> ;redcode-94
+> ;name MyWarrior
+> ;author AI
+> ;assert CORESIZE == 8000
+>
+> start   jmp init
+>
+> init    spl 1
+>     mov copy, *ptr
+>     add #57, ptr
+>     mov copy, @ptr
+>     jmp loop
+>
+> copy    spl 0, 0
+> ptr     dat 1, 1
+>
+> loop    djn copy, 2
+>       spl 0
+>       djn loop, 7
+>
+> ; Bombing sequence 1
+> bomb1_start equ 1500
+> bomb1_loop spl bomb1_target, @bomb1_start
+>       add #277, bomb1_start
+>       jmp bomb1_loop
+> bomb1_target dat bomb1_target, 0
+> bomb1_equ    dat #277, #277
+>
+> ; Bombing sequence 2
+> bomb2_start equ 2500
+> bomb2_loop spl bomb2_target, @bomb2_start
+>       add #311, bomb2_start
+>       jmp bomb2_loop
+> bomb2_target dat bomb2_target, 0
+> bomb2_equ    dat #311, #311
+>
+> ; Protection
+> protect_start 3500
+> spl 0, 0
+>     djn protect, 11
+> protect spl 0, 0
+>     dat 0, 0
+>
+> end start
+> EOF
+root@77bd7acbed24:/app# pmars -b -r 100 -f my_warrior.red warriors/stone.red
+Error in line 38: 'protect_start 3500'
+        Unrecognized or improper placement of token: '3500'
+
+Source: filename 'my_warrior.red'
+Number of errors: 1
+
+root@77bd7acbed24:/app#

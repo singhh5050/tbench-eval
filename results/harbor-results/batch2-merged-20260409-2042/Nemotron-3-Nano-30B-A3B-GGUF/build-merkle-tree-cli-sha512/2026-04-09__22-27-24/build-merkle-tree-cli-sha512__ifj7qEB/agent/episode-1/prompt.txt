@@ -1,0 +1,248 @@
+New Terminal Output:
+root@710a10b7d8a0:/app# cat > /app/merkle_cli.py << 'EOF'
+> #!/usr/bin/env python3
+> import argparse
+> import hashlib
+> import json
+> import os
+> import sys
+> from pathlib import Path
+>
+>
+> def sha512(data: bytes) -> str:
+>     return hashlib.sha512(data).hexdigest()
+>
+>
+> def build_merkle_tree(file_hashes):
+>     # file_hashes: dict mapping relative path to leaf hash
+789abcdef' for c in entry[1]):
+            print(f"Error: invalid proof hash {entry[1]}", file=sys.stderr)
+            sys.exit(1)
+
+    # Output JSON to stdout
+    output = {
+        "file_path": file_path,
+        "proof": proof
+    }
+    json.dump(output, sys.stdout, indent=None)
+    sys.stdout.write('\n')
+
+
+def veri>     # returns root_hash, proofs (dict mapping path to proof list), file_hashes (same as input)
+>     # proof list format: ["left", sibling_hash], ["right", sibling_hash], ... from leaf to root
+>
+>     # Start with leaves
+>     nodes = [{'path': p, 'hash': h} for p, h in file_hashes.items()]
+>     proofs = {p: [] for p in file_hashes}
+>
+>     while len(nodes) > 1:
+>         next_level = []
+>         for i in range(0, len(nodes), 2):
+>             left = nodes[i]
+>             right = nodes[i+1] if i+1 < len(nodes) else left  # duplicate last if odd
+>
+>             # Compute parent hash
+>             combined = left['hash'].encode('utf-8') + right['hash'].encode('utf-8')
+>             parent_hash = sha512(combined)
+>
+>             # Record sibling direction and hash for each child
+>             # If current index is even, left is left child, right is right child
+>             # So left's sibling is right -> direction "right"
+>             #     right's sibling is left -> direction "left"
+>             if i % 2 == 0:
+>                 # left child
+>                 proofs[left['path']].insert(0, ["right", right['hash']])
+>                 # right child (if different)
+>                 if i+1 < len(nodes):
+>                     proofs[right['path']].insert(0, ["left", left['hash']])
+>             else:
+>                 # This case should not happen as we process pairs sequentially
+>                 # but if it does, treat similarly
+>                 pass
+>
+>             next_level.append({'hash': parent_hash})
+>         nodes = next_level
+>
+>     root_hash = nodes[0]['hash'] if nodes else ''
+>     return root_hash, proofs, file_hashes
+>
+>
+> def scan_directory(directory_path):
+>     directory = Path(directory_path)
+>     if not directory.is_dir():
+>         print(f'Error: {directory_path} is not a directory', file=sys.stderr)
+>         sys.exit(1)
+>
+>     file_hashes = {}
+>     # Walk all files recursively
+>     for file_path in directory.rglob('*'):
+>         if file_path.is_file():
+>             rel_path = file_path.relative_to(directory)
+>             # Read file in binary mode
+>             data = file_path.read_bytes()
+>             file_hash = sha512(data)
+>             file_hashes[rel_path.as_posix()] = file_hash
+>
+>     if not file_hashes:
+>         # Empty directory
+>         root_hash = sha512(b'')  # hash of empty content
+>         proofs = {}
+>     else:
+>         root_hash, proofs, file_hashes = build_merkle_tree(file_hashes)
+>
+>     # Store in merkle_data.json
+>     storage = {
+>         "root_hash": root_hash,
+>         "proofs": proofs,
+>         "file_hashes": file_hashes,
+>         "scanned_directory": str(Path(directory_path).resolve())
+>     }
+>     with open('/app/merkle_data.json', 'w') as f:
+>         json.dump(storage, f, indent=2)
+>
+>
+> def generate_proof(file_path):
+>     # Load merkle_data.json
+>     try:
+>         with open('/app/merkle_data.json', 'r') as f:
+>             storage = json.load(f)
+>     except FileNotFoundError:
+>         print("Error: merkle_data.json not found. Run 'scan' first.", file=sys.stderr)
+>         sys.exit(1)
+>
+>     # Validate root_hash length
+>     if len(storage['root_hash']) != 128 or not all(c in '0123456789abcdef' for c in storage['root_hash']):
+>         print("Error: invalid root_hash format", file=sys.stderr)
+>         sys.exit(1)
+>
+>     # Validate file_hashes entries
+>     for k, v in storage['file_hashes'].items():
+>         if len(v) != 128 or not all(c in '0123456789abcdef' for c in v):
+>             print(f"Error: invalid hash for {k}", file=sys.stderr)
+>             sys.exit(1)
+>
+>     # Check if file_path exists in proofs
+>     if file_path not in storage['proofs']:
+>         print(f"Error: no proof found for {file_path}", file=sys.stderr)
+>         sys.exit(1)
+>
+>     proof = storage['proofs'][file_path]
+>     # Validate each proof hash
+>     for entry in proof:
+>         if len(entry[1]) != 128 or not all(c in '0123456789abcdef' for c in entry[1]):
+>             print(f"Error: invalid proof hash {entry[1]}", file=sys.stderr)
+>             sys.exit(1)
+>
+>     # Output JSON to stdout
+>     output = {
+>         "file_path": file_path,
+>         "proof": proof
+>     }
+>     json.dump(output, sys.stdout, indent=None)
+>     sys.stdout.write('\n
+[... output limited to 10000 bytes; 70 interior bytes omitted ...]
+    scanned_dir = storage['scanned_directory']
+>         full_path = os.path.join(scanned_dir, expected_file_path)
+>         if os.path.exists(full_path):
+>             stored_hash = sha512(open(full_path, 'rb').read())
+>         else:
+>             print(f"Error: stored file path {expected_file_path} not found", file=sys.stderr)
+>             sys.exit(1)
+>
+>     file_hash_matches = (current_hash == stored_hash)
+>
+>     # Reconstruct root from proof
+>     reconstructed_hashes = {expected_file_path: current_hash}
+>     current_hashes = {expected_file_path: current_hash}
+>     # We need to rebuild the path using proof entries
+>     # Use the same method as build_merkle_tree but in reverse
+>     # We'll simulate the levels
+>     node_hash = current_hash
+>     temp_proof = proof[:]
+>     # Sort proof by direction? No, we need to process in order from leaf to root
+>     # We'll just iterate through proof entries
+>     # But we need to know sibling hashes; they are entry[1]
+>     # We'll treat each entry as sibling hash, and we need to combine with node_hash
+>     # However, we don't know whether current node was left or right child
+>     # We can use the direction to decide how to combine
+>     # Actually easier: during verification, we can recompute root by walking up using proof
+>     # We maintain a dict of known hashes, starting with the leaf hash
+>     known = {expected_file_path: current_hash}
+>     # We'll simulate up to root
+>     # At each step, we have a set of hashes at current level; we pair them
+>     # But since we only have one path, we can just use the proof entries directly
+>     # The proof entries give sibling hash and direction indicating position
+>     # We can reconstruct by: for each entry, if direction is "left", then current node is right child, so combine sibling_hash (left) + current_hash
+>     # If direction is "right", current node is left child, so combine current_hash + sibling_hash
+>     # Then hash the concatenation
+>     reconstructed_hash = current_hash
+>     for direction, sibling_hash in proof:
+>         if direction == "left":
+>             # current node is right child, sibling is on left
+>             # So the pair is [sibling_hash, reconstructed_hash]
+>             combined = sibling_hash.encode('utf-8') + reconstructed_hash.encode('utf-8')
+>         elif direction == "right":
+>             # current node is left child, sibling is on right
+>             combined = reconstructed_hash.encode('utf-8') + sibling_hash.encode('utf-8')
+>         else:
+>             print(f"Error: invalid direction {direction}", file=sys.stderr)
+>             sys.exit(1)
+>         reconstructed_hash = sha512(combined)
+>     root_matches = (reconstructed_hash == storage['root_hash'])
+>
+>     # Prepare verification result
+>     result = {
+>         "root_matches": root_matches,
+>         "file_hash_matches_storage": file_hash_matches,
+>         "file_path": expected_file_path,
+>         "added_files": [],
+>         "deleted_files": [],
+>         "modified_files": []
+>     }
+>
+>     # Since we are verifying a single file, added/deleted/modified are empty
+>     # But if the file is missing from storage, it would be a deletion
+>     if not file_hash_matches:
+>         result["modified_files"] = [expected_file_path]
+>     # If the file is not in storage at all, it would be added, but we already checked
+>
+>     # Output result as JSON
+>     print(json.dumps(result))
+>     # If verification fails, ensure "failed" appears in stdout or exit non-zero
+>     if not (root_matches and file_hash_matches):
+>         # Already printed JSON, but we need to ensure exit code is non-zero
+>         sys.exit(1)
+>
+>
+> if __name__ == '__main__':
+>     parser = argparse.ArgumentParser(description='Merkle Tree CLI Tool')
+>     subparsers = parser.add_subparsers(dest='command', help='Available commands')
+>
+>     # scan command
+>     scan_parser = subparsers.add_parser('scan', help='Scan a directory and build Merkle tree')
+>     scan_parser.add_argument('directory', help='Directory to scan')
+>
+>     # proof command
+>     proof_parser = subparsers.add_parser('proof', help='Generate Merkle proof for a file')
+>     proof_parser.add_argument('file_path', help='Relative file path as stored in merkle_data.json')
+>
+>     # verify command
+>     verify_parser = subparsers.add_parser('verify', help='Verify file integrity using proof')
+>     verify_parser.add_argument('file_path', help='File path to verify (relative or absolute)')
+>     verify_parser.add_argument('proof_file', help='JSON file containing proof data')
+>
+>     args = parser.parse_args()
+>
+>     if args.command == 'scan':
+>         scan_directory(args.directory)
+>     elif args.command == 'proof':
+>         generate_proof(args.file_path)
+>     elif args.command == 'verify':
+>         verify_file(args.file_path, args.proof_file)
+>     else:
+>         parser.print_help()
+>         sys.exit(1)
+>
+> EOF
+root@710a10b7d8a0:/app# chmod +x /app/merkle_cli.py
+root@710a10b7d8a0:/app#

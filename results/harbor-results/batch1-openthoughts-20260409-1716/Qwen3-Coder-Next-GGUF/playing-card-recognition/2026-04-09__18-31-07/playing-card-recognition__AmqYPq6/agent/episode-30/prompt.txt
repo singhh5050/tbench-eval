@@ -1,0 +1,106 @@
+New Terminal Output:
+
+root@85192a4178f3:/workdir# python3 << 'EOF'
+> import cv2
+> import numpy as np
+>
+> # Let's identify the suit more carefully
+> filepath = '/workdir/data/cards/card_3.png'
+> img = cv2.imread(filepath)
+>
+> h, w = img.shape[:2]
+>
+> # Look at the suit symbol area
+> suit_area = img[h//2-100:h//2+50, w//2-60:w//2+60]
+>
+> # Convert to HSV
+> hsv = cv2.cvtColor(suit_area, cv2.COLOR_BGR2HSV)
+>
+> # Check for red pixels (hearts/diamonds)
+> lower_red1 = np.array([0, 50, 50])
+> upper_red1 = np.array([10, 255, 255])
+> lower_red2 = np.array([160, 50, 50])
+> upper_red2 = np.array([180, 255, 255])
+> mask1 = cv2.inRange(hsv, lower_red1, upper_red1)
+> mask2 = cv2.inRange(hsv, lower_red2, upper_red2)
+> red_mask = cv2.bitwise_or(mask1, mask2)
+> red_count = np.count_nonzero(red_mask)
+>
+> # Check for black pixels
+> gray = cv2.cvtColor(suit_area, cv2.COLOR_BGR2GRAY)
+> black_mask = gray < 100
+> black_count = np.count_nonzero(black_mask)
+>
+> print(f'Red pixels in suit area: {red_count}')
+> print(f'Black pixels in suit area: {black_count}')
+>
+> if red_count > black_count:
+>     print('Suit color: RED (hearts or diamonds)')
+> else:
+>     print('Suit color: BLACK (clubs or spades)')
+>
+> # Now look at the shape of the suit symbol
+> _, binary = cv2.threshold(gray, 100, 255, cv2.THRESH_BINARY_INV)
+> contours, _ = cv2.findContours(binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+>
+> print(f'Number of suit symbol parts: {len(contours)}')
+>
+> # Print the main suit shape
+> main_contour = max(contours, key=cv2.contourArea)
+> x, y, w_cont, h_cont = cv2.boundingRect(main_contour)
+> suit_digit = binary[y:y+h_cont, x:x+w_cont]
+>
+> print('Suit symbol shape:')
+> for row in range(0, suit_digit.shape[0], 4):
+>     line = ''
+>     for col in range(0, suit_digit.shape[1], 2):
+>         if suit_digit[row, col] == 0:
+>             line += '#'
+>         else:
+>             line += ' '
+>     print(line)
+> EOF
+Red pixels in suit area: 1209
+Black pixels in suit area: 9227
+Suit color: BLACK (clubs or spades)
+Number of suit symbol parts: 5
+Suit symbol shape:
+#        ##    ####     ###   #####  ##  ######  ##### ###
+###      ###   ####      ###   #######   ###### ######   ###
+#####     ########        ##     ########  #### ####  ######
+#######                   ###       ########       #########
+########                  ###    ###   ##################  #
+#### #####       ####     ##      ######  ############ #####
+###   #####      ####    ###       ########  #####  ########
+###   ######      ##########         #########   #########
+##    ######             ###        ##  ###############  ###
+##     #####             ###        #####   ########  ######
+###  #######       ####  ###  ##     ########  ##  ########
+############        ##  #########      #################  ##
+############            ##            ##  ###########  #####
+ ###########            ##            #####  #####  ########
+  ##########            ##            ########   #########
+   #########            ##               ##############  ###
+##  ########            ##             ##   #######  #######
+#    #######            ###  #####     #####   #  #########
+      ######             ###  ####      ################
+#     ######               ######         ####      #  ####
+       #####                            ###   ###### ######
+#      ###                   ####       #### #######  ###
+   ##### #####              ######                        #
+  ##### ########            ######      #####  ####  #####
+  ###    #    #                         ###   ######   ###
+    ####   ###  #####                   ####  #####  #####
+  #####  ######   ####      ####                   #      #
+  #####  ######  ####      ######            ######## #####
+    ###          #         ######             ###### ######
+     #   ##  ### #####                             ####
+  #####  ####### #####        ###                #####
+  #####   #### ##  ####     ########             #####
+  ##  ##############       #####  ###            ######
+   ########   #########            ###           #######   #
+ #######  #####  ######            ###           ####### #
+ #####  ##########  ###            ###           ##########
+###  ################              ###           ###########
+  ########      ########           ##            ###########
+root@85192a4178f3:/workdir#
