@@ -15,113 +15,178 @@ PORT = int(sys.argv[1]) if len(sys.argv) > 1 else 8080
 
 def scan_results():
     """Walk the results directory and build a structured summary."""
+    import re
+    from collections import defaultdict
+
     runs = []
+
+    # Skip non-result directories and broken/test runs
+    SKIP = {
+        "summary.csv", "64gb-server", "harbor-results", "VALIDATION_REPORT.txt",
+        "gemma-test", "gemma-test-2", "gemma-test-20260319-122347",
+        "test-quick", "cloud-test", "frontier-test-20260329",
+        "terminus-2-llama32-3b-test", "terminus-2-llama32-manual-test",
+        "terminus-2-llama-local-30gb", "terminus-2-phi4-14b",
+    }
+
+    def parse_run_name(run_name):
+        if run_name.startswith("openhands-"):
+            agent, model_tag = "openhands", run_name[len("openhands-"):]
+        elif run_name.startswith("terminus-2-"):
+            agent, model_tag = "terminus-2", run_name[len("terminus-2-"):]
+        else:
+            parts = run_name.split("-", 1)
+            agent, model_tag = parts[0], parts[1] if len(parts) > 1 else ""
+        runtime = "local" if ("local" in model_tag or "64gb" in model_tag) else "cloud"
+        return agent, model_tag, runtime
+
+    def process_trial(run_name, agent, model_tag, runtime, trial_dir, traj_base):
+        result_file = trial_dir / "result.json"
+        if not result_file.exists():
+            return None
+        try:
+            result = json.loads(result_file.read_text())
+        except (json.JSONDecodeError, OSError):
+            return None
+
+        trial_name = trial_dir.name
+        task_name = trial_name.rsplit("__", 1)[0] if "__" in trial_name else trial_name
+
+        reward = None
+        reward_file = trial_dir / "verifier" / "reward.txt"
+        if reward_file.exists():
+            try:
+                reward = float(reward_file.read_text().strip())
+            except (ValueError, OSError):
+                pass
+        if reward is None:
+            reward = result.get("reward")
+
+        duration = None
+        started, finished = result.get("started_at"), result.get("finished_at")
+        if started and finished:
+            from datetime import datetime
+            try:
+                s = datetime.fromisoformat(started.replace("Z", "+00:00"))
+                f = datetime.fromisoformat(finished.replace("Z", "+00:00"))
+                duration = (f - s).total_seconds()
+            except Exception:
+                pass
+
+        tokens = {"prompt": 0, "completion": 0}
+        traj_file = trial_dir / "agent" / "trajectory.json"
+        if traj_file.exists():
+            try:
+                traj = json.loads(traj_file.read_text())
+                fm = traj.get("final_metrics", {})
+                tokens["prompt"] = fm.get("total_prompt_tokens", 0)
+                tokens["completion"] = fm.get("total_completion_tokens", 0)
+            except Exception:
+                pass
+
+        error = None
+        exc_info = result.get("exception_info")
+        if exc_info:
+            error = exc_info.get("exception_type", "Unknown")
+
+        return {
+            "run": run_name, "agent": agent, "model_tag": model_tag,
+            "runtime": runtime, "task": task_name, "trial_name": trial_name,
+            "reward": reward,
+            "duration": round(duration, 1) if duration else None,
+            "error": error, "tokens": tokens,
+            "has_trajectory": traj_file.exists(),
+            "trajectory_path": traj_base,
+        }
+
+    TS_RE = re.compile(r'\d{4}-\d{2}-\d{2}__\d{2}-\d{2}-\d{2}')
 
     for run_dir in sorted(RESULTS_DIR.iterdir()):
         if not run_dir.is_dir() or run_dir.name.startswith((".", "__")):
             continue
-        if run_dir.name == "summary.csv":
+        if run_dir.name in SKIP:
             continue
 
         run_name = run_dir.name
-        # Parse agent and model tag from dir name
-        # e.g. "terminus-2-m2.1-fireworks" or "openhands-qwen-30b-local"
-        if run_name.startswith("openhands-"):
-            agent = "openhands"
-            model_tag = run_name[len("openhands-"):]
-        elif run_name.startswith("terminus-2-"):
-            agent = "terminus-2"
-            model_tag = run_name[len("terminus-2-"):]
-        else:
-            agent = run_name.split("-")[0]
-            model_tag = "-".join(run_name.split("-")[1:])
+        agent, model_tag, runtime = parse_run_name(run_name)
 
-        # Determine if local or cloud
-        is_local = "local" in model_tag
-        runtime = "local" if is_local else "cloud"
-
-        # Find the job directory (timestamp-named)
-        for job_dir in sorted(run_dir.iterdir()):
-            if not job_dir.is_dir():
+        for l1 in sorted(run_dir.iterdir()):
+            if not l1.is_dir():
                 continue
 
-            # Each subdirectory is a trial
-            for trial_dir in sorted(job_dir.iterdir()):
-                if not trial_dir.is_dir():
-                    continue
+            if TS_RE.match(l1.name):
+                # Old format: run/TIMESTAMP/trial__hash/
+                for trial in sorted(l1.iterdir()):
+                    if not trial.is_dir():
+                        continue
+                    entry = process_trial(run_name, agent, model_tag, runtime,
+                                          trial, f"{run_name}/{l1.name}/{trial.name}")
+                    if entry:
+                        runs.append(entry)
+            else:
+                # New format: run/TASK/TIMESTAMP/trial__hash/
+                # Use l1.name as the canonical task name (trial dir may be truncated)
+                for l2 in sorted(l1.iterdir()):
+                    if not l2.is_dir():
+                        continue
+                    for trial in sorted(l2.iterdir()):
+                        if not trial.is_dir():
+                            continue
+                        entry = process_trial(run_name, agent, model_tag, runtime,
+                                              trial, f"{run_name}/{l1.name}/{l2.name}/{trial.name}")
+                        if entry:
+                            entry['task'] = l1.name  # override with correct task name
+                            runs.append(entry)
 
-                result_file = trial_dir / "result.json"
-                if not result_file.exists():
-                    continue
+    # Load the full 37-task list to fill in timeouts as failures
+    merged_file = Path(os.path.dirname(os.path.abspath(__file__))) / "easy_tasks_merged.txt"
+    all_tasks = set()
+    if merged_file.exists():
+        for line in merged_file.read_text().splitlines():
+            line = line.strip()
+            if line:
+                # Strip dataset prefix if present (e.g. "terminal-bench@2.0|fix-git" -> "fix-git")
+                task = line.split("|")[-1] if "|" in line else line
+                all_tasks.add(task)
 
-                try:
-                    result = json.loads(result_file.read_text())
-                except (json.JSONDecodeError, OSError):
-                    continue
+    if all_tasks:
+        # Group existing results by run
+        tasks_by_run = defaultdict(set)
+        run_info = {}
+        for r in runs:
+            tasks_by_run[r['run']].add(r['task'])
+            if r['run'] not in run_info:
+                run_info[r['run']] = (r['agent'], r['model_tag'], r['runtime'])
 
-                # Extract task name (strip the __hash suffix)
-                trial_name = trial_dir.name
-                task_name = trial_name.rsplit("__", 1)[0] if "__" in trial_name else trial_name
-
-                # Get reward
-                reward = None
-                reward_file = trial_dir / "verifier" / "reward.txt"
-                if reward_file.exists():
-                    try:
-                        reward = float(reward_file.read_text().strip())
-                    except (ValueError, OSError):
-                        pass
-
-                if reward is None:
-                    reward = result.get("reward")
-
-                # Get duration
-                duration = None
-                started = result.get("started_at")
-                finished = result.get("finished_at")
-                if started and finished:
-                    from datetime import datetime
-                    try:
-                        s_dt = datetime.fromisoformat(started.replace("Z", "+00:00"))
-                        f_dt = datetime.fromisoformat(finished.replace("Z", "+00:00"))
-                        duration = (f_dt - s_dt).total_seconds()
-                    except Exception:
-                        pass
-
-                # Get token counts from trajectory
-                tokens = {"prompt": 0, "completion": 0}
-                traj_file = trial_dir / "agent" / "trajectory.json"
-                if traj_file.exists():
-                    try:
-                        traj = json.loads(traj_file.read_text())
-                        fm = traj.get("final_metrics", {})
-                        tokens["prompt"] = fm.get("total_prompt_tokens", 0)
-                        tokens["completion"] = fm.get("total_completion_tokens", 0)
-                    except Exception:
-                        pass
-
-                # Error info
-                error = None
-                exc_info = result.get("exception_info")
-                if exc_info:
-                    error = exc_info.get("exception_type", "Unknown")
-
-                has_trajectory = traj_file.exists()
-
+        # Add missing tasks as timeout failures (reward=0)
+        for run_name, (agent, model_tag, runtime) in run_info.items():
+            missing = all_tasks - tasks_by_run[run_name]
+            for task in missing:
                 runs.append({
-                    "run": run_name,
-                    "agent": agent,
-                    "model_tag": model_tag,
-                    "runtime": runtime,
-                    "task": task_name,
-                    "trial_name": trial_name,
-                    "reward": reward,
-                    "duration": round(duration, 1) if duration else None,
-                    "error": error,
-                    "tokens": tokens,
-                    "has_trajectory": has_trajectory,
-                    "trajectory_path": f"{run_name}/{job_dir.name}/{trial_name}",
+                    "run": run_name, "agent": agent, "model_tag": model_tag,
+                    "runtime": runtime, "task": task, "trial_name": task,
+                    "reward": 0, "duration": 600.0,
+                    "error": "Timeout", "tokens": {"prompt": 0, "completion": 0},
+                    "has_trajectory": False, "trajectory_path": "",
                 })
+
+    # Deduplicate: keep best result per (run, task) — reward=1 > reward=0 > reward=None
+    best = {}
+    for r in runs:
+        key = (r['run'], r['task'])
+        if key not in best or (r.get('reward') or 0) > (best[key].get('reward') or 0):
+            best[key] = r
+    runs = list(best.values())
+
+    # Filter out runs with 0% pass rate
+    passes_by_run = defaultdict(int)
+    total_by_run = defaultdict(int)
+    for r in runs:
+        total_by_run[r['run']] += 1
+        if r.get('reward') == 1:
+            passes_by_run[r['run']] += 1
+    zero_runs = {run for run in total_by_run if passes_by_run[run] == 0}
+    runs = [r for r in runs if r['run'] not in zero_runs]
 
     return runs
 
