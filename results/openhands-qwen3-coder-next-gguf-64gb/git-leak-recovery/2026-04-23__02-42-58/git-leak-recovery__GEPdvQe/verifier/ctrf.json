@@ -1,0 +1,68 @@
+{
+    "results": {
+        "tool": {
+            "name": "pytest",
+            "version": "8.4.1"
+        },
+        "summary": {
+            "tests": 5,
+            "passed": 4,
+            "failed": 1,
+            "skipped": 0,
+            "pending": 0,
+            "other": 0,
+            "start": 1776934244.370614,
+            "stop": 1776934244.4045763
+        },
+        "tests": [
+            {
+                "name": "test_outputs.py::test_flag_file_exists_and_correct",
+                "status": "passed",
+                "duration": 0.00027001509442925453,
+                "start": 1776934244.3821287,
+                "stop": 1776934244.3825138,
+                "retries": 0,
+                "file_path": "test_outputs.py"
+            },
+            {
+                "name": "test_outputs.py::test_no_secrets_in_commits",
+                "status": "passed",
+                "duration": 0.005253134877420962,
+                "start": 1776934244.382616,
+                "stop": 1776934244.3879495,
+                "retries": 0,
+                "file_path": "test_outputs.py"
+            },
+            {
+                "name": "test_outputs.py::test_good_commits_preserved",
+                "status": "passed",
+                "duration": 0.0016799169825389981,
+                "start": 1776934244.3880417,
+                "stop": 1776934244.3899515,
+                "retries": 0,
+                "file_path": "test_outputs.py"
+            },
+            {
+                "name": "test_outputs.py::test_no_secrets_in_unreachable_objects",
+                "status": "passed",
+                "duration": 0.004969442030414939,
+                "start": 1776934244.3901684,
+                "stop": 1776934244.3953009,
+                "retries": 0,
+                "file_path": "test_outputs.py"
+            },
+            {
+                "name": "test_outputs.py::test_repository_contents_checksum",
+                "status": "failed",
+                "raw_status": "call_failed",
+                "duration": 0.0028997418703511357,
+                "start": 1776934244.3955545,
+                "stop": 1776934244.4044766,
+                "retries": 0,
+                "file_path": "test_outputs.py",
+                "trace": "def test_repository_contents_checksum():\n        \"\"\"Verify repository contents remain unchanged.\"\"\"\n        result = subprocess.run(\n            [\n                \"sh\",\n                \"-c\",\n                \"find /app/repo -type f -not -path '*/\\.*' \"\n                \"-exec sha256sum {} + | sort | sha256sum\",\n            ],\n            capture_output=True,\n            text=True,\n        )\n        assert result.returncode == 0, f\"Checksum calculation failed: {result.stderr}\"\n    \n        output = result.stdout\n        expected = \"2c3d6389133b6f9fffae5d3428ec1250c3b1cab5573c716d580dc1d4fa2f4adb\"\n>       assert expected in output, (\n            f\"Repository checksum mismatch. Expected: {expected}, Got: {output}\"\n        )\nE       AssertionError: Repository checksum mismatch. Expected: 2c3d6389133b6f9fffae5d3428ec1250c3b1cab5573c716d580dc1d4fa2f4adb, Got: 7c516438c1ab8163e49bdb050255a84a12b2c31b864a5efb5b8738acd5a103d6  -\nE         \nE       assert '2c3d6389133b6f9fffae5d3428ec1250c3b1cab5573c716d580dc1d4fa2f4adb' in '7c516438c1ab8163e49bdb050255a84a12b2c31b864a5efb5b8738acd5a103d6  -\\n'\n\n/tests/test_outputs.py:111: AssertionError",
+                "message": "The test failed in the call phase due to an assertion error"
+            }
+        ]
+    }
+}

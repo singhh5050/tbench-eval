@@ -1,0 +1,111 @@
+Traceback (most recent call last):
+  File "/scratch/harshsin/.local/share/uv/tools/harbor/lib/python3.12/site-packages/harbor/trial/trial.py", line 358, in run
+    await self._setup_environment()
+  File "/scratch/harshsin/.local/share/uv/tools/harbor/lib/python3.12/site-packages/harbor/trial/trial.py", line 204, in _setup_environment
+    await self._start_environment_with_retry()
+  File "/scratch/harshsin/.local/share/uv/tools/harbor/lib/python3.12/site-packages/tenacity/asyncio/__init__.py", line 193, in async_wrapped
+    return await copy(fn, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/scratch/harshsin/.local/share/uv/tools/harbor/lib/python3.12/site-packages/tenacity/asyncio/__init__.py", line 112, in __call__
+    do = await self.iter(retry_state=retry_state)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/scratch/harshsin/.local/share/uv/tools/harbor/lib/python3.12/site-packages/tenacity/asyncio/__init__.py", line 157, in iter
+    result = await action(retry_state)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/scratch/harshsin/.local/share/uv/tools/harbor/lib/python3.12/site-packages/tenacity/_utils.py", line 111, in inner
+    return call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/scratch/harshsin/.local/share/uv/tools/harbor/lib/python3.12/site-packages/tenacity/__init__.py", line 393, in <lambda>
+    self._add_action_func(lambda rs: rs.outcome.result())
+                                     ^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/concurrent/futures/_base.py", line 449, in result
+    return self.__get_result()
+           ^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/concurrent/futures/_base.py", line 401, in __get_result
+    raise self._exception
+  File "/scratch/harshsin/.local/share/uv/tools/harbor/lib/python3.12/site-packages/tenacity/asyncio/__init__.py", line 116, in __call__
+    result = await fn(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/scratch/harshsin/.local/share/uv/tools/harbor/lib/python3.12/site-packages/harbor/trial/trial.py", line 216, in _start_environment_with_retry
+    await asyncio.wait_for(
+  File "/usr/lib/python3.12/asyncio/tasks.py", line 520, in wait_for
+    return await fut
+           ^^^^^^^^^
+  File "/scratch/harshsin/.local/share/uv/tools/harbor/lib/python3.12/site-packages/harbor/environments/docker/docker.py", line 205, in start
+    await self._run_docker_compose_command(["build"])
+  File "/scratch/harshsin/.local/share/uv/tools/harbor/lib/python3.12/site-packages/harbor/environments/docker/docker.py", line 184, in _run_docker_compose_command
+    raise RuntimeError(
+RuntimeError: Docker compose command failed for environment smiles-data-lab. Command: docker compose -p smiles-data-lab__ejpuhba -f /scratch/harshsin/.local/share/uv/tools/harbor/lib/python3.12/site-packages/harbor/environments/docker/docker-compose-build.yaml build. Return code: 1. Stdout:  Image hb__smiles-data-lab Building 
+#1 [internal] load local bake definitions
+#1 reading from stdin 644B done
+#1 DONE 0.0s
+
+#2 [internal] load build definition from Dockerfile
+#2 transferring dockerfile: 359B done
+#2 DONE 0.0s
+
+#3 [internal] load metadata for docker.io/continuumio/miniconda3:24.4.0-0
+#3 DONE 0.3s
+
+#4 [internal] load .dockerignore
+#4 transferring context: 2B done
+#4 DONE 0.0s
+
+#5 [1/6] FROM docker.io/continuumio/miniconda3:24.4.0-0@sha256:e5caba159335ca9cc9d7c78167d8b46283aa56fcc53ae9ffcab2a54e09000329
+#5 resolve docker.io/continuumio/miniconda3:24.4.0-0@sha256:e5caba159335ca9cc9d7c78167d8b46283aa56fcc53ae9ffcab2a54e09000329 done
+#5 DONE 0.0s
+
+#6 [2/6] RUN apt-get update && apt-get install -y     bash     && rm -rf /var/lib/apt/lists/*
+#6 CACHED
+
+#7 [3/6] WORKDIR /app
+#7 CACHED
+
+#8 [internal] load build context
+#8 transferring context: 1.76kB done
+#8 DONE 0.0s
+
+#9 [4/6] RUN conda install -y -c rdkit rdkit && conda clean -afy
+#9 0.388 Channels:
+#9 0.388  - rdkit
+#9 0.388  - defaults
+#9 0.388 Platform: linux-64
+#9 0.388 Collecting package metadata (repodata.json): ...working... failed
+#9 12.75 
+#9 12.75 CondaHTTPError: HTTP 429 TERMS OF SERVICE RATE LIMIT EXCEEDED for url <https://repo.anaconda.com/pkgs/main/linux-64/repodata.json>
+#9 12.75 Elapsed: 00:06.116234
+#9 12.75 CF-RAY: 9f0cc273fa9bcef3-DEN
+#9 12.75 
+#9 12.75 Your usage of the Anaconda package repository exceeds our rate limits.  Please see https://www.anaconda.com/tos-access
+#9 12.75 
+#9 ERROR: process "/bin/sh -c conda install -y -c rdkit rdkit && conda clean -afy" did not complete successfully: exit code: 1
+------
+ > [4/6] RUN conda install -y -c rdkit rdkit && conda clean -afy:
+failed
+12.75 
+12.75 CondaHTTPError: HTTP 429 TERMS OF SERVICE RATE LIMIT EXCEEDED for url <https://repo.anaconda.com/pkgs/main/linux-64/repodata.json>
+12.75 Elapsed: 00:06.116234
+12.75 CF-RAY: 9f0cc273fa9bcef3-DEN
+12.75 
+12.75 Your usage of the Anaconda package repository exceeds our rate limits.  Please see https://www.anaconda.com/tos-access
+12.75 
+------
+Dockerfile:9
+
+--------------------
+
+   7 |     WORKDIR /app
+
+   8 |     
+
+   9 | >>> RUN conda install -y -c rdkit rdkit && conda clean -afy
+
+  10 |     
+
+  11 |     COPY data /app/environment/data
+
+--------------------
+
+failed to solve: process "/bin/sh -c conda install -y -c rdkit rdkit && conda clean -afy" did not complete successfully: exit code: 1
+
+. Stderr: None. 

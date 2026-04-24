@@ -1,0 +1,573 @@
+Hit:1 http://deb.debian.org/debian trixie InRelease
+Hit:2 http://deb.debian.org/debian trixie-updates InRelease
+Hit:3 http://deb.debian.org/debian-security trixie-security InRelease
+Reading package lists...
+Reading package lists...
+Building dependency tree...
+Reading state information...
+curl is already the newest version (8.14.1-2+deb13u2).
+0 upgraded, 0 newly installed, 0 to remove and 0 not upgraded.
+downloading uv 0.9.5 x86_64-unknown-linux-gnu
+no checksums to verify
+installing to /root/.local/bin
+  uv
+  uvx
+everything's installed!
+Downloading pygments (1.2MiB)
+ Downloading pygments
+Installed 6 packages in 7ms
+============================= test session starts ==============================
+platform linux -- Python 3.13.13, pytest-8.4.1, pluggy-1.6.0
+rootdir: /tests
+plugins: json-ctrf-0.3.5
+collected 21 items
+
+../tests/test_outputs.py FFFFFFFFFFFFFFFF.FFFF                           [100%]
+
+=================================== FAILURES ===================================
+_________________ TestScriptsExist.test_setup_ca_script_exists _________________
+
+self = <test_outputs.TestScriptsExist object at 0x70ef0281ca50>
+
+    def test_setup_ca_script_exists(self):
+        """Verify setup_ca.sh exists and is executable."""
+        script = Path("/app/setup_ca.sh")
+>       assert script.exists(), "setup_ca.sh not found"
+E       AssertionError: setup_ca.sh not found
+E       assert False
+E        +  where False = exists()
+E        +    where exists = PosixPath('/app/setup_ca.sh').exists
+
+/tests/test_outputs.py:43: AssertionError
+______________ TestScriptsExist.test_sign_artifact_script_exists _______________
+
+self = <test_outputs.TestScriptsExist object at 0x70ef0281d310>
+
+    def test_sign_artifact_script_exists(self):
+        """Verify sign_artifact.sh exists and is executable."""
+        script = Path("/app/sign_artifact.sh")
+>       assert script.exists(), "sign_artifact.sh not found"
+E       AssertionError: sign_artifact.sh not found
+E       assert False
+E        +  where False = exists()
+E        +    where exists = PosixPath('/app/sign_artifact.sh').exists
+
+/tests/test_outputs.py:49: AssertionError
+_____________ TestScriptsExist.test_verify_artifact_script_exists ______________
+
+self = <test_outputs.TestScriptsExist object at 0x70ef02840b00>
+
+    def test_verify_artifact_script_exists(self):
+        """Verify verify_artifact.sh exists and is executable."""
+        script = Path("/app/verify_artifact.sh")
+>       assert script.exists(), "verify_artifact.sh not found"
+E       AssertionError: verify_artifact.sh not found
+E       assert False
+E        +  where False = exists()
+E        +    where exists = PosixPath('/app/verify_artifact.sh').exists
+
+/tests/test_outputs.py:55: AssertionError
+____________ TestCertificateAuthority.test_ca_setup_creates_root_ca ____________
+
+self = <test_outputs.TestCertificateAuthority object at 0x70ef0281d1d0>
+
+    def test_ca_setup_creates_root_ca(self):
+        """Verify CA setup creates Root CA certificate and key."""
+        if not Path("/app/ca/root-ca.pem").exists():
+>           run_command("/app/setup_ca.sh", check=True)
+
+/tests/test_outputs.py:65: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+cmd = '/app/setup_ca.sh', check = True
+
+    def run_command(cmd, check=False):
+        """Run a shell command and return the result."""
+        result = subprocess.run(
+            cmd,
+            shell=True,
+            capture_output=True,
+            text=True
+        )
+        if check and result.returncode != 0:
+>           raise subprocess.CalledProcessError(
+                result.returncode, cmd, result.stdout, result.stderr
+            )
+E           subprocess.CalledProcessError: Command '/app/setup_ca.sh' returned non-zero exit status 127.
+
+/tests/test_outputs.py:31: CalledProcessError
+________ TestCertificateAuthority.test_ca_setup_creates_intermediate_ca ________
+
+self = <test_outputs.TestCertificateAuthority object at 0x70ef0281d450>
+
+    def test_ca_setup_creates_intermediate_ca(self):
+        """Verify CA setup creates Intermediate CA certificate and key."""
+        if not Path("/app/ca/intermediate-ca.pem").exists():
+>           run_command("/app/setup_ca.sh", check=True)
+
+/tests/test_outputs.py:73: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+cmd = '/app/setup_ca.sh', check = True
+
+    def run_command(cmd, check=False):
+        """Run a shell command and return the result."""
+        result = subprocess.run(
+            cmd,
+            shell=True,
+            capture_output=True,
+            text=True
+        )
+        if check and result.returncode != 0:
+>           raise subprocess.CalledProcessError(
+                result.returncode, cmd, result.stdout, result.stderr
+            )
+E           subprocess.CalledProcessError: Command '/app/setup_ca.sh' returned non-zero exit status 127.
+
+/tests/test_outputs.py:31: CalledProcessError
+__________ TestCertificateAuthority.test_root_ca_is_valid_certificate __________
+
+self = <test_outputs.TestCertificateAuthority object at 0x70ef02840d60>
+
+    def test_root_ca_is_valid_certificate(self):
+        """Verify Root CA is a valid X.509 certificate."""
+        if not Path("/app/ca/root-ca.pem").exists():
+>           run_command("/app/setup_ca.sh", check=True)
+
+/tests/test_outputs.py:81: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+cmd = '/app/setup_ca.sh', check = True
+
+    def run_command(cmd, check=False):
+        """Run a shell command and return the result."""
+        result = subprocess.run(
+            cmd,
+            shell=True,
+            capture_output=True,
+            text=True
+        )
+        if check and result.returncode != 0:
+>           raise subprocess.CalledProcessError(
+                result.returncode, cmd, result.stdout, result.stderr
+            )
+E           subprocess.CalledProcessError: Command '/app/setup_ca.sh' returned non-zero exit status 127.
+
+/tests/test_outputs.py:31: CalledProcessError
+______ TestCertificateAuthority.test_intermediate_ca_is_valid_certificate ______
+
+self = <test_outputs.TestCertificateAuthority object at 0x70ef02840e90>
+
+    def test_intermediate_ca_is_valid_certificate(self):
+        """Verify Intermediate CA is a valid X.509 certificate."""
+        if not Path("/app/ca/intermediate-ca.pem").exists():
+>           run_command("/app/setup_ca.sh", check=True)
+
+/tests/test_outputs.py:89: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+cmd = '/app/setup_ca.sh', check = True
+
+    def run_command(cmd, check=False):
+        """Run a shell command and return the result."""
+        result = subprocess.run(
+            cmd,
+            shell=True,
+            capture_output=True,
+            text=True
+        )
+        if check and result.returncode != 0:
+>           raise subprocess.CalledProcessError(
+                result.returncode, cmd, result.stdout, result.stderr
+            )
+E           subprocess.CalledProcessError: Command '/app/setup_ca.sh' returned non-zero exit status 127.
+
+/tests/test_outputs.py:31: CalledProcessError
+_____________ TestCertificateAuthority.test_root_ca_subject_fields _____________
+
+self = <test_outputs.TestCertificateAuthority object at 0x70ef0281af90>
+
+    def test_root_ca_subject_fields(self):
+        """Verify Root CA has correct subject fields."""
+        if not Path("/app/ca/root-ca.pem").exists():
+>           run_command("/app/setup_ca.sh", check=True)
+
+/tests/test_outputs.py:97: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+cmd = '/app/setup_ca.sh', check = True
+
+    def run_command(cmd, check=False):
+        """Run a shell command and return the result."""
+        result = subprocess.run(
+            cmd,
+            shell=True,
+            capture_output=True,
+            text=True
+        )
+        if check and result.returncode != 0:
+>           raise subprocess.CalledProcessError(
+                result.returncode, cmd, result.stdout, result.stderr
+            )
+E           subprocess.CalledProcessError: Command '/app/setup_ca.sh' returned non-zero exit status 127.
+
+/tests/test_outputs.py:31: CalledProcessError
+_________ TestCertificateAuthority.test_intermediate_ca_chains_to_root _________
+
+self = <test_outputs.TestCertificateAuthority object at 0x70ef0284caf0>
+
+    def test_intermediate_ca_chains_to_root(self):
+        """Verify Intermediate CA is signed by Root CA."""
+        if not Path("/app/ca/root-ca.pem").exists():
+>           run_command("/app/setup_ca.sh", check=True)
+
+/tests/test_outputs.py:107: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+cmd = '/app/setup_ca.sh', check = True
+
+    def run_command(cmd, check=False):
+        """Run a shell command and return the result."""
+        result = subprocess.run(
+            cmd,
+            shell=True,
+            capture_output=True,
+            text=True
+        )
+        if check and result.returncode != 0:
+>           raise subprocess.CalledProcessError(
+                result.returncode, cmd, result.stdout, result.stderr
+            )
+E           subprocess.CalledProcessError: Command '/app/setup_ca.sh' returned non-zero exit status 127.
+
+/tests/test_outputs.py:31: CalledProcessError
+___________ TestArtifactSigning.test_sign_artifact_creates_signature ___________
+
+self = <test_outputs.TestArtifactSigning object at 0x70ef0281d590>
+
+    def test_sign_artifact_creates_signature(self):
+        """Verify signing creates signature file."""
+        if not Path("/app/ca/root-ca.pem").exists():
+>           run_command("/app/setup_ca.sh", check=True)
+
+/tests/test_outputs.py:122: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+cmd = '/app/setup_ca.sh', check = True
+
+    def run_command(cmd, check=False):
+        """Run a shell command and return the result."""
+        result = subprocess.run(
+            cmd,
+            shell=True,
+            capture_output=True,
+            text=True
+        )
+        if check and result.returncode != 0:
+>           raise subprocess.CalledProcessError(
+                result.returncode, cmd, result.stdout, result.stderr
+            )
+E           subprocess.CalledProcessError: Command '/app/setup_ca.sh' returned non-zero exit status 127.
+
+/tests/test_outputs.py:31: CalledProcessError
+__________ TestArtifactSigning.test_sign_artifact_creates_provenance ___________
+
+self = <test_outputs.TestArtifactSigning object at 0x70ef0281d6d0>
+
+    def test_sign_artifact_creates_provenance(self):
+        """Verify signing creates provenance attestation."""
+        prov_file = Path("/app/signed/release.tar.gz.provenance.json")
+        if not prov_file.exists():
+>           run_command("/app/setup_ca.sh", check=True)
+
+/tests/test_outputs.py:135: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+cmd = '/app/setup_ca.sh', check = True
+
+    def run_command(cmd, check=False):
+        """Run a shell command and return the result."""
+        result = subprocess.run(
+            cmd,
+            shell=True,
+            capture_output=True,
+            text=True
+        )
+        if check and result.returncode != 0:
+>           raise subprocess.CalledProcessError(
+                result.returncode, cmd, result.stdout, result.stderr
+            )
+E           subprocess.CalledProcessError: Command '/app/setup_ca.sh' returned non-zero exit status 127.
+
+/tests/test_outputs.py:31: CalledProcessError
+_____ TestArtifactSigning.test_sign_artifact_creates_provenance_signature ______
+
+self = <test_outputs.TestArtifactSigning object at 0x70ef028410f0>
+
+    def test_sign_artifact_creates_provenance_signature(self):
+        """Verify provenance attestation is signed."""
+        prov_sig = Path("/app/signed/release.tar.gz.provenance.sig")
+        if not prov_sig.exists():
+>           run_command("/app/setup_ca.sh", check=True)
+
+/tests/test_outputs.py:153: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+cmd = '/app/setup_ca.sh', check = True
+
+    def run_command(cmd, check=False):
+        """Run a shell command and return the result."""
+        result = subprocess.run(
+            cmd,
+            shell=True,
+            capture_output=True,
+            text=True
+        )
+        if check and result.returncode != 0:
+>           raise subprocess.CalledProcessError(
+                result.returncode, cmd, result.stdout, result.stderr
+            )
+E           subprocess.CalledProcessError: Command '/app/setup_ca.sh' returned non-zero exit status 127.
+
+/tests/test_outputs.py:31: CalledProcessError
+_______ TestArtifactSigning.test_sign_artifact_creates_certificate_chain _______
+
+self = <test_outputs.TestArtifactSigning object at 0x70ef02841220>
+
+    def test_sign_artifact_creates_certificate_chain(self):
+        """Verify certificate chain bundle is created."""
+        chain_file = Path("/app/signed/release.tar.gz.chain.pem")
+        if not chain_file.exists():
+>           run_command("/app/setup_ca.sh", check=True)
+
+/tests/test_outputs.py:163: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+cmd = '/app/setup_ca.sh', check = True
+
+    def run_command(cmd, check=False):
+        """Run a shell command and return the result."""
+        result = subprocess.run(
+            cmd,
+            shell=True,
+            capture_output=True,
+            text=True
+        )
+        if check and result.returncode != 0:
+>           raise subprocess.CalledProcessError(
+                result.returncode, cmd, result.stdout, result.stderr
+            )
+E           subprocess.CalledProcessError: Command '/app/setup_ca.sh' returned non-zero exit status 127.
+
+/tests/test_outputs.py:31: CalledProcessError
+_____________ TestArtifactSigning.test_signing_certificate_created _____________
+
+self = <test_outputs.TestArtifactSigning object at 0x70ef0281be30>
+
+    def test_signing_certificate_created(self):
+        """Verify ephemeral signing certificate is created."""
+>       run_command("/app/setup_ca.sh", check=True)
+
+/tests/test_outputs.py:175: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+cmd = '/app/setup_ca.sh', check = True
+
+    def run_command(cmd, check=False):
+        """Run a shell command and return the result."""
+        result = subprocess.run(
+            cmd,
+            shell=True,
+            capture_output=True,
+            text=True
+        )
+        if check and result.returncode != 0:
+>           raise subprocess.CalledProcessError(
+                result.returncode, cmd, result.stdout, result.stderr
+            )
+E           subprocess.CalledProcessError: Command '/app/setup_ca.sh' returned non-zero exit status 127.
+
+/tests/test_outputs.py:31: CalledProcessError
+____________ TestArtifactSigning.test_ephemeral_private_key_deleted ____________
+
+self = <test_outputs.TestArtifactSigning object at 0x70ef0284cf30>
+
+    def test_ephemeral_private_key_deleted(self):
+        """Verify ephemeral private key is deleted after signing."""
+        # Sign a fresh artifact
+>       run_command("/app/setup_ca.sh", check=True)
+
+/tests/test_outputs.py:185: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+cmd = '/app/setup_ca.sh', check = True
+
+    def run_command(cmd, check=False):
+        """Run a shell command and return the result."""
+        result = subprocess.run(
+            cmd,
+            shell=True,
+            capture_output=True,
+            text=True
+        )
+        if check and result.returncode != 0:
+>           raise subprocess.CalledProcessError(
+                result.returncode, cmd, result.stdout, result.stderr
+            )
+E           subprocess.CalledProcessError: Command '/app/setup_ca.sh' returned non-zero exit status 127.
+
+/tests/test_outputs.py:31: CalledProcessError
+____ TestArtifactVerification.test_verification_fails_for_missing_artifact _____
+
+self = <test_outputs.TestArtifactVerification object at 0x70ef0281d810>
+
+    def test_verification_fails_for_missing_artifact(self):
+        """Verify verification fails when artifact file is missing."""
+        result = run_command("/app/verify_artifact.sh /app/artifacts/nonexistent.bin")
+        assert result.returncode != 0, \
+            "Verification should fail for missing artifact"
+>       assert "VERIFICATION_FAILED" in result.stdout, \
+            "Output should contain VERIFICATION_FAILED"
+E       AssertionError: Output should contain VERIFICATION_FAILED
+E       assert 'VERIFICATION_FAILED' in ''
+E        +  where '' = CompletedProcess(args='/app/verify_artifact.sh /app/artifacts/nonexistent.bin', returncode=127, stdout='', stderr='/bin/sh: 1: /app/verify_artifact.sh: not found\n').stdout
+
+/tests/test_outputs.py:220: AssertionError
+____ TestArtifactVerification.test_verification_fails_for_tampered_artifact ____
+
+self = <test_outputs.TestArtifactVerification object at 0x70ef02841350>
+
+    def test_verification_fails_for_tampered_artifact(self):
+        """Verify verification fails when artifact content is tampered."""
+        # Sign an artifact
+>       run_command("/app/setup_ca.sh", check=True)
+
+/tests/test_outputs.py:235: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+cmd = '/app/setup_ca.sh', check = True
+
+    def run_command(cmd, check=False):
+        """Run a shell command and return the result."""
+        result = subprocess.run(
+            cmd,
+            shell=True,
+            capture_output=True,
+            text=True
+        )
+        if check and result.returncode != 0:
+>           raise subprocess.CalledProcessError(
+                result.returncode, cmd, result.stdout, result.stderr
+            )
+E           subprocess.CalledProcessError: Command '/app/setup_ca.sh' returned non-zero exit status 127.
+
+/tests/test_outputs.py:31: CalledProcessError
+___ TestArtifactVerification.test_verification_fails_for_tampered_provenance ___
+
+self = <test_outputs.TestArtifactVerification object at 0x70ef02841480>
+
+    def test_verification_fails_for_tampered_provenance(self):
+        """Verify verification fails when provenance content is tampered."""
+        # Sign sbom.json
+>       run_command("/app/setup_ca.sh", check=True)
+
+/tests/test_outputs.py:255: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+cmd = '/app/setup_ca.sh', check = True
+
+    def run_command(cmd, check=False):
+        """Run a shell command and return the result."""
+        result = subprocess.run(
+            cmd,
+            shell=True,
+            capture_output=True,
+            text=True
+        )
+        if check and result.returncode != 0:
+>           raise subprocess.CalledProcessError(
+                result.returncode, cmd, result.stdout, result.stderr
+            )
+E           subprocess.CalledProcessError: Command '/app/setup_ca.sh' returned non-zero exit status 127.
+
+/tests/test_outputs.py:31: CalledProcessError
+_____ TestMultipleBuildIDs.test_multiple_builds_have_distinct_certificates _____
+
+self = <test_outputs.TestMultipleBuildIDs object at 0x70ef0281da90>
+
+    def test_multiple_builds_have_distinct_certificates(self):
+        """Verify different build IDs get different certificates."""
+>       run_command("/app/setup_ca.sh", check=True)
+
+/tests/test_outputs.py:283: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+cmd = '/app/setup_ca.sh', check = True
+
+    def run_command(cmd, check=False):
+        """Run a shell command and return the result."""
+        result = subprocess.run(
+            cmd,
+            shell=True,
+            capture_output=True,
+            text=True
+        )
+        if check and result.returncode != 0:
+>           raise subprocess.CalledProcessError(
+                result.returncode, cmd, result.stdout, result.stderr
+            )
+E           subprocess.CalledProcessError: Command '/app/setup_ca.sh' returned non-zero exit status 127.
+
+/tests/test_outputs.py:31: CalledProcessError
+________ TestMultipleBuildIDs.test_each_artifact_verifies_independently ________
+
+self = <test_outputs.TestMultipleBuildIDs object at 0x70ef0281dbd0>
+
+    def test_each_artifact_verifies_independently(self):
+        """Verify each signed artifact can be verified independently."""
+>       run_command("/app/setup_ca.sh", check=True)
+
+/tests/test_outputs.py:301: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+cmd = '/app/setup_ca.sh', check = True
+
+    def run_command(cmd, check=False):
+        """Run a shell command and return the result."""
+        result = subprocess.run(
+            cmd,
+            shell=True,
+            capture_output=True,
+            text=True
+        )
+        if check and result.returncode != 0:
+>           raise subprocess.CalledProcessError(
+                result.returncode, cmd, result.stdout, result.stderr
+            )
+E           subprocess.CalledProcessError: Command '/app/setup_ca.sh' returned non-zero exit status 127.
+
+/tests/test_outputs.py:31: CalledProcessError
+==================================== PASSES ====================================
+=========================== short test summary info ============================
+PASSED ../tests/test_outputs.py::TestArtifactVerification::test_verification_fails_for_missing_signature
+FAILED ../tests/test_outputs.py::TestScriptsExist::test_setup_ca_script_exists
+FAILED ../tests/test_outputs.py::TestScriptsExist::test_sign_artifact_script_exists
+FAILED ../tests/test_outputs.py::TestScriptsExist::test_verify_artifact_script_exists
+FAILED ../tests/test_outputs.py::TestCertificateAuthority::test_ca_setup_creates_root_ca
+FAILED ../tests/test_outputs.py::TestCertificateAuthority::test_ca_setup_creates_intermediate_ca
+FAILED ../tests/test_outputs.py::TestCertificateAuthority::test_root_ca_is_valid_certificate
+FAILED ../tests/test_outputs.py::TestCertificateAuthority::test_intermediate_ca_is_valid_certificate
+FAILED ../tests/test_outputs.py::TestCertificateAuthority::test_root_ca_subject_fields
+FAILED ../tests/test_outputs.py::TestCertificateAuthority::test_intermediate_ca_chains_to_root
+FAILED ../tests/test_outputs.py::TestArtifactSigning::test_sign_artifact_creates_signature
+FAILED ../tests/test_outputs.py::TestArtifactSigning::test_sign_artifact_creates_provenance
+FAILED ../tests/test_outputs.py::TestArtifactSigning::test_sign_artifact_creates_provenance_signature
+FAILED ../tests/test_outputs.py::TestArtifactSigning::test_sign_artifact_creates_certificate_chain
+FAILED ../tests/test_outputs.py::TestArtifactSigning::test_signing_certificate_created
+FAILED ../tests/test_outputs.py::TestArtifactSigning::test_ephemeral_private_key_deleted
+FAILED ../tests/test_outputs.py::TestArtifactVerification::test_verification_fails_for_missing_artifact
+FAILED ../tests/test_outputs.py::TestArtifactVerification::test_verification_fails_for_tampered_artifact
+FAILED ../tests/test_outputs.py::TestArtifactVerification::test_verification_fails_for_tampered_provenance
+FAILED ../tests/test_outputs.py::TestMultipleBuildIDs::test_multiple_builds_have_distinct_certificates
+FAILED ../tests/test_outputs.py::TestMultipleBuildIDs::test_each_artifact_verifies_independently
+========================= 20 failed, 1 passed in 0.13s =========================

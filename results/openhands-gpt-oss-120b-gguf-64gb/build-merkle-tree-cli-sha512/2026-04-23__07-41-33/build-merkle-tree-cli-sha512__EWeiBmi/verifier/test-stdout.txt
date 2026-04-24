@@ -1,0 +1,142 @@
+Hit:1 http://deb.debian.org/debian bookworm InRelease
+Hit:2 http://deb.debian.org/debian bookworm-updates InRelease
+Hit:3 http://deb.debian.org/debian-security bookworm-security InRelease
+Reading package lists...
+Reading package lists...
+Building dependency tree...
+Reading state information...
+curl is already the newest version (7.88.1-10+deb12u14).
+0 upgraded, 0 newly installed, 0 to remove and 0 not upgraded.
+downloading uv 0.9.5 x86_64-unknown-linux-gnu
+no checksums to verify
+installing to /root/.local/bin
+  uv
+  uvx
+everything's installed!
+Downloading pygments (1.2MiB)
+ Downloading pygments
+Installed 6 packages in 10ms
+============================= test session starts ==============================
+platform linux -- Python 3.13.13, pytest-8.4.1, pluggy-1.6.0
+rootdir: /tests
+plugins: json-ctrf-0.3.5
+collected 9 items
+
+../tests/test_outputs.py FFFFFFFFF                                       [100%]
+
+=================================== FAILURES ===================================
+____________________________ test_merkle_cli_exists ____________________________
+
+    def test_merkle_cli_exists():
+        """Test that merkle_cli.py exists and is executable."""
+        cli_path = Path("/app/merkle_cli.py")
+>       assert cli_path.exists(), f"merkle_cli.py not found at {cli_path}"
+E       AssertionError: merkle_cli.py not found at /app/merkle_cli.py
+E       assert False
+E        +  where False = exists()
+E        +    where exists = PosixPath('/app/merkle_cli.py').exists
+
+/tests/test_outputs.py:14: AssertionError
+______________________________ test_scan_command _______________________________
+
+    def test_scan_command():
+        """Test that scan command works and creates merkle_data.json."""
+        test_dir = Path("/app/test_data")
+        assert test_dir.exists(), "Test directory /app/test_data does not exist"
+    
+        result = subprocess.run(
+            ["python", "/app/merkle_cli.py", "scan", str(test_dir)],
+            capture_output=True,
+            text=True
+        )
+    
+>       assert result.returncode == 0, f"Scan command failed: {result.stderr}"
+E       AssertionError: Scan command failed: python: can't open file '/app/merkle_cli.py': [Errno 2] No such file or directory
+E         
+E       assert 2 == 0
+E        +  where 2 = CompletedProcess(args=['python', '/app/merkle_cli.py', 'scan', '/app/test_data'], returncode=2, stdout='', stderr="python: can't open file '/app/merkle_cli.py': [Errno 2] No such file or directory\n").returncode
+
+/tests/test_outputs.py:29: AssertionError
+____________________________ test_root_hash_format _____________________________
+
+    def test_root_hash_format():
+        """Test that root hash is a valid SHA-512 hex string (128 characters)."""
+        data_path = Path("/app/merkle_data.json")
+>       assert data_path.exists(), "merkle_data.json does not exist"
+E       AssertionError: merkle_data.json does not exist
+E       assert False
+E        +  where False = exists()
+E        +    where exists = PosixPath('/app/merkle_data.json').exists
+
+/tests/test_outputs.py:46: AssertionError
+____________________________ test_file_hashes_match ____________________________
+
+    def test_file_hashes_match():
+        """Test that stored file hashes match actual file hashes using SHA-512."""
+        data_path = Path("/app/merkle_data.json")
+>       with open(data_path, 'r') as f:
+             ^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: '/app/merkle_data.json'
+
+/tests/test_outputs.py:60: FileNotFoundError
+____________________________ test_proof_generation _____________________________
+
+    def test_proof_generation():
+        """Test that proof command generates valid proof with SHA-512 hashes."""
+        data_path = Path("/app/merkle_data.json")
+>       with open(data_path, 'r') as f:
+             ^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: '/app/merkle_data.json'
+
+/tests/test_outputs.py:82: FileNotFoundError
+___________________________ test_proof_verification ____________________________
+
+    def test_proof_verification():
+        """Test that verify command works with valid proof."""
+        data_path = Path("/app/merkle_data.json")
+>       with open(data_path, 'r') as f:
+             ^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: '/app/merkle_data.json'
+
+/tests/test_outputs.py:113: FileNotFoundError
+_____________________ test_verification_detects_tampering ______________________
+
+    def test_verification_detects_tampering():
+        """Test that verification detects when a file is modified."""
+        data_path = Path("/app/merkle_data.json")
+>       with open(data_path, 'r') as f:
+             ^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: '/app/merkle_data.json'
+
+/tests/test_outputs.py:164: FileNotFoundError
+__________________________ test_all_files_have_proofs __________________________
+
+    def test_all_files_have_proofs():
+        """Test that all files in the tree have proofs."""
+        data_path = Path("/app/merkle_data.json")
+>       with open(data_path, 'r') as f:
+             ^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: '/app/merkle_data.json'
+
+/tests/test_outputs.py:210: FileNotFoundError
+__________________________ test_hash_lengths_are_128 ___________________________
+
+    def test_hash_lengths_are_128():
+        """Test that all hashes in the data structure are 128 characters (SHA-512)."""
+        data_path = Path("/app/merkle_data.json")
+>       with open(data_path, 'r') as f:
+             ^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: '/app/merkle_data.json'
+
+/tests/test_outputs.py:221: FileNotFoundError
+=========================== short test summary info ============================
+FAILED ../tests/test_outputs.py::test_merkle_cli_exists - AssertionError: mer...
+FAILED ../tests/test_outputs.py::test_scan_command - AssertionError: Scan com...
+FAILED ../tests/test_outputs.py::test_root_hash_format - AssertionError: merk...
+FAILED ../tests/test_outputs.py::test_file_hashes_match - FileNotFoundError: ...
+FAILED ../tests/test_outputs.py::test_proof_generation - FileNotFoundError: [...
+FAILED ../tests/test_outputs.py::test_proof_verification - FileNotFoundError:...
+FAILED ../tests/test_outputs.py::test_verification_detects_tampering - FileNo...
+FAILED ../tests/test_outputs.py::test_all_files_have_proofs - FileNotFoundErr...
+FAILED ../tests/test_outputs.py::test_hash_lengths_are_128 - FileNotFoundErro...
+============================== 9 failed in 0.06s ===============================

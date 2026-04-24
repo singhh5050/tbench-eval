@@ -1,0 +1,97 @@
+Hit:1 http://deb.debian.org/debian bookworm InRelease
+Hit:2 http://deb.debian.org/debian bookworm-updates InRelease
+Hit:3 http://deb.debian.org/debian-security bookworm-security InRelease
+Reading package lists...
+Reading package lists...
+Building dependency tree...
+Reading state information...
+curl is already the newest version (7.88.1-10+deb12u14).
+0 upgraded, 0 newly installed, 0 to remove and 0 not upgraded.
+downloading uv 0.9.5 x86_64-unknown-linux-gnu
+no checksums to verify
+installing to /root/.local/bin
+  uv
+  uvx
+everything's installed!
+Downloading pygments (1.2MiB)
+ Downloading pygments
+Installed 6 packages in 10ms
+============================= test session starts ==============================
+platform linux -- Python 3.13.13, pytest-8.4.1, pluggy-1.6.0
+rootdir: /tests
+plugins: json-ctrf-0.3.5
+collected 20 items
+
+../../tests/test_outputs.py .........s....sFs...                         [100%]
+
+=================================== FAILURES ===================================
+___________________________ test_service_management ____________________________
+
+    def test_service_management():
+        """Test that systemd service can be started, stopped, and restarted."""
+        service_file = Path("/etc/systemd/system/myapp.service")
+    
+        # Skip if systemd is not available (container environment)
+        try:
+            result = subprocess.run(
+                ["systemctl", "--version"],
+                capture_output=True,
+                timeout=5
+            )
+            if result.returncode != 0:
+                pytest.skip("Systemd not available in test environment")
+        except (FileNotFoundError, subprocess.TimeoutExpired):
+            pytest.skip("Systemd not available in test environment")
+    
+        # Verify service file exists and is valid
+        assert service_file.exists(), "Systemd service file must exist"
+    
+        # Try to start the service (may fail in container but should not crash)
+        start_result = subprocess.run(
+            ["systemctl", "start", "myapp"],
+            capture_output=True,
+            text=True,
+            timeout=10
+        )
+    
+        # Check service status
+        status_result = subprocess.run(
+            ["systemctl", "is-active", "myapp"],
+            capture_output=True,
+            text=True,
+            timeout=5
+        )
+    
+        # Service might not actually start in container environment, but commands should not fail
+        # The important thing is that systemctl accepts the service file
+>       assert status_result.returncode in [0, 3], f"Service status check failed: {status_result.stderr}"
+E       AssertionError: Service status check failed: System has not been booted with systemd as init system (PID 1). Can't operate.
+E         Failed to connect to bus: Host is down
+E         
+E       assert 1 in [0, 3]
+E        +  where 1 = CompletedProcess(args=['systemctl', 'is-active', 'myapp'], returncode=1, stdout='', stderr="System has not been booted with systemd as init system (PID 1). Can't operate.\nFailed to connect to bus: Host is down\n").returncode
+
+/tests/test_outputs.py:664: AssertionError
+==================================== PASSES ====================================
+=========================== short test summary info ============================
+PASSED ../../tests/test_outputs.py::test_systemd_service_file_exists
+PASSED ../../tests/test_outputs.py::test_python_app_exists
+PASSED ../../tests/test_outputs.py::test_python_app_json_logging
+PASSED ../../tests/test_outputs.py::test_rsyslog_configuration
+PASSED ../../tests/test_outputs.py::test_logrotate_configuration
+PASSED ../../tests/test_outputs.py::test_service_monitoring_script
+PASSED ../../tests/test_outputs.py::test_service_monitoring_output
+PASSED ../../tests/test_outputs.py::test_systemd_service_syntax
+PASSED ../../tests/test_outputs.py::test_log_files_creation
+PASSED ../../tests/test_outputs.py::test_service_restart_loop_detection
+PASSED ../../tests/test_outputs.py::test_logrotate_syntax
+PASSED ../../tests/test_outputs.py::test_logrotate_postrotate
+PASSED ../../tests/test_outputs.py::test_rsyslog_syntax
+PASSED ../../tests/test_outputs.py::test_json_processing_capability
+PASSED ../../tests/test_outputs.py::test_logrotate_execution
+PASSED ../../tests/test_outputs.py::test_rsyslog_file_ownership
+SKIPPED [1] ../../tests/test_outputs.py:296: Rsyslog service not available in test environment
+SKIPPED [1] ../../tests/test_outputs.py:553: Rsyslog service not available in test environment
+SKIPPED [1] ../../tests/test_outputs.py:701: Rsyslog service not available in test environment
+FAILED ../../tests/test_outputs.py::test_service_management - AssertionError:...
+=================== 1 failed, 16 passed, 3 skipped in 3.72s ====================

@@ -1,0 +1,113 @@
+Traceback (most recent call last):
+  File "/scratch/harshsin/.local/share/uv/tools/harbor/lib/python3.12/site-packages/harbor/trial/trial.py", line 358, in run
+    await self._setup_environment()
+  File "/scratch/harshsin/.local/share/uv/tools/harbor/lib/python3.12/site-packages/harbor/trial/trial.py", line 204, in _setup_environment
+    await self._start_environment_with_retry()
+  File "/scratch/harshsin/.local/share/uv/tools/harbor/lib/python3.12/site-packages/tenacity/asyncio/__init__.py", line 193, in async_wrapped
+    return await copy(fn, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/scratch/harshsin/.local/share/uv/tools/harbor/lib/python3.12/site-packages/tenacity/asyncio/__init__.py", line 112, in __call__
+    do = await self.iter(retry_state=retry_state)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/scratch/harshsin/.local/share/uv/tools/harbor/lib/python3.12/site-packages/tenacity/asyncio/__init__.py", line 157, in iter
+    result = await action(retry_state)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/scratch/harshsin/.local/share/uv/tools/harbor/lib/python3.12/site-packages/tenacity/_utils.py", line 111, in inner
+    return call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/scratch/harshsin/.local/share/uv/tools/harbor/lib/python3.12/site-packages/tenacity/__init__.py", line 393, in <lambda>
+    self._add_action_func(lambda rs: rs.outcome.result())
+                                     ^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/concurrent/futures/_base.py", line 449, in result
+    return self.__get_result()
+           ^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/concurrent/futures/_base.py", line 401, in __get_result
+    raise self._exception
+  File "/scratch/harshsin/.local/share/uv/tools/harbor/lib/python3.12/site-packages/tenacity/asyncio/__init__.py", line 116, in __call__
+    result = await fn(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/scratch/harshsin/.local/share/uv/tools/harbor/lib/python3.12/site-packages/harbor/trial/trial.py", line 216, in _start_environment_with_retry
+    await asyncio.wait_for(
+  File "/usr/lib/python3.12/asyncio/tasks.py", line 520, in wait_for
+    return await fut
+           ^^^^^^^^^
+  File "/scratch/harshsin/.local/share/uv/tools/harbor/lib/python3.12/site-packages/harbor/environments/docker/docker.py", line 205, in start
+    await self._run_docker_compose_command(["build"])
+  File "/scratch/harshsin/.local/share/uv/tools/harbor/lib/python3.12/site-packages/harbor/environments/docker/docker.py", line 184, in _run_docker_compose_command
+    raise RuntimeError(
+RuntimeError: Docker compose command failed for environment protein-sequence. Command: docker compose -p protein-sequence__oln8mgg -f /scratch/harshsin/.local/share/uv/tools/harbor/lib/python3.12/site-packages/harbor/environments/docker/docker-compose-build.yaml build. Return code: 1. Stdout:  Image hb__protein-sequence Building 
+#1 [internal] load local bake definitions
+#1 reading from stdin 648B done
+#1 DONE 0.0s
+
+#2 [internal] load build definition from Dockerfile
+#2 transferring dockerfile: 319B done
+#2 DONE 0.0s
+
+#3 [internal] load metadata for docker.io/continuumio/miniconda3:24.4.0-0
+#3 DONE 0.3s
+
+#4 [internal] load .dockerignore
+#4 transferring context: 2B done
+#4 DONE 0.0s
+
+#5 [internal] load build context
+#5 transferring context: 850B done
+#5 DONE 0.0s
+
+#6 [1/5] FROM docker.io/continuumio/miniconda3:24.4.0-0@sha256:e5caba159335ca9cc9d7c78167d8b46283aa56fcc53ae9ffcab2a54e09000329
+#6 resolve docker.io/continuumio/miniconda3:24.4.0-0@sha256:e5caba159335ca9cc9d7c78167d8b46283aa56fcc53ae9ffcab2a54e09000329 done
+#6 DONE 0.0s
+
+#7 [2/5] RUN apt-get update && apt-get install -y     bash     && rm -rf /var/lib/apt/lists/*
+#7 CACHED
+
+#8 [3/5] WORKDIR /app
+#8 CACHED
+
+#9 [4/5] RUN conda install -y -c conda-forge     biopython=1.86     scikit-bio=0.7.1     && conda clean -afy
+#9 0.686 Channels:
+#9 0.686  - conda-forge
+#9 0.686  - defaults
+#9 0.686 Platform: linux-64
+#9 0.686 Collecting package metadata (repodata.json): ...working... failed
+#9 13.04 
+#9 13.04 CondaHTTPError: HTTP 429 TERMS OF SERVICE RATE LIMIT EXCEEDED for url <https://repo.anaconda.com/pkgs/main/linux-64/repodata.json>
+#9 13.04 Elapsed: 00:06.113171
+#9 13.04 CF-RAY: 9f0cb1d34cb1d490-DEN
+#9 13.04 
+#9 13.04 Your usage of the Anaconda package repository exceeds our rate limits.  Please see https://www.anaconda.com/tos-access
+#9 13.04 
+#9 ERROR: process "/bin/sh -c conda install -y -c conda-forge     biopython=1.86     scikit-bio=0.7.1     && conda clean -afy" did not complete successfully: exit code: 1
+------
+ > [4/5] RUN conda install -y -c conda-forge     biopython=1.86     scikit-bio=0.7.1     && conda clean -afy:
+failed
+13.04 
+13.04 CondaHTTPError: HTTP 429 TERMS OF SERVICE RATE LIMIT EXCEEDED for url <https://repo.anaconda.com/pkgs/main/linux-64/repodata.json>
+13.04 Elapsed: 00:06.113171
+13.04 CF-RAY: 9f0cb1d34cb1d490-DEN
+13.04 
+13.04 Your usage of the Anaconda package repository exceeds our rate limits.  Please see https://www.anaconda.com/tos-access
+13.04 
+------
+Dockerfile:9
+
+--------------------
+
+   8 |     
+
+   9 | >>> RUN conda install -y -c conda-forge \
+
+  10 | >>>     biopython=1.86 \
+
+  11 | >>>     scikit-bio=0.7.1 \
+
+  12 | >>>     && conda clean -afy
+
+  13 |     
+
+--------------------
+
+failed to solve: process "/bin/sh -c conda install -y -c conda-forge     biopython=1.86     scikit-bio=0.7.1     && conda clean -afy" did not complete successfully: exit code: 1
+
+. Stderr: None. 

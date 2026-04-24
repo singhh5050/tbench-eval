@@ -1,0 +1,128 @@
+{
+    "results": {
+        "tool": {
+            "name": "pytest",
+            "version": "8.4.1"
+        },
+        "summary": {
+            "tests": 9,
+            "passed": 0,
+            "failed": 9,
+            "skipped": 0,
+            "pending": 0,
+            "other": 0,
+            "start": 1776951919.3789957,
+            "stop": 1776951919.4386637
+        },
+        "tests": [
+            {
+                "name": "test_outputs.py::test_merkle_cli_exists",
+                "status": "failed",
+                "raw_status": "call_failed",
+                "duration": 0.0003164439694955945,
+                "start": 1776951919.3966515,
+                "stop": 1776951919.403288,
+                "retries": 0,
+                "file_path": "test_outputs.py",
+                "trace": "def test_merkle_cli_exists():\n        \"\"\"Test that merkle_cli.py exists and is executable.\"\"\"\n        cli_path = Path(\"/app/merkle_cli.py\")\n>       assert cli_path.exists(), f\"merkle_cli.py not found at {cli_path}\"\nE       AssertionError: merkle_cli.py not found at /app/merkle_cli.py\nE       assert False\nE        +  where False = exists()\nE        +    where exists = PosixPath('/app/merkle_cli.py').exists\n\n/tests/test_outputs.py:14: AssertionError",
+                "message": "The test failed in the call phase due to an assertion error"
+            },
+            {
+                "name": "test_outputs.py::test_scan_command",
+                "status": "failed",
+                "raw_status": "call_failed",
+                "duration": 0.011550842085853219,
+                "start": 1776951919.4033866,
+                "stop": 1776951919.4183702,
+                "retries": 0,
+                "file_path": "test_outputs.py",
+                "trace": "def test_scan_command():\n        \"\"\"Test that scan command works and creates merkle_data.json.\"\"\"\n        test_dir = Path(\"/app/test_data\")\n        assert test_dir.exists(), \"Test directory /app/test_data does not exist\"\n    \n        result = subprocess.run(\n            [\"python\", \"/app/merkle_cli.py\", \"scan\", str(test_dir)],\n            capture_output=True,\n            text=True\n        )\n    \n>       assert result.returncode == 0, f\"Scan command failed: {result.stderr}\"\nE       AssertionError: Scan command failed: python: can't open file '/app/merkle_cli.py': [Errno 2] No such file or directory\nE         \nE       assert 2 == 0\nE        +  where 2 = CompletedProcess(args=['python', '/app/merkle_cli.py', 'scan', '/app/test_data'], returncode=2, stdout='', stderr=\"python: can't open file '/app/merkle_cli.py': [Errno 2] No such file or directory\\n\").returncode\n\n/tests/test_outputs.py:29: AssertionError",
+                "message": "The test failed in the call phase due to an assertion error"
+            },
+            {
+                "name": "test_outputs.py::test_root_hash_format",
+                "status": "failed",
+                "raw_status": "call_failed",
+                "duration": 0.00035611202474683523,
+                "start": 1776951919.4185297,
+                "stop": 1776951919.421195,
+                "retries": 0,
+                "file_path": "test_outputs.py",
+                "trace": "def test_root_hash_format():\n        \"\"\"Test that root hash is a valid SHA-512 hex string (128 characters).\"\"\"\n        data_path = Path(\"/app/merkle_data.json\")\n>       assert data_path.exists(), \"merkle_data.json does not exist\"\nE       AssertionError: merkle_data.json does not exist\nE       assert False\nE        +  where False = exists()\nE        +    where exists = PosixPath('/app/merkle_data.json').exists\n\n/tests/test_outputs.py:46: AssertionError",
+                "message": "The test failed in the call phase due to an assertion error"
+            },
+            {
+                "name": "test_outputs.py::test_file_hashes_match",
+                "status": "failed",
+                "raw_status": "call_failed",
+                "duration": 0.00026792404241859913,
+                "start": 1776951919.4213202,
+                "stop": 1776951919.423847,
+                "retries": 0,
+                "file_path": "test_outputs.py",
+                "trace": "def test_file_hashes_match():\n        \"\"\"Test that stored file hashes match actual file hashes using SHA-512.\"\"\"\n        data_path = Path(\"/app/merkle_data.json\")\n>       with open(data_path, 'r') as f:\n             ^^^^^^^^^^^^^^^^^^^^\nE       FileNotFoundError: [Errno 2] No such file or directory: '/app/merkle_data.json'\n\n/tests/test_outputs.py:60: FileNotFoundError",
+                "message": "The test failed in the call phase"
+            },
+            {
+                "name": "test_outputs.py::test_proof_generation",
+                "status": "failed",
+                "raw_status": "call_failed",
+                "duration": 0.0002605849876999855,
+                "start": 1776951919.4239666,
+                "stop": 1776951919.4270074,
+                "retries": 0,
+                "file_path": "test_outputs.py",
+                "trace": "def test_proof_generation():\n        \"\"\"Test that proof command generates valid proof with SHA-512 hashes.\"\"\"\n        data_path = Path(\"/app/merkle_data.json\")\n>       with open(data_path, 'r') as f:\n             ^^^^^^^^^^^^^^^^^^^^\nE       FileNotFoundError: [Errno 2] No such file or directory: '/app/merkle_data.json'\n\n/tests/test_outputs.py:82: FileNotFoundError",
+                "message": "The test failed in the call phase"
+            },
+            {
+                "name": "test_outputs.py::test_proof_verification",
+                "status": "failed",
+                "raw_status": "call_failed",
+                "duration": 0.0002738040639087558,
+                "start": 1776951919.4271278,
+                "stop": 1776951919.4301674,
+                "retries": 0,
+                "file_path": "test_outputs.py",
+                "trace": "def test_proof_verification():\n        \"\"\"Test that verify command works with valid proof.\"\"\"\n        data_path = Path(\"/app/merkle_data.json\")\n>       with open(data_path, 'r') as f:\n             ^^^^^^^^^^^^^^^^^^^^\nE       FileNotFoundError: [Errno 2] No such file or directory: '/app/merkle_data.json'\n\n/tests/test_outputs.py:113: FileNotFoundError",
+                "message": "The test failed in the call phase"
+            },
+            {
+                "name": "test_outputs.py::test_verification_detects_tampering",
+                "status": "failed",
+                "raw_status": "call_failed",
+                "duration": 0.0002764839446172118,
+                "start": 1776951919.4302986,
+                "stop": 1776951919.4332993,
+                "retries": 0,
+                "file_path": "test_outputs.py",
+                "trace": "def test_verification_detects_tampering():\n        \"\"\"Test that verification detects when a file is modified.\"\"\"\n        data_path = Path(\"/app/merkle_data.json\")\n>       with open(data_path, 'r') as f:\n             ^^^^^^^^^^^^^^^^^^^^\nE       FileNotFoundError: [Errno 2] No such file or directory: '/app/merkle_data.json'\n\n/tests/test_outputs.py:164: FileNotFoundError",
+                "message": "The test failed in the call phase"
+            },
+            {
+                "name": "test_outputs.py::test_all_files_have_proofs",
+                "status": "failed",
+                "raw_status": "call_failed",
+                "duration": 0.0002667150693014264,
+                "start": 1776951919.4334261,
+                "stop": 1776951919.4359412,
+                "retries": 0,
+                "file_path": "test_outputs.py",
+                "trace": "def test_all_files_have_proofs():\n        \"\"\"Test that all files in the tree have proofs.\"\"\"\n        data_path = Path(\"/app/merkle_data.json\")\n>       with open(data_path, 'r') as f:\n             ^^^^^^^^^^^^^^^^^^^^\nE       FileNotFoundError: [Errno 2] No such file or directory: '/app/merkle_data.json'\n\n/tests/test_outputs.py:210: FileNotFoundError",
+                "message": "The test failed in the call phase"
+            },
+            {
+                "name": "test_outputs.py::test_hash_lengths_are_128",
+                "status": "failed",
+                "raw_status": "call_failed",
+                "duration": 0.00025554606691002846,
+                "start": 1776951919.4360573,
+                "stop": 1776951919.4385252,
+                "retries": 0,
+                "file_path": "test_outputs.py",
+                "trace": "def test_hash_lengths_are_128():\n        \"\"\"Test that all hashes in the data structure are 128 characters (SHA-512).\"\"\"\n        data_path = Path(\"/app/merkle_data.json\")\n>       with open(data_path, 'r') as f:\n             ^^^^^^^^^^^^^^^^^^^^\nE       FileNotFoundError: [Errno 2] No such file or directory: '/app/merkle_data.json'\n\n/tests/test_outputs.py:221: FileNotFoundError",
+                "message": "The test failed in the call phase"
+            }
+        ]
+    }
+}

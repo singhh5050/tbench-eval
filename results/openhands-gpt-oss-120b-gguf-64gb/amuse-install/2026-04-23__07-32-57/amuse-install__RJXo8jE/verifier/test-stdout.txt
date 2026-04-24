@@ -1,0 +1,146 @@
+Hit:1 http://deb.debian.org/debian bookworm InRelease
+Hit:2 http://deb.debian.org/debian bookworm-updates InRelease
+Hit:3 http://deb.debian.org/debian-security bookworm-security InRelease
+Reading package lists...
+Reading package lists...
+Building dependency tree...
+Reading state information...
+curl is already the newest version (7.88.1-10+deb12u14).
+gcc is already the newest version (4:12.2.0-3).
+gcc set to manually installed.
+0 upgraded, 0 newly installed, 0 to remove and 0 not upgraded.
+downloading uv 0.7.13 x86_64-unknown-linux-gnu
+no checksums to verify
+installing to /root/.local/bin
+  uv
+  uvx
+everything's installed!
+Using CPython 3.13.13
+Creating virtual environment at: .tbench-testing
+Using Python 3.13.13 environment at: .tbench-testing
+Resolved 5 packages in 124ms
+Downloading pygments (1.2MiB)
+ Downloading pygments
+Prepared 5 packages in 44ms
+Installed 5 packages in 11ms
+ + iniconfig==2.3.0
+ + packaging==26.1
+ + pluggy==1.6.0
+ + pygments==2.20.0
+ + pytest==8.4.1
+============================= test session starts ==============================
+platform linux -- Python 3.13.13, pytest-8.4.1, pluggy-1.6.0
+rootdir: /tests
+collected 3 items
+
+../tests/test_outputs.py F.F                                             [100%]
+
+=================================== FAILURES ===================================
+_______________________ test_virtual_environment_created _______________________
+
+    def test_virtual_environment_created():
+        """Test that the virtual environment was created in the correct location."""
+        venv_path = Path("/app/amuse/.venv")
+        venv_python = Path("/app/amuse/.venv/bin/python")
+    
+>       assert venv_path.exists(), (
+            "Virtual environment directory not found at /app/amuse/.venv"
+        )
+E       AssertionError: Virtual environment directory not found at /app/amuse/.venv
+E       assert False
+E        +  where False = exists()
+E        +    where exists = PosixPath('/app/amuse/.venv').exists
+
+/tests/test_outputs.py:19: AssertionError
+__________________________ test_test_script_executes ___________________________
+
+    def test_test_script_executes():
+        """test_script.py script executes successfully and produces expected output."""
+        script_path = Path("/app/test_script.py")
+    
+        # Ensure the script exists first
+        assert script_path.exists(), "test_script.py script not found"
+    
+        try:
+            # Run the test_script.py script by sourcing the venv and then running python
+            command = f"source /app/amuse/.venv/bin/activate && python {str(script_path)}"
+            result = subprocess.run(
+                command,
+                cwd="/app",
+                capture_output=True,
+                text=True,
+                shell=True,
+                executable="/bin/bash",  # Use bash since source is a bash builtin
+                timeout=180,  # Allow up to 3 minutes for the simulation
+            )
+    
+            # Check that the script executed without Python errors
+>           assert result.returncode == 0, (
+                f"test_script.py failed with exit code {result.returncode}. "
+                f"Stderr: {result.stderr}"
+            )
+E           AssertionError: test_script.py failed with exit code 1. Stderr: /bin/bash: line 1: /app/amuse/.venv/bin/activate: No such file or directory
+E             
+E           assert 1 == 0
+E            +  where 1 = CompletedProcess(args='source /app/amuse/.venv/bin/activate && python /app/test_script.py', returncode=1, stdout='', stderr='/bin/bash: line 1: /app/amuse/.venv/bin/activate: No such file or directory\n').returncode
+
+/tests/test_outputs.py:73: AssertionError
+
+During handling of the above exception, another exception occurred:
+
+    def test_test_script_executes():
+        """test_script.py script executes successfully and produces expected output."""
+        script_path = Path("/app/test_script.py")
+    
+        # Ensure the script exists first
+        assert script_path.exists(), "test_script.py script not found"
+    
+        try:
+            # Run the test_script.py script by sourcing the venv and then running python
+            command = f"source /app/amuse/.venv/bin/activate && python {str(script_path)}"
+            result = subprocess.run(
+                command,
+                cwd="/app",
+                capture_output=True,
+                text=True,
+                shell=True,
+                executable="/bin/bash",  # Use bash since source is a bash builtin
+                timeout=180,  # Allow up to 3 minutes for the simulation
+            )
+    
+            # Check that the script executed without Python errors
+            assert result.returncode == 0, (
+                f"test_script.py failed with exit code {result.returncode}. "
+                f"Stderr: {result.stderr}"
+            )
+    
+            print("test_script.py executed successfully")
+            print(f"Script output:\n{result.stdout}")
+    
+            assert "Installed successfully" in result.stdout, (
+                "test_script.py does not contain Installed successfully message"
+            )
+    
+            return result.stdout
+    
+        except subprocess.TimeoutExpired:
+            assert False, "test_script.py execution timed out (>180 seconds)"
+        except Exception as e:
+>           assert False, f"Error executing test_script.py: {e}"
+E           AssertionError: Error executing test_script.py: test_script.py failed with exit code 1. Stderr: /bin/bash: line 1: /app/amuse/.venv/bin/activate: No such file or directory
+E               
+E             assert 1 == 0
+E              +  where 1 = CompletedProcess(args='source /app/amuse/.venv/bin/activate && python /app/test_script.py', returncode=1, stdout='', stderr='/bin/bash: line 1: /app/amuse/.venv/bin/activate: No such file or directory\n').returncode
+E           assert False
+
+/tests/test_outputs.py:90: AssertionError
+==================================== PASSES ====================================
+__________________________ test_test_script_unchanged __________________________
+----------------------------- Captured stdout call -----------------------------
+Current file hash: eb181d4c3ea88b13e6486c731f2bdd7c84c45f38c825f9549d2bc941de9fdc85
+Expected file hash: eb181d4c3ea88b13e6486c731f2bdd7c84c45f38c825f9549d2bc941de9fdc85
+=========================== short test summary info ============================
+PASSED ../tests/test_outputs.py::test_test_script_unchanged
+FAILED ../tests/test_outputs.py::test_virtual_environment_created - Assertion...
+FAILED ../tests/test_outputs.py::test_test_script_executes - AssertionError: ...
+========================= 2 failed, 1 passed in 0.02s ==========================
