@@ -34,6 +34,14 @@ def scan_results():
             agent, model_tag = "openhands", run_name[len("openhands-"):]
         elif run_name.startswith("terminus-2-"):
             agent, model_tag = "terminus-2", run_name[len("terminus-2-"):]
+        elif run_name.startswith("claude-code-"):
+            agent, model_tag = "claude-code", run_name[len("claude-code-"):]
+        elif run_name.startswith("swe-agent-"):
+            agent, model_tag = "swe-agent", run_name[len("swe-agent-"):]
+        elif run_name.startswith("mini-swe-agent-"):
+            agent, model_tag = "mini-swe-agent", run_name[len("mini-swe-agent-"):]
+        elif run_name.startswith("qwen-coder-"):
+            agent, model_tag = "qwen-coder", run_name[len("qwen-coder-"):]
         else:
             parts = run_name.split("-", 1)
             agent, model_tag = parts[0], parts[1] if len(parts) > 1 else ""
@@ -191,6 +199,130 @@ def scan_results():
     return runs
 
 
+def normalize_model_tag(model_tag):
+    """Normalize model tags for comparison (strip version suffixes, etc.)."""
+    import re
+    # Remove version suffixes like -v2, -v3
+    model = re.sub(r'-v\d+$', '', model_tag)
+    # Normalize common patterns
+    model = re.sub(r'-gguf-(local|64gb)$', '-gguf-local', model)
+    return model
+
+
+def compute_trends():
+    """Compute trend data for the Trends tab."""
+    from collections import defaultdict
+
+    runs = scan_results()
+
+    # Group by run
+    run_stats = defaultdict(lambda: {"passes": 0, "total": 0, "agent": "", "model_tag": ""})
+    task_stats = defaultdict(lambda: {"passes": 0, "total": 0})
+
+    for r in runs:
+        run_stats[r['run']]["total"] += 1
+        run_stats[r['run']]["agent"] = r['agent']
+        run_stats[r['run']]["model_tag"] = r['model_tag']
+        if r.get('reward') == 1:
+            run_stats[r['run']]["passes"] += 1
+
+        task_stats[r['task']]["total"] += 1
+        if r.get('reward') == 1:
+            task_stats[r['task']]["passes"] += 1
+
+    # Agent comparison: find models with both OpenHands and Terminus-2
+    models_by_agent = defaultdict(dict)
+    for run_name, stats in run_stats.items():
+        # Normalize model tag for comparison
+        model = normalize_model_tag(stats['model_tag'])
+        agent = stats['agent']
+        if agent in ('openhands', 'terminus-2'):
+            rate = stats['passes'] / stats['total'] * 100 if stats['total'] > 0 else 0
+            # Keep the better result if multiple runs for same normalized model
+            if agent not in models_by_agent[model] or rate > models_by_agent[model][agent].get('rate', 0):
+                models_by_agent[model][agent] = {
+                    "run": run_name,
+                    "passes": stats['passes'],
+                    "total": stats['total'],
+                    "rate": round(rate, 1)
+                }
+
+    agent_comparison = []
+    for model, agents in models_by_agent.items():
+        if 'openhands' in agents and 'terminus-2' in agents:
+            oh = agents['openhands']
+            t2 = agents['terminus-2']
+            delta = t2['rate'] - oh['rate']
+            agent_comparison.append({
+                "model": model,
+                "openhands": oh,
+                "terminus_2": t2,
+                "delta": round(delta, 1),
+                "winner": "terminus-2" if delta > 0 else "openhands" if delta < 0 else "tie"
+            })
+
+    # Sort by delta (Terminus-2 advantage)
+    agent_comparison.sort(key=lambda x: -x['delta'])
+
+    # Task difficulty histogram
+    buckets = {"0%": 0, "1-25%": 0, "26-50%": 0, "51-75%": 0, "76-100%": 0}
+    unsolved_tasks = []
+    easy_tasks = []
+
+    for task, stats in task_stats.items():
+        rate = stats['passes'] / stats['total'] * 100 if stats['total'] > 0 else 0
+        if rate == 0:
+            buckets["0%"] += 1
+            unsolved_tasks.append(task)
+        elif rate <= 25:
+            buckets["1-25%"] += 1
+        elif rate <= 50:
+            buckets["26-50%"] += 1
+        elif rate <= 75:
+            buckets["51-75%"] += 1
+            if rate > 50:
+                easy_tasks.append({"task": task, "rate": round(rate, 1)})
+        else:
+            buckets["76-100%"] += 1
+            easy_tasks.append({"task": task, "rate": round(rate, 1)})
+
+    easy_tasks.sort(key=lambda x: -x['rate'])
+
+    # Key insights
+    t2_wins = sum(1 for c in agent_comparison if c['winner'] == 'terminus-2')
+    oh_wins = sum(1 for c in agent_comparison if c['winner'] == 'openhands')
+    total_comparisons = len(agent_comparison)
+
+    avg_delta = sum(c['delta'] for c in agent_comparison) / len(agent_comparison) if agent_comparison else 0
+
+    # Find best overall model
+    best_model = max(run_stats.items(), key=lambda x: x[1]['passes'] / x[1]['total'] if x[1]['total'] > 0 else 0)
+    best_rate = best_model[1]['passes'] / best_model[1]['total'] * 100 if best_model[1]['total'] > 0 else 0
+
+    insights = {
+        "terminus_wins": t2_wins,
+        "openhands_wins": oh_wins,
+        "total_comparisons": total_comparisons,
+        "avg_delta": round(avg_delta, 1),
+        "unsolved_count": len(unsolved_tasks),
+        "total_tasks": len(task_stats),
+        "best_model": {
+            "run": best_model[0],
+            "agent": best_model[1]['agent'],
+            "model_tag": best_model[1]['model_tag'],
+            "rate": round(best_rate, 1)
+        }
+    }
+
+    return {
+        "agent_comparison": agent_comparison,
+        "task_histogram": buckets,
+        "unsolved_tasks": unsolved_tasks[:10],  # Top 10 unsolved
+        "easy_tasks": easy_tasks[:10],  # Top 10 easiest
+        "insights": insights
+    }
+
+
 def load_trajectory(traj_path):
     """Load a trajectory file and return cleaned steps."""
     full_path = RESULTS_DIR / traj_path / "agent" / "trajectory.json"
@@ -223,6 +355,164 @@ def load_trajectory(traj_path):
     }
 
 
+def compute_analysis():
+    """Compute meta-analysis data for errors, tokens, and steps."""
+    from collections import defaultdict
+
+    runs = scan_results()
+
+    # Error categorization
+    error_counts = defaultdict(int)
+    for r in runs:
+        if r.get('reward') == 1:
+            error_counts['Success'] += 1
+        elif r.get('error'):
+            err = r['error']
+            if 'Timeout' in err:
+                error_counts['Timeout'] += 1
+            elif 'Connection' in err or 'Network' in err or 'API' in err:
+                error_counts['Network/API Error'] += 1
+            elif 'Permission' in err or 'Access' in err:
+                error_counts['Permission Error'] += 1
+            elif 'Memory' in err or 'OOM' in err:
+                error_counts['Memory Error'] += 1
+            else:
+                error_counts['Other Error'] += 1
+        else:
+            error_counts['Failed (no error)'] += 1
+
+    # Token efficiency by agent
+    token_stats_by_agent = defaultdict(lambda: {
+        'total_prompt': 0, 'total_completion': 0,
+        'success_prompt': 0, 'success_completion': 0,
+        'fail_prompt': 0, 'fail_completion': 0,
+        'success_count': 0, 'fail_count': 0
+    })
+
+    for r in runs:
+        agent = r['agent']
+        prompt = r['tokens'].get('prompt', 0)
+        completion = r['tokens'].get('completion', 0)
+
+        token_stats_by_agent[agent]['total_prompt'] += prompt
+        token_stats_by_agent[agent]['total_completion'] += completion
+
+        if r.get('reward') == 1:
+            token_stats_by_agent[agent]['success_prompt'] += prompt
+            token_stats_by_agent[agent]['success_completion'] += completion
+            token_stats_by_agent[agent]['success_count'] += 1
+        else:
+            token_stats_by_agent[agent]['fail_prompt'] += prompt
+            token_stats_by_agent[agent]['fail_completion'] += completion
+            token_stats_by_agent[agent]['fail_count'] += 1
+
+    # Compute averages
+    token_efficiency = []
+    for agent, stats in token_stats_by_agent.items():
+        entry = {
+            'agent': agent,
+            'total_tokens': stats['total_prompt'] + stats['total_completion'],
+            'total_tasks': stats['success_count'] + stats['fail_count'],
+        }
+        if stats['success_count'] > 0:
+            entry['avg_tokens_success'] = round(
+                (stats['success_prompt'] + stats['success_completion']) / stats['success_count']
+            )
+        else:
+            entry['avg_tokens_success'] = 0
+
+        if stats['fail_count'] > 0:
+            entry['avg_tokens_fail'] = round(
+                (stats['fail_prompt'] + stats['fail_completion']) / stats['fail_count']
+            )
+        else:
+            entry['avg_tokens_fail'] = 0
+
+        entry['prompt_completion_ratio'] = round(
+            stats['total_prompt'] / stats['total_completion'], 2
+        ) if stats['total_completion'] > 0 else 0
+
+        token_efficiency.append(entry)
+
+    token_efficiency.sort(key=lambda x: -x['total_tasks'])
+
+    # Step analysis - need to load trajectories
+    step_stats_by_agent = defaultdict(lambda: {'steps': [], 'tool_calls': defaultdict(int)})
+
+    for r in runs:
+        if not r.get('has_trajectory') or not r.get('trajectory_path'):
+            continue
+        traj_file = RESULTS_DIR / r['trajectory_path'] / "agent" / "trajectory.json"
+        if not traj_file.exists():
+            continue
+        try:
+            traj = json.loads(traj_file.read_text())
+            steps = traj.get('steps', [])
+            agent_steps = [s for s in steps if s.get('source') == 'agent']
+            step_stats_by_agent[r['agent']]['steps'].append(len(agent_steps))
+
+            # Count tool calls
+            for step in agent_steps:
+                for tc in step.get('tool_calls', []):
+                    fn_name = tc.get('function_name', 'unknown')
+                    step_stats_by_agent[r['agent']]['tool_calls'][fn_name] += 1
+        except (json.JSONDecodeError, OSError):
+            continue
+
+    step_analysis = []
+    for agent, stats in step_stats_by_agent.items():
+        if not stats['steps']:
+            continue
+        steps_list = stats['steps']
+        entry = {
+            'agent': agent,
+            'avg_steps': round(sum(steps_list) / len(steps_list), 1),
+            'min_steps': min(steps_list),
+            'max_steps': max(steps_list),
+            'total_tasks': len(steps_list),
+            'top_tools': sorted(
+                stats['tool_calls'].items(),
+                key=lambda x: -x[1]
+            )[:5]
+        }
+        step_analysis.append(entry)
+
+    step_analysis.sort(key=lambda x: -x['total_tasks'])
+
+    # Duration analysis by agent
+    duration_by_agent = defaultdict(lambda: {'durations': [], 'success_durations': []})
+    for r in runs:
+        if r.get('duration'):
+            duration_by_agent[r['agent']]['durations'].append(r['duration'])
+            if r.get('reward') == 1:
+                duration_by_agent[r['agent']]['success_durations'].append(r['duration'])
+
+    duration_analysis = []
+    for agent, stats in duration_by_agent.items():
+        if not stats['durations']:
+            continue
+        durations = stats['durations']
+        success_durations = stats['success_durations']
+        entry = {
+            'agent': agent,
+            'avg_duration': round(sum(durations) / len(durations), 1),
+            'avg_success_duration': round(
+                sum(success_durations) / len(success_durations), 1
+            ) if success_durations else 0,
+            'total_tasks': len(durations)
+        }
+        duration_analysis.append(entry)
+
+    duration_analysis.sort(key=lambda x: -x['total_tasks'])
+
+    return {
+        'error_breakdown': dict(error_counts),
+        'token_efficiency': token_efficiency,
+        'step_analysis': step_analysis,
+        'duration_analysis': duration_analysis
+    }
+
+
 class DashboardHandler(SimpleHTTPRequestHandler):
     def do_GET(self):
         parsed = urlparse(self.path)
@@ -251,6 +541,22 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 self.wfile.write(b'{"error":"missing path param"}')
                 return
             data = load_trajectory(traj_path)
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.end_headers()
+            self.wfile.write(json.dumps(data).encode())
+
+        elif path == "/api/trends":
+            data = compute_trends()
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.end_headers()
+            self.wfile.write(json.dumps(data).encode())
+
+        elif path == "/api/analysis":
+            data = compute_analysis()
             self.send_response(200)
             self.send_header("Content-Type", "application/json")
             self.send_header("Access-Control-Allow-Origin", "*")

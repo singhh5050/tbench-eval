@@ -12,7 +12,7 @@
 #   ensure_space SIZE_GB    # Delete completed models until space available
 #   start_model MODEL       # Start llama-server with model
 
-set -euo pipefail
+set -uo pipefail  # No -e: let calling script handle errors
 
 # ─────────────────────────────────────────
 # Configuration
