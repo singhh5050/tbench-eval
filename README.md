@@ -22,7 +22,7 @@ quality) is closing it fast.
 |---|---|---|
 | **Report** (32 pp) | [`deliverable/report.pdf`](deliverable/report.pdf) · source `deliverable/report.md` | ML engineers — full methodology, results, failure taxonomy, per-watt analysis |
 | **Slides** (19) | [`deliverable/slides.pdf`](deliverable/slides.pdf) · source `deliverable/slides.md` | Senior leaders — the distilled, narrative cut |
-| **Dashboard** | `dashboard/index.html` (interactive) | Anyone — explore every model, task, and trajectory |
+| **Dashboard** | **[amd-local-agent-readiness.vercel.app](https://amd-local-agent-readiness.vercel.app)** · source `dashboard/index.html` | Anyone — explore every model, task, and trajectory |
 
 ### Headline numbers
 
@@ -115,7 +115,9 @@ arguments. **Add a new agent** by copying the closest existing profile and adjus
 
 ## Dashboard
 
-**Interactive dashboard** (`dashboard/index.html`) — a self-contained, explorable view of the
+**Interactive dashboard** — **live at
+[amd-local-agent-readiness.vercel.app](https://amd-local-agent-readiness.vercel.app)** (source
+`dashboard/index.html`) — a self-contained, explorable view of the
 validated results: capability (model × agent), a full clickable model × task heatmap,
 efficiency / tokens-per-watt, the failure taxonomy with quoted generations, and per-trial
 trajectory drill-down. Open it directly in a browser — it reads the committed

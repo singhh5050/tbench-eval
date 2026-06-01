@@ -69,7 +69,7 @@ AI inference is moving from the data center to the **device** — the AI-PC era.
 
 **A one-command evaluation platform.** `./bin/sweep.sh -a terminus-2 …` downloads each model, serves it with `llama-server`, and runs Terminal-Bench 2.0 across every model × harness on a single APU — fully reproducible.
 
-**An interactive dashboard.** Every result is explorable down to a single generation — capability, efficiency, failure modes, and individual trajectories. Hosted live for the team.
+**An interactive dashboard.** Every result is explorable down to a single generation — capability, efficiency, failure modes, and individual trajectories. Live at **amd-local-agent-readiness.vercel.app**.
 
 </div>
 <div class="cards">
@@ -355,7 +355,7 @@ Not a static chart pile — an explorable instrument:
 - **Drill down**: a model → a trajectory → a single generation.
 - Validity-filtered by default; nothing overwhelming.
 
-To be **hosted live** so anyone on the team can interrogate the data.
+Live at **amd-local-agent-readiness.vercel.app** — anyone on the team can interrogate the data.
 
 </div>
 </div>

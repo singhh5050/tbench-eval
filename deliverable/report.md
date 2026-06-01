@@ -150,8 +150,10 @@ command and a new agent is one file:
 A trial passes when the task's verifier writes `reward.txt == 1`. Crucially, **every LLM call is
 logged with full token usage and llama.cpp timings** (generation tok/s, prefill tok/s, cache hits,
 finish reason) — which is what makes the validity filtering, token-efficiency, and per-watt analysis
-in this report possible. An interactive dashboard (`dashboard/index.html`) lets a reader explore
-capability, efficiency, failure modes, and individual trajectories down to single generations.
+in this report possible. An interactive dashboard — live at
+[amd-local-agent-readiness.vercel.app](https://amd-local-agent-readiness.vercel.app) (source
+`dashboard/index.html`) — lets a reader explore capability, efficiency, failure modes, and
+individual trajectories down to single generations.
 
 **Scope of the study.** Across the campaign we recorded **848 trials**, **10,355 agent steps**, and
 **240.8M tokens processed (3.84M generated)** spanning **14 models** and **4 agent harnesses** — all
