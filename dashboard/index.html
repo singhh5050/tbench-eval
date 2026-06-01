@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>tbench · Local-Agent Readiness</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="dashboard_data.js"></script>
+<style>
+  :root{
+    --bg:#0A0A0C; --panel:#141418; --panel2:#1C1C22; --line:#2C2C35; --line2:#3a3a45;
+    --ink:#F2F3F5; --dim:#9A9AA6; --faint:#5C5C66;
+    --red:#ED1C24; --redbr:#FF3B30; --reddp:#7E0F15; --steel:#5AA9E6; --teal:#2DD4BF;
+    --mono:'JetBrains Mono',ui-monospace,monospace; --sans:'IBM Plex Sans',sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:14px;
+    background-image:repeating-linear-gradient(0deg,rgba(255,255,255,.012) 0 1px,transparent 1px 3px),
+      radial-gradient(120% 60% at 88% -8%,rgba(237,28,36,.10),transparent 60%);min-height:100vh}
+  a{color:var(--steel);text-decoration:none}
+  .wrap{max-width:1200px;margin:0 auto;padding:0 26px 80px}
+  header{position:sticky;top:0;z-index:20;background:rgba(10,10,12,.88);backdrop-filter:blur(10px);
+    border-bottom:1px solid var(--line);margin-bottom:26px}
+  .hbar{max-width:1200px;margin:0 auto;padding:14px 26px;display:flex;align-items:center;gap:18px}
+  .brand{font-family:var(--mono);font-weight:800;letter-spacing:-.01em;font-size:16px;white-space:nowrap}
+  .brand .d{color:var(--red);margin-right:7px}
+  .amdlogo{height:19px;width:auto;opacity:.95}
+  .thesis{font-family:var(--mono);font-size:11px;letter-spacing:.05em;color:var(--dim);border-left:1px solid var(--line);padding-left:16px;flex:1}
+  .thesis b{color:var(--ink)}
+  nav{display:flex;gap:2px;max-width:1200px;margin:0 auto;padding:0 22px;flex-wrap:wrap}
+  .tab{font-family:var(--mono);font-size:12px;letter-spacing:.06em;text-transform:uppercase;padding:11px 14px;
+    color:var(--dim);cursor:pointer;border-bottom:2px solid transparent;transition:.15s;white-space:nowrap}
+  .tab:hover{color:var(--ink)} .tab.on{color:var(--ink);border-bottom-color:var(--red)}
+  section{display:none;animation:fade .3s ease} section.on{display:block}
+  @keyframes fade{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
+  h2{font-family:var(--mono);font-weight:700;font-size:21px;letter-spacing:-.01em;margin:4px 0 4px}
+  h2 .amd{color:var(--red)}
+  .lead{color:var(--dim);font-weight:300;margin-bottom:20px;max-width:780px;line-height:1.5}
+  .kick{font-family:var(--mono);font-size:11px;letter-spacing:.26em;text-transform:uppercase;color:var(--red);margin-bottom:8px}
+  .cards{display:grid;grid-template-columns:repeat(5,1fr);gap:13px;margin-bottom:22px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:17px}
+  .card .v{font-family:var(--mono);font-weight:800;font-size:28px;letter-spacing:-.02em}
+  .card .v.red{color:var(--red)} .card .v.steel{color:var(--steel)} .card .v.teal{color:var(--teal)}
+  .card .l{font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim);margin-top:6px}
+  .card .s{font-size:11px;color:var(--faint);margin-top:3px}
+  .hero{background:linear-gradient(150deg,var(--panel),#0d0d10);border:1px solid var(--line);border-radius:14px;padding:30px 32px;margin-bottom:22px;position:relative;overflow:hidden}
+  .hero h1{font-family:var(--mono);font-weight:800;font-size:56px;line-height:.95;letter-spacing:-.02em}
+  .hero h1 .b{color:var(--red)} .hero p{color:var(--dim);font-size:17px;font-weight:300;margin-top:12px;max-width:640px}
+  .scope{display:grid;grid-template-columns:repeat(6,1fr);gap:1px;background:var(--line);border:1px solid var(--line);border-radius:10px;overflow:hidden;margin-bottom:24px}
+  .sc-item{background:var(--panel);padding:15px 13px;text-align:center}
+  .sc-v{font-family:var(--mono);font-weight:800;font-size:23px;color:var(--ink);letter-spacing:-.02em}
+  .sc-l{font-family:var(--mono);font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--dim);margin-top:5px}
+  .panel-box{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:20px 22px;margin-bottom:18px}
+  .panel-box h3{font-family:var(--mono);font-size:12px;letter-spacing:.13em;text-transform:uppercase;color:var(--dim);margin-bottom:14px;display:flex;justify-content:space-between;align-items:center}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px} .grid2-3{display:grid;grid-template-columns:1.35fr 1fr;gap:18px}
+  /* bars */
+  .bar-row{display:grid;grid-template-columns:208px 1fr 92px;align-items:center;gap:12px;padding:5px 0}
+  .bar-row.click{cursor:pointer;border-radius:6px} .bar-row.click:hover{background:var(--panel2)}
+  .bar-name{font-family:var(--mono);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .bar-name .sub{color:var(--dim)}
+  .bar-track{height:16px;background:var(--panel2);border-radius:3px;overflow:hidden}
+  .bar-fill{height:100%;border-radius:3px;transition:width .6s cubic-bezier(.2,.8,.2,1)}
+  .bar-val{font-family:var(--mono);font-size:12px;font-weight:700;text-align:right}
+  .bar-val .sub{color:var(--dim);font-weight:400;font-size:11px}
+  .legend{display:flex;gap:18px;font-family:var(--mono);font-size:11px;color:var(--dim);margin-top:12px}
+  .dot{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:6px;vertical-align:middle}
+  /* full heatmap */
+  .hm-wrap{overflow:auto;max-width:100%}
+  table.hm{border-collapse:separate;border-spacing:2px;font-family:var(--mono);font-size:10px}
+  table.hm th.col{color:var(--dim);font-weight:500;writing-mode:vertical-rl;transform:rotate(180deg);height:96px;vertical-align:bottom;padding:3px;white-space:nowrap;font-size:9.5px}
+  table.hm td.lab{color:var(--ink);text-align:right;padding-right:8px;white-space:nowrap;font-size:11px;position:sticky;left:0;background:var(--bg)}
+  table.hm td.cell{width:26px;height:24px;text-align:center;border-radius:3px;cursor:pointer;color:#fff;font-weight:700;font-size:9px}
+  table.hm td.cell:hover{outline:2px solid var(--ink)}
+  table.hm td.empty{width:26px;height:24px;background:#101015;border-radius:3px}
+  .toggle{display:flex;font-family:var(--mono);font-size:11px;border:1px solid var(--line);border-radius:6px;overflow:hidden}
+  .toggle span{padding:5px 12px;cursor:pointer;color:var(--dim)} .toggle span.on{background:var(--red);color:#fff}
+  /* filters + trial table */
+  .filters{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px;font-family:var(--mono);font-size:12px}
+  .filters select,.filters input{background:var(--panel2);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:6px 9px;font-family:var(--mono);font-size:12px}
+  .filters .count{color:var(--dim);margin-left:auto}
+  table.trials{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:12px}
+  table.trials th{text-align:left;color:var(--dim);font-weight:500;font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;padding:8px 10px;border-bottom:1px solid var(--line);cursor:pointer;user-select:none}
+  table.trials td{padding:7px 10px;border-bottom:1px solid #1b1b21}
+  table.trials tr.row{cursor:pointer} table.trials tr.row:hover td{background:var(--panel2)}
+  .pf{font-weight:700} .pf.pass{color:var(--teal)} .pf.fail{color:var(--red)}
+  .pill{font-family:var(--mono);font-size:10px;padding:2px 7px;border-radius:20px;border:1px solid var(--line);color:var(--dim)}
+  /* failure modes */
+  .modes{display:flex;flex-direction:column;gap:7px}
+  .mode{display:grid;grid-template-columns:165px 1fr 50px;align-items:center;gap:12px;padding:8px 10px;border-radius:8px;cursor:pointer;border:1px solid transparent}
+  .mode:hover{background:var(--panel2)} .mode.on{background:var(--panel2);border-color:var(--red)}
+  .mode .mn{font-family:var(--mono);font-size:12px}
+  .ex{background:#0d0d10;border:1px solid var(--line);border-radius:8px;padding:13px 15px;margin-top:6px}
+  .ex .q{font-family:var(--mono);font-size:12px;line-height:1.55;border-left:2px solid var(--red);padding-left:12px}
+  .ex .q .src{display:block;color:var(--dim);font-size:11px;margin-top:5px}
+  .ctx3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  .ctx3 .c{text-align:center;padding:18px;border:1px solid var(--line);border-radius:10px}
+  .ctx3 .c .n{font-family:var(--mono);font-weight:800;font-size:32px} .ctx3 .c .t{font-size:11px;color:var(--dim);margin-top:6px;font-family:var(--mono)}
+  .note{font-family:var(--mono);font-size:11px;color:var(--faint);margin-top:10px;line-height:1.6}
+  /* modal + agent trace */
+  #modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.66);z-index:100;backdrop-filter:blur(3px);padding:40px 20px;overflow:auto}
+  #modal-bg.on{display:flex;align-items:flex-start;justify-content:center}
+  #modal{background:#0d0d10;border:1px solid var(--line2);border-radius:12px;max-width:840px;width:100%;margin:auto;box-shadow:0 30px 80px rgba(0,0,0,.6)}
+  .m-head{display:flex;align-items:center;gap:10px;padding:16px 20px;border-bottom:1px solid var(--line);font-family:var(--mono);font-size:13px}
+  .m-head .x{margin-left:auto;cursor:pointer;color:var(--dim);font-size:18px;line-height:1}
+  .m-head .x:hover{color:var(--ink)}
+  .m-body{padding:16px 20px;max-height:74vh;overflow:auto}
+  .agent-trace{border:1px solid var(--line);border-radius:10px;overflow:hidden;background:#141418;font-family:var(--mono);font-size:13px}
+  .agent-trace .at-head{display:flex;align-items:center;gap:.5em;background:#1C1C22;color:var(--dim);font-size:.84em;padding:9px 14px;border-bottom:1px solid var(--line)}
+  .agent-trace .at-head .task{color:var(--ink);font-weight:700}
+  .agent-trace .verdict{margin-left:auto;font-size:.78em;padding:2px 9px;border-radius:20px}
+  .agent-trace .verdict.pass{background:rgba(45,212,191,.14);color:var(--teal);border:1px solid rgba(45,212,191,.4)}
+  .agent-trace .verdict.fail{background:rgba(237,28,36,.15);color:#FF5A4D;border:1px solid rgba(237,28,36,.45)}
+  .at-body2{padding:4px 14px 8px}
+  .turn{display:grid;grid-template-columns:42px 1fr;gap:10px;padding:8px 0;border-bottom:1px solid #1b1b21}
+  .turn:last-child{border-bottom:0}
+  .turn .ep{color:var(--faint);font-size:11px;padding-top:2px}
+  .turn .an{color:#C2C5CE;font-size:12px;line-height:1.45}
+  .turn .cmd{color:var(--steel);font-size:12px;margin-top:4px;white-space:pre-wrap;word-break:break-word}
+  .turn .cmd::before{content:"$ ";color:var(--faint)}
+  .turn .snip{color:var(--dim);font-size:11.5px;line-height:1.4;margin-top:3px}
+  .flag{font-size:10px;padding:2px 7px;border-radius:4px;margin-right:5px;margin-top:5px;display:inline-block}
+  .flag.loop{background:rgba(237,28,36,.15);color:#FF5A4D} .flag.mal{background:rgba(90,169,230,.14);color:var(--steel)}
+  .flag.trunc{background:rgba(255,138,61,.13);color:#FF8A3D} .flag.done{background:rgba(45,212,191,.14);color:var(--teal)}
+  footer{font-family:var(--mono);font-size:11px;color:var(--faint);text-align:center;padding:30px 0 0;border-top:1px solid var(--line);margin-top:26px}
+  .credit{margin-top:16px;padding-top:16px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:4px;align-items:center}
+  .credit .by{font-size:15px;color:var(--ink);letter-spacing:.02em}
+  .credit .by b{color:#fff;font-weight:700}
+  .credit .sup{font-size:12px;color:var(--dim)}
+</style>
+</head>
+<body>
+<header>
+  <div class="hbar">
+    <div class="brand"><span class="d">●</span>tbench · READINESS</div>
+    <div class="thesis">Local coding agents on the <b>AMD Ryzen AI MAX+ 395</b> — measured, filtered, and explorable.</div>
+    <img class="amdlogo" src="amd-white.png" alt="AMD">
+  </div>
+  <nav id="nav"></nav>
+</header>
+<div class="wrap">
+  <section id="overview" class="on"></section>
+  <section id="capability"></section>
+  <section id="heatmap"></section>
+  <section id="perwatt"></section>
+  <section id="failures"></section>
+  <section id="trajectories"></section>
+  <footer>
+    tbench eval platform · <span id="ftn"></span> valid trials (infra/integration failures filtered &amp; duplicates removed) · click any cell or row to inspect a trajectory
+    <div class="credit">
+      <span class="by"><b>Harsh Singh</b> &nbsp;·&nbsp; Research &amp; Advanced Development, AMD</span>
+      <span class="sup">Supervisors: Eddie Richter · Paul Hartke</span>
+    </div>
+  </footer>
+</div>
+<div id="modal-bg"><div id="modal"><div class="m-head" id="m-head"></div><div class="m-body" id="m-body"></div></div></div>
+
+<script>
+const D = window.DASH_DATA;
+const $ = (s,r=document)=>r.querySelector(s);
+const el=(t,c,h)=>{const e=document.createElement(t);if(c)e.className=c;if(h!=null)e.innerHTML=h;return e;};
+const pct=v=>v==null?'—':v.toFixed(0)+'%';
+const fmtBig=n=>n>=1e9?(n/1e9).toFixed(1)+'B':n>=1e6?(n/1e6).toFixed(1)+'M':n>=1e3?(n/1e3).toFixed(1)+'K':''+n;
+const esc=s=>(s||'').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+const TABS=[["overview","Overview"],["capability","Capability"],["heatmap","Heatmap"],["perwatt","Per-Watt"],["failures","Failure modes"],["trajectories","Trajectories"]];
+const nav=$("#nav");
+TABS.forEach(([id,label],i)=>{
+  const t=el("div","tab"+(i==0?" on":""),label); t.dataset.id=id;
+  const act=()=>{document.querySelectorAll(".tab").forEach(x=>x.classList.remove("on"));
+    document.querySelectorAll("section").forEach(x=>x.classList.remove("on"));
+    t.classList.add("on"); $("#"+id).classList.add("on"); location.hash=id;};
+  t.onclick=()=>{act();window.scrollTo({top:0});}; t._act=act; nav.appendChild(t);
+});
+(()=>{const h=location.hash.replace('#','');const t=[...nav.children].find(x=>x.dataset.id===h);if(t)t._act();})();
+$("#ftn").textContent=D.meta.valid;
+// deep-link: ?t=<trial_id> opens that trajectory directly (shareable)
+window.addEventListener("load",()=>{const q=new URLSearchParams(location.search);
+  if(q.get("t"))openTrajectory(q.get("t"));
+  if(q.get("list")){const [m,tk]=q.get("list").split("|");openTrialList(D.trials_index.filter(x=>x.model===m&&x.task===tk).map(x=>x.id),`${m} · ${tk}`);}});
+
+/* ---------- modal + lazy trajectory loading ---------- */
+let TRAJ=null, trajLoading=false, trajQueue=[];
+function ensureTraj(cb){
+  if(window.DASH_TRAJ){TRAJ=window.DASH_TRAJ;return cb();}
+  trajQueue.push(cb);
+  if(trajLoading)return; trajLoading=true;
+  const s=document.createElement("script");s.src="dashboard_traj.js";
+  s.onload=()=>{TRAJ=window.DASH_TRAJ;trajQueue.forEach(f=>f());trajQueue=[];};
+  s.onerror=()=>{trajQueue.forEach(f=>f(true));trajQueue=[];};
+  document.body.appendChild(s);
+}
+function closeModal(){$("#modal-bg").classList.remove("on");}
+$("#modal-bg").onclick=e=>{if(e.target.id==="modal-bg")closeModal();};
+document.addEventListener("keydown",e=>{if(e.key==="Escape")closeModal();});
+function openModal(headHTML,bodyEl){
+  $("#m-head").innerHTML=headHTML+'<span class="x" onclick="closeModal()">✕</span>';
+  const b=$("#m-body");b.innerHTML="";b.appendChild(bodyEl);
+  $("#modal-bg").classList.add("on");$("#modal-bg").scrollTop=0;
+}
+function openTrajectory(id){
+  ensureTraj(err=>{
+    const t=TRAJ&&TRAJ[id];
+    const wrap=el("div");
+    if(err||!t){wrap.appendChild(el("div","note","No per-call trajectory was logged for this trial (e.g. qwen-coder writes plain-text logs)."));openModal("trajectory",wrap);return;}
+    const m=t.meta, pass=m.passed===1;
+    const card=el("div","agent-trace");
+    card.appendChild(el("div","at-head",
+      `<span class="task" style="color:#ED1C24">●</span> <span class="task">${m.task}</span> · ${m.agent} · ${esc(m.model)}<span class="verdict ${pass?'pass':'fail'}">REWARD ${m.reward} · ${pass?'PASS':'FAIL'}</span>`));
+    const body=el("div","at-body2");
+    t.turns.forEach(tn=>{
+      const row=el("div","turn");
+      row.appendChild(el("div","ep","ep "+tn.ep));
+      const d=el("div");
+      let flags="";
+      if(tn.loop>=4)flags+=`<span class="flag loop">looped ×${tn.loop}</span>`;
+      if(tn.malformed)flags+='<span class="flag mal">malformed</span>';
+      if(tn.finish==="length")flags+='<span class="flag trunc">truncated</span>';
+      if(tn.done)flags+='<span class="flag done">declared done</span>';
+      if(flags)d.appendChild(el("div",null,flags));
+      if(tn.analysis)d.appendChild(el("div","an",'"'+esc(tn.analysis)+'"'));
+      if(tn.cmd)d.appendChild(el("div","cmd",esc(tn.cmd)));
+      if(!tn.analysis&&!tn.cmd&&tn.snippet)d.appendChild(el("div","snip",esc(tn.snippet)));
+      row.appendChild(d);body.appendChild(row);
+    });
+    card.appendChild(body);
+    card.appendChild(el("div","at-foot",`${t.turns.length} turns · ${m.steps} steps · ${m.comp_tok.toLocaleString()} completion tokens${m.tok_s?' · '+m.tok_s+' tok/s':''}`));
+    wrap.appendChild(card);
+    openModal(`<span style="color:var(--ink);font-weight:700">${m.task}</span> · ${m.agent} · ${esc(m.model)}`,wrap);
+  });
+}
+function openTrialList(ids,label){
+  const set=new Set(ids);
+  const rows=D.trials_index.filter(t=>set.has(t.id));
+  const wrap=el("div");
+  wrap.appendChild(el("div","note",`${rows.length} trial(s) — click one to open its trajectory.`));
+  wrap.appendChild(trialTable(rows,false));
+  openModal(`<span style="color:var(--ink);font-weight:700">${label}</span>`,wrap);
+}
+function trialTable(rows,showModel=true){
+  const t=el("table","trials");
+  const cols=showModel?["result","model","agent","task","steps","tok/s","tokens"]:["result","model","agent","steps","tok/s"];
+  const thead=el("tr"); cols.forEach(c=>thead.appendChild(el("th",null,c))); t.appendChild(thead);
+  rows.slice(0,400).forEach(r=>{
+    const tr=el("tr","row"); tr.onclick=()=>openTrajectory(r.id);
+    const pass=r.passed===1;
+    let cells=`<td class="pf ${pass?'pass':'fail'}">${pass?'PASS':'FAIL'}</td><td>${esc(r.model)}</td><td>${r.agent}</td>`;
+    if(showModel)cells+=`<td>${r.task}</td>`;
+    cells+=`<td>${r.steps}</td><td>${r.tok_s||'—'}</td>`;
+    if(showModel)cells+=`<td>${r.comp_tok.toLocaleString()}</td>`;
+    tr.innerHTML=cells; t.appendChild(tr);
+  });
+  return t;
+}
+function hbars(items,{name,val,color,max=100,fmt=pct,click}){
+  const box=el("div");
+  items.forEach(it=>{const r=el("div","bar-row"+(click?" click":""));
+    r.appendChild(el("div","bar-name",name(it)));
+    const tr=el("div","bar-track"),f=el("div","bar-fill");f.style.background=color(it);f.style.width="0%";
+    requestAnimationFrame(()=>f.style.width=Math.min(100,val(it)/max*100)+"%");tr.appendChild(f);r.appendChild(tr);
+    r.appendChild(el("div","bar-val",fmt(it)));if(click)r.onclick=()=>click(it);box.appendChild(r);});
+  return box;
+}
+const ramp=v=>{const t=Math.max(0,Math.min(1,v/100)),a=[20,20,26],b=[237,28,36];return`rgb(${a.map((x,i)=>Math.round(x+(b[i]-x)*t)).join(',')})`;};
+
+/* ---------- OVERVIEW ---------- */
+(function(){const s=$("#overview"),m=D.meta;
+  const hero=el("div","hero");
+  hero.innerHTML=`<div class="kick">An internship measurement</div><h1>ALMOST <span class="b">THERE.</span></h1>
+    <p>The best small model on-device clears <b style="color:#F2F3F5">${m.best_local_rate.toFixed(0)}%</b> of easy agentic terminal tasks. The gap that remains is the story — and it is closing fast.</p>`;
+  s.appendChild(hero);
+  const sc=m.scope, scope=el("div","scope");
+  [[fmtBig(sc.tokens_processed),"tokens processed"],[fmtBig(sc.tokens_generated),"tokens generated"],
+   [sc.agent_steps.toLocaleString(),"agent steps"],[sc.valid_trials,"valid trials"],[sc.models,"models"],[sc.agents,"harnesses"]]
+   .forEach(([v,l])=>{const c=el("div","sc-item");c.innerHTML=`<div class="sc-v">${v}</div><div class="sc-l">${l}</div>`;scope.appendChild(c);});
+  s.appendChild(scope);
+  const cards=el("div","cards");
+  [["red",m.best_local_rate.toFixed(0)+"%","best local config","Qwen3.5-35B · terminus-2"],
+   ["",sc.valid_trials,"valid trials","of "+sc.trials_run+" run · rest filtered"],
+   ["steel",(m.calls/1000).toFixed(1)+"K","LLM calls","with per-call tok/s"],
+   ["teal",bestTPJ().toFixed(2),"tokens / joule","@ "+m.power_w+" W sustained"],
+   ["red","×"+m.ipw.mult,"intelligence / watt","2023 → 2025"]]
+   .forEach(([cls,v,l,sub])=>{const c=el("div","card");c.innerHTML=`<div class="v ${cls}">${v}</div><div class="l">${l}</div><div class="s">${sub}</div>`;cards.appendChild(c);});
+  s.appendChild(cards);
+  const vb=el("div","panel-box");vb.innerHTML=`<h3>Data hygiene <span style="color:var(--faint);text-transform:none;letter-spacing:0">only valid trials feed every number</span></h3>`;
+  const order=[["valid","valid","#2DD4BF"],["agent_integration_failure","integration fail","#5C5C66"],["ungraded","ungraded","#3a3a45"],["infra_slow","infra stall","#ED1C24"],["test_run","test","#2C2C35"]];
+  const tot=D.validity.total,strip=el("div");strip.style.cssText="display:flex;height:26px;border-radius:6px;overflow:hidden;border:1px solid var(--line)";
+  order.forEach(([k,lab,col])=>{const n=D.validity.counts[k]||0;if(!n)return;const seg=el("div");seg.style.cssText=`width:${n/tot*100}%;background:${col}`;seg.title=`${lab}: ${n}`;strip.appendChild(seg);});
+  vb.appendChild(strip);const lg=el("div","legend");
+  order.forEach(([k,lab,col])=>{const n=D.validity.counts[k]||0;if(!n)return;lg.appendChild(el("span",null,`<span class="dot" style="background:${col}"></span>${lab} ${n}`));});
+  vb.appendChild(lg);s.appendChild(vb);
+})();
+function bestTPJ(){return Math.max(...D.throughput.map(t=>t.tokens_per_joule));}
+
+/* ---------- CAPABILITY ---------- */
+(function(){const s=$("#capability");
+  s.appendChild(el("div","kick","Capability · local vs local"));
+  s.appendChild(el("h2",null,'What should you actually run on <span class="amd">AMD</span> today?'));
+  s.appendChild(el("div","lead","Pass rate on easy agentic terminal tasks, valid runs only. The agent harness matters as much as the model. Click any bar to browse that configuration's trials."));
+  const wrapb=el("div","panel-box");const head=el("h3",null,"Best model × agent");
+  const tog=el("div","toggle");["local","all"].forEach((k,i)=>{const sp=el("span",i==0?"on":"",k);sp.dataset.k=k;tog.appendChild(sp);});
+  head.appendChild(tog);wrapb.appendChild(head);const barbox=el("div");wrapb.appendChild(barbox);s.appendChild(wrapb);
+  function draw(filter){barbox.innerHTML="";let cfgs=D.configs.filter(c=>filter=="all"||c.backend=="local");
+    const seen={};cfgs=cfgs.filter(c=>{const k=c.agent+c.model;if(seen[k])return false;seen[k]=1;return true;}).slice(0,12);
+    barbox.appendChild(hbars(cfgs,{name:c=>`${c.agent} <span class="sub">· ${esc(c.model)}</span>`,val:c=>c.rate,
+      color:c=>c.backend=="local"?"linear-gradient(90deg,#7E0F15,#ED1C24)":"linear-gradient(90deg,#2E6CA0,#5AA9E6)",
+      fmt:c=>`${c.rate.toFixed(0)}% <span class="sub">${c.pass}/${c.n}</span>`,
+      click:c=>openTrialList(D.trials_index.filter(t=>t.run===c.run).map(t=>t.id),`${c.agent} · ${c.model}`)}));
+    const lg=el("div","legend");lg.innerHTML=`<span><span class="dot" style="background:#ED1C24"></span>local (on-device)</span><span><span class="dot" style="background:#5AA9E6"></span>open model via API</span>`;barbox.appendChild(lg);}
+  draw("local");tog.querySelectorAll("span").forEach(sp=>sp.onclick=()=>{tog.querySelectorAll("span").forEach(x=>x.classList.remove("on"));sp.classList.add("on");draw(sp.dataset.k);});
+  const fb=el("div","panel-box");fb.appendChild(el("h3",null,"Two yardsticks — the frontier gap"));
+  const ctx=el("div","ctx3");
+  ctx.innerHTML=`<div class="c"><div class="n" style="color:#ED1C24">${D.meta.best_local_rate.toFixed(0)}%</div><div class="t">best AMD-local<br>(our easy slice)</div></div>
+    <div class="c"><div class="n" style="color:#5AA9E6">${D.meta.tb2.open_best}%</div><div class="t">best open-weight<br>(full TB-2.0 board)</div></div>
+    <div class="c"><div class="n" style="color:#9A9AA6">${D.meta.tb2.frontier}%</div><div class="t">frontier<br>(full TB-2.0 board)</div></div>`;
+  fb.appendChild(ctx);fb.appendChild(el("div","note","Left = curated EASY subset (this study). Right = FULL Terminal-Bench 2.0 leaderboard. Not directly comparable — the gap is the point."));s.appendChild(fb);
+})();
+
+/* ---------- HEATMAP (full model × task, clickable) ---------- */
+(function(){const s=$("#heatmap");
+  s.appendChild(el("div","kick","Coverage · every model × every task"));
+  s.appendChild(el("h2",null,"Where capability lives"));
+  s.appendChild(el("div","lead","Pass rate for each model on each task (valid local + API runs). Darker red = higher. Click any cell to open the trials behind it."));
+  const box=el("div","panel-box");const hm=D.heatmap_full;
+  const get=(m,tk)=>hm.cells.find(c=>c.model===m&&c.task===tk);
+  const wrap=el("div","hm-wrap");const t=el("table","hm");
+  const hr=el("tr");hr.appendChild(el("th"));hm.tasks.forEach(tk=>hr.appendChild(el("th","col",tk)));t.appendChild(hr);
+  hm.models.forEach(m=>{const tr=el("tr");tr.appendChild(el("td","lab",esc(m)));
+    hm.tasks.forEach(tk=>{const c=get(m,tk);
+      if(c){const td=el("td","cell",c.rate);td.style.background=ramp(c.rate);td.style.color=c.rate>45?"#fff":"#bdbdc6";
+        td.title=`${m} · ${tk}: ${c.pass}/${c.n}`;
+        td.onclick=()=>openTrialList(D.trials_index.filter(x=>x.model===m&&x.task===tk).map(x=>x.id),`${m} · ${tk}`);
+        tr.appendChild(td);}
+      else tr.appendChild(el("td","empty"));});
+    t.appendChild(tr);});
+  wrap.appendChild(t);box.appendChild(wrap);s.appendChild(box);
+})();
+
+/* ---------- PER-WATT ---------- */
+(function(){const s=$("#perwatt");
+  s.appendChild(el("div","kick","Efficiency · intelligence per watt"));
+  s.appendChild(el("h2",null,"Sparsity is the on-device unlock"));
+  s.appendChild(el("div","lead","Sparse Mixture-of-Experts (~3B active) generate 3–5× faster than dense models — the difference between usable and not on a single APU."));
+  const g=el("div","grid2");
+  const tb=el("div","panel-box");tb.appendChild(el("h3",null,"Generation throughput (tok/s)"));
+  tb.appendChild(hbars(D.throughput,{name:t=>esc(t.model)+(t.dense?' <span class="sub">· dense</span>':''),val:t=>t.median,max:Math.max(...D.throughput.map(t=>t.median))*1.1,
+    color:t=>t.dense?"linear-gradient(90deg,#2E6CA0,#5AA9E6)":"linear-gradient(90deg,#7E0F15,#ED1C24)",fmt:t=>t.median.toFixed(0)}));
+  g.appendChild(tb);
+  const jb=el("div","panel-box");jb.appendChild(el("h3",null,"Tokens per joule"));
+  jb.appendChild(hbars(D.throughput,{name:t=>esc(t.model),val:t=>t.tokens_per_joule,max:Math.max(...D.throughput.map(t=>t.tokens_per_joule))*1.1,
+    color:t=>t.dense?"linear-gradient(90deg,#2E6CA0,#5AA9E6)":"linear-gradient(90deg,#7E0F15,#ED1C24)",fmt:t=>t.tokens_per_joule.toFixed(2)}));
+  jb.appendChild(el("div","note",`Estimate: median tok/s ÷ ${D.meta.power_w} W. Ryzen AI MAX+ 395: cTDP 55 W default · ~65 W sustained · 86 W peak.`));g.appendChild(jb);s.appendChild(g);
+})();
+
+/* ---------- FAILURE MODES ---------- */
+(function(){const s=$("#failures");
+  s.appendChild(el("div","kick","Failure taxonomy · the “almost”"));
+  s.appendChild(el("h2",null,"How local agents fail"));
+  s.appendChild(el("div","lead","Failures are mostly about agentic discipline — loop control, output format, knowing when you are done. Click a mode to read real generations."));
+  const g=el("div","grid2");
+  const ov=el("div","panel-box");ov.appendChild(el("h3",null,"% of valid trials"));
+  const modes=[["doom_loop","Doom-loop / repetition"],["malformed","Malformed action"],["false_completion","False completion"],["reasoning_burn","Reasoning-budget burn"],["truncation","Context truncation"]];
+  const exmap={doom_loop:"doom_loop",malformed:"malformed_action",false_completion:"false_completion",truncation:"truncation",reasoning_burn:"reasoning_burn"};
+  const mbox=el("div","modes"),maxr=Math.max(...modes.map(([k])=>D.failures.overall[k].rate));
+  modes.forEach(([k,lab],i)=>{const m=el("div","mode"+(i==0?" on":""));m.dataset.k=k;
+    m.innerHTML=`<div class="mn">${lab}</div><div class="bar-track"><div class="bar-fill" style="background:linear-gradient(90deg,#7E0F15,#ED1C24);width:${D.failures.overall[k].rate/maxr*100}%"></div></div><div class="bar-val">${D.failures.overall[k].rate}%</div>`;
+    m.onclick=()=>{mbox.querySelectorAll(".mode").forEach(x=>x.classList.remove("on"));m.classList.add("on");showEx(k);};mbox.appendChild(m);});
+  ov.appendChild(mbox);g.appendChild(ov);
+  const exb=el("div","panel-box");exb.appendChild(el("h3",null,"Evidence"));const exc=el("div");exc.id="exbox";exb.appendChild(exc);g.appendChild(exb);s.appendChild(g);
+  function showEx(k){const arr=D.failures.examples[exmap[k]]||[],c=$("#exbox");c.innerHTML="";
+    if(!arr.length){c.innerHTML='<div class="note">No captured examples.</div>';return;}
+    arr.slice(0,5).forEach(e=>{const d=el("div","ex");d.innerHTML=`<div class="q">“${esc(e.quote)}”<span class="src">— ${esc(e.model)} · ${e.task}</span></div>`;c.appendChild(d);});}
+  showEx("doom_loop");
+})();
+
+/* ---------- TRAJECTORIES (filter + browse + drill) ---------- */
+(function(){const s=$("#trajectories");
+  s.appendChild(el("div","kick","Drill-down · every generation"));
+  s.appendChild(el("h2",null,"Browse all "+D.trials_index.length+" trials"));
+  s.appendChild(el("div","lead","Filter and sort the full set; click any row to step through its trajectory turn-by-turn — flags mark loops, malformed actions, truncation, and (false) completions."));
+  const box=el("div","panel-box");
+  const filt=el("div","filters");
+  const agents=[...new Set(D.trials_index.map(t=>t.agent))].sort();
+  const models=[...new Set(D.trials_index.map(t=>t.model))].sort();
+  filt.innerHTML=`<select id="f-agent"><option value="">all agents</option>${agents.map(a=>`<option>${a}</option>`).join('')}</select>
+    <select id="f-model"><option value="">all models</option>${models.map(m=>`<option>${esc(m)}</option>`).join('')}</select>
+    <select id="f-res"><option value="">pass & fail</option><option value="1">pass only</option><option value="0">fail only</option></select>
+    <input id="f-task" placeholder="filter task…" size="14">
+    <span class="count" id="f-count"></span>`;
+  box.appendChild(filt);const tbox=el("div");box.appendChild(tbox);s.appendChild(box);
+  let sortKey="passed",sortDir=-1;
+  function render(){let rows=D.trials_index.slice();
+    const a=$("#f-agent").value,m=$("#f-model").value,r=$("#f-res").value,tk=$("#f-task").value.toLowerCase();
+    if(a)rows=rows.filter(x=>x.agent===a);if(m)rows=rows.filter(x=>x.model===m);
+    if(r!=="")rows=rows.filter(x=>x.passed===+r);if(tk)rows=rows.filter(x=>x.task.toLowerCase().includes(tk));
+    rows.sort((x,y)=>{const xv=x[sortKey]??-1,yv=y[sortKey]??-1;return (xv>yv?1:xv<yv?-1:0)*sortDir;});
+    $("#f-count").textContent=rows.length+" trials";tbox.innerHTML="";
+    const t=trialTable(rows,true);
+    [...t.querySelectorAll("th")].forEach(th=>{const map={result:"passed",model:"model",agent:"agent",task:"task",steps:"steps","tok/s":"tok_s",tokens:"comp_tok"};const k=map[th.textContent];
+      if(k){th.style.cursor="pointer";th.onclick=()=>{if(sortKey===k)sortDir*=-1;else{sortKey=k;sortDir=-1;}render();};}});
+    tbox.appendChild(t);}
+  ["f-agent","f-model","f-res"].forEach(id=>$("#"+id).onchange=render);$("#f-task").oninput=render;render();
+})();
+</script>
+</body>
+</html>

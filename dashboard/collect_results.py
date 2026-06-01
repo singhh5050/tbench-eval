@@ -6,7 +6,7 @@ import json
 import os
 from pathlib import Path
 
-RESULTS_DIR = Path(os.path.dirname(os.path.abspath(__file__))) / "results"
+RESULTS_DIR = Path(os.path.dirname(os.path.abspath(__file__))).parent / "results"
 OUTPUT = RESULTS_DIR / "summary.csv"
 
 

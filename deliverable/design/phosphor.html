@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Direction A — Phosphor Instrument (AMD red)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    /* AMD-forward dark instrument: near-black + AMD red, steel-blue data contrast, sparing teal status */
+    --bg:#0A0A0C; --panel:#141418; --panel-2:#1C1C22; --line:#2C2C35;
+    --ink:#F2F3F5; --ink-dim:#9A9AA6; --ink-faint:#5C5C66;
+    --red:#ED1C24; --red-br:#FF3B30; --red-dp:#7E0F15;
+    --steel:#5AA9E6; --steel-dp:#234B6E; --teal:#2DD4BF;
+    --mono:'JetBrains Mono',ui-monospace,monospace; --sans:'IBM Plex Sans',sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#060608;color:var(--ink);font-family:var(--sans);
+    display:flex;flex-direction:column;align-items:center;gap:26px;padding:40px 20px 60px}
+  .label{font-family:var(--mono);font-size:12px;letter-spacing:.16em;color:var(--ink-dim);
+    text-transform:uppercase;margin-bottom:4px}
+  .frame{width:960px;height:540px;background:var(--bg);border:1px solid var(--line);
+    border-radius:10px;overflow:hidden;position:relative;box-shadow:0 24px 60px rgba(0,0,0,.6)}
+  /* scanline + AMD-red atmosphere */
+  .frame::before{content:"";position:absolute;inset:0;pointer-events:none;z-index:3;
+    background:
+      repeating-linear-gradient(0deg,rgba(255,255,255,.014) 0 1px,transparent 1px 3px),
+      radial-gradient(120% 80% at 82% -12%,rgba(237,28,36,.16),transparent 58%)}
+  .pad{position:absolute;inset:0;padding:52px 56px;z-index:2;display:flex;flex-direction:column}
+  .chrome{position:absolute;top:18px;left:22px;right:22px;display:flex;justify-content:space-between;
+    font-family:var(--mono);font-size:11px;letter-spacing:.16em;color:var(--ink-dim);z-index:4}
+  .dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--red);
+    box-shadow:0 0 10px var(--red);margin-right:8px;vertical-align:middle}
+
+  /* TITLE */
+  .kicker{font-family:var(--mono);font-size:13px;letter-spacing:.32em;color:var(--red);
+    text-transform:uppercase;margin-bottom:auto;padding-top:20px}
+  h1{font-family:var(--mono);font-weight:800;font-size:104px;line-height:.92;letter-spacing:-.02em}
+  h1 .b{color:var(--red)}
+  .sub{font-size:21px;color:var(--ink-dim);font-weight:300;margin-top:18px;max-width:600px}
+  .wave{position:absolute;left:0;right:0;bottom:46px;height:70px;opacity:.7;z-index:1}
+  .meta{margin-top:26px;font-family:var(--mono);font-size:12px;letter-spacing:.12em;color:var(--ink-dim)}
+  .meta b{color:var(--ink);font-weight:600}
+
+  /* DATA */
+  .h2{font-family:var(--mono);font-weight:700;font-size:30px;letter-spacing:-.01em;margin-bottom:4px}
+  .h2 .amd{color:var(--red)}
+  .deck{font-size:14px;color:var(--ink-dim);margin-bottom:26px;font-weight:300}
+  .bars{display:flex;flex-direction:column;gap:16px;margin-top:6px}
+  .row{display:grid;grid-template-columns:230px 1fr 58px;align-items:center;gap:16px}
+  .name{font-family:var(--mono);font-size:13px;color:var(--ink)}
+  .name span{color:var(--ink-dim)}
+  .track{height:18px;background:var(--panel-2);border-radius:3px;overflow:hidden;position:relative}
+  .fill{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--red-dp),var(--red));
+    box-shadow:0 0 18px rgba(237,28,36,.4)}
+  .fill.b{background:linear-gradient(90deg,var(--steel-dp),var(--steel));box-shadow:0 0 16px rgba(90,169,230,.28)}
+  .val{font-family:var(--mono);font-weight:700;font-size:16px;text-align:right}
+  .ctx{margin-top:24px;border-top:1px dashed var(--line);padding-top:14px;
+    font-family:var(--mono);font-size:11.5px;color:var(--ink-dim);letter-spacing:.04em}
+  .ctx b{color:var(--ink)}
+
+  /* DASH CARD */
+  .grid2{display:grid;grid-template-columns:1.05fr .95fr;gap:22px;height:100%}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:22px 24px;
+    display:flex;flex-direction:column}
+  .card h3{font-family:var(--mono);font-size:12px;letter-spacing:.16em;color:var(--ink-dim);
+    text-transform:uppercase;font-weight:500;margin-bottom:14px;display:flex;justify-content:space-between}
+  .pill{font-family:var(--mono);font-size:11px;padding:3px 9px;border-radius:20px;letter-spacing:.08em}
+  .pill.pass{background:rgba(45,212,191,.14);color:var(--teal);border:1px solid rgba(45,212,191,.4)}
+  .kv{display:flex;justify-content:space-between;font-family:var(--mono);font-size:13px;
+    padding:7px 0;border-bottom:1px solid rgba(44,44,53,.7)}
+  .kv span:first-child{color:var(--ink-dim)}
+  .kv b{color:var(--red);font-weight:700}
+  .spark{height:46px;margin:14px 0 6px;width:100%}
+  .gen{font-family:var(--mono);font-size:11.5px;line-height:1.55;color:var(--ink-dim);
+    background:#0d0d10;border:1px solid var(--line);border-radius:7px;padding:12px 13px;flex:1;overflow:hidden}
+  .gen .key{color:var(--steel)} .gen .str{color:var(--teal)} .gen .cmt{color:#5a5a64}
+  .tabs{display:flex;gap:6px;margin-bottom:14px}
+  .tabs span{font-family:var(--mono);font-size:11px;padding:5px 11px;border-radius:6px;
+    color:var(--ink-dim);border:1px solid var(--line)}
+  .tabs span.on{background:var(--red);color:#fff;border-color:var(--red);font-weight:700}
+  .capt{font-family:var(--mono);font-size:11px;color:var(--ink-dim);letter-spacing:.1em;margin-top:2px}
+</style>
+</head>
+<body>
+  <div class="label">Direction A · Phosphor Instrument · AMD red #ED1C24 dominant on near-black #0A0A0C · steel-blue #5AA9E6 data contrast · teal status · JetBrains Mono + IBM Plex Sans</div>
+
+  <!-- TITLE SLIDE -->
+  <div class="frame">
+    <div class="chrome"><span><span class="dot"></span>TBENCH · LOCAL-AGENT READINESS</span><span>AMD RYZEN AI MAX+ 395 · 01</span></div>
+    <svg class="wave" viewBox="0 0 960 70" preserveAspectRatio="none">
+      <path d="M0,35 Q60,5 120,35 T240,35 T360,35 T480,35 T600,35 T720,35 T840,35 T960,35"
+        fill="none" stroke="#ED1C24" stroke-width="2" opacity=".85"/>
+      <path d="M0,35 Q80,55 160,35 T320,35 T480,35 T640,35 T800,35 T960,35"
+        fill="none" stroke="#5AA9E6" stroke-width="1.5" opacity=".4"/>
+    </svg>
+    <div class="pad">
+      <div class="kicker">An internship measurement</div>
+      <h1>ALMOST<br><span class="b">THERE.</span></h1>
+      <div class="sub">How close are local coding agents to being genuinely useful on an AMD&nbsp;AI&nbsp;PC?</div>
+      <div class="meta">816 graded trials · <b>8,800</b> LLM calls · 1,070 trajectories · measured on-device</div>
+    </div>
+  </div>
+
+  <!-- DATA SLIDE -->
+  <div class="frame">
+    <div class="chrome"><span><span class="dot"></span>CAPABILITY · LOCAL vs LOCAL</span><span>VALID RUNS ONLY · 07</span></div>
+    <div class="pad">
+      <div class="h2">What should you actually run on <span class="amd">AMD</span> today?</div>
+      <div class="deck">Pass rate — easy agentic terminal tasks · best model×agent configurations</div>
+      <div class="bars">
+        <div class="row"><div class="name">terminus-2 <span>· Qwen3-Coder-Next</span></div><div class="track"><div class="fill" style="width:84%"></div></div><div class="val">84%</div></div>
+        <div class="row"><div class="name">terminus-2 <span>· Qwen3.5-35B-A3B</span></div><div class="track"><div class="fill" style="width:81%"></div></div><div class="val">81%</div></div>
+        <div class="row"><div class="name">openhands <span>· Qwen3.5-35B-A3B</span></div><div class="track"><div class="fill b" style="width:53%"></div></div><div class="val">53%</div></div>
+        <div class="row"><div class="name">qwen-coder <span>· Qwen3.5-35B-A3B</span></div><div class="track"><div class="fill b" style="width:41%"></div></div><div class="val">41%</div></div>
+      </div>
+      <div class="ctx">BROADER CONTEXT — full Terminal-Bench 2.0 (public leaderboard): best open ≈ <b>42–52%</b> · frontier ≈ <b>85–90%</b>. &nbsp;Our numbers are the <b>easy slice</b>, not the full benchmark.</div>
+    </div>
+  </div>
+
+  <!-- DASHBOARD CARD -->
+  <div class="frame">
+    <div class="chrome"><span><span class="dot"></span>DASHBOARD · INTERACTIVE DRILL-DOWN</span><span>TRIAL VIEW · LIVE</span></div>
+    <div class="pad">
+      <div class="tabs"><span>Overview</span><span class="on">Capability</span><span>Per-Watt</span><span>Failure modes</span><span>Trajectories</span></div>
+      <div class="grid2">
+        <div class="card">
+          <h3>fix-git__BtRQ55G <span class="pill pass">REWARD 1.0 · PASS</span></h3>
+          <div class="kv"><span>model</span><b>Qwen3.5-35B-A3B</b></div>
+          <div class="kv"><span>agent</span><b>terminus-2</b></div>
+          <div class="kv"><span>gen throughput</span><b>57.7 tok/s</b></div>
+          <div class="kv"><span>episodes</span><b>10</b></div>
+          <svg class="spark" viewBox="0 0 380 46" preserveAspectRatio="none">
+            <polyline fill="url(#g)" stroke="none" opacity=".2"
+              points="0,46 0,30 32,22 64,26 96,12 128,18 160,9 192,20 224,14 256,8 288,16 320,11 352,7 380,13 380,46"/>
+            <polyline fill="none" stroke="#ED1C24" stroke-width="2"
+              points="0,30 32,22 64,26 96,12 128,18 160,9 192,20 224,14 256,8 288,16 320,11 352,7 380,13"/>
+            <defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ED1C24"/><stop offset="1" stop-color="transparent"/></linearGradient></defs>
+          </svg>
+          <div class="capt">tok/s per episode · click any point → generation</div>
+        </div>
+        <div class="card">
+          <h3>episode-3 · model output</h3>
+          <div class="gen"><span class="cmt">// structured action</span><br>{<br>&nbsp;&nbsp;<span class="key">"analysis"</span>: <span class="str">"The cherry-pick hit a<br>&nbsp;&nbsp;merge conflict in about.md. I need to<br>&nbsp;&nbsp;resolve it and continue."</span>,<br>&nbsp;&nbsp;<span class="key">"command"</span>: <span class="str">"git checkout --theirs<br>&nbsp;&nbsp;_includes/about.md &amp;&amp; git add -A"</span>,<br>&nbsp;&nbsp;<span class="key">"is_task_complete"</span>: false<br>}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

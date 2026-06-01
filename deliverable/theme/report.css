@@ -1,0 +1,125 @@
+/* report.css — AMD "Almost There" report theme (light skin of the Phosphor system).
+   Dense, professional technical-report typography (not a poster).
+   Render: pandoc report.md -s --toc --toc-depth=1 --css theme/report.css --metadata title="Almost There" -o report.html
+   then print to PDF (Cmd/Ctrl-P), or wkhtmltopdf / weasyprint. */
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');
+
+:root{
+  --red:#ED1C24; --reddp:#7E0F15; --steel:#1E6CA0; --teal:#0E9384;
+  --ink:#1A1B1F; --dim:#5C5F66; --line:#E4E2DD; --paper:#FFFFFF; --panel:#F7F6F2;
+  --mono:'JetBrains Mono',ui-monospace,monospace; --sans:'IBM Plex Sans',system-ui,sans-serif;
+}
+html{font-size:10.5pt}
+body{font-family:var(--sans);color:var(--ink);background:var(--paper);line-height:1.5;
+  max-width:48rem;margin:0 auto;padding:2.4rem 2.2rem 4rem;font-weight:400;
+  text-rendering:optimizeLegibility;hyphens:auto}
+p{margin:.55em 0;text-align:justify}
+
+h1,h2,h3,h4{font-family:var(--mono);font-weight:700;letter-spacing:-.01em;line-height:1.18}
+h1{font-size:1.7rem;font-weight:800;margin:.1em 0 .05em;letter-spacing:-.02em}
+h2{font-size:1.12rem;color:var(--ink);margin:1.5em 0 .55em;padding-bottom:.25em;
+  border-bottom:1.5px solid var(--ink);break-after:avoid}
+h3{font-size:.92rem;color:var(--reddp);margin:1.15em 0 .4em;break-after:avoid}
+h4{font-size:.86rem;color:var(--ink);margin:1em 0 .3em}
+
+/* ---- full-page designed title ---- */
+#title-block-header{position:relative;min-height:86vh;display:flex;flex-direction:column;
+  justify-content:center;border-top:6px solid var(--red);padding-top:2rem;margin-bottom:0;
+  background-image:url('../assets/brand/amd-black.png');background-repeat:no-repeat;
+  background-position:left 1.5rem;background-size:112px auto}
+#title-block-header::before{content:"LOCAL-AGENT READINESS · RYZEN AI MAX+ 395";
+  font-family:var(--mono);font-size:.7rem;letter-spacing:.26em;color:var(--red);margin-bottom:1.6rem}
+#title-block-header::after{content:"";position:absolute;left:0;right:0;bottom:8%;height:90px;
+  background:repeating-linear-gradient(90deg,var(--red) 0 2px,transparent 2px 9px);
+  -webkit-mask-image:linear-gradient(90deg,#000,#000 22%,transparent 60%);
+          mask-image:linear-gradient(90deg,#000,#000 22%,transparent 60%);opacity:.5}
+h1.title{font-size:4.4rem;font-weight:800;line-height:.94;letter-spacing:-.035em;margin:0 0 .35rem}
+.title .tt{color:var(--red)}
+#title-block-header .subtitle{font-family:var(--mono);font-weight:400;font-size:1.02rem;
+  color:var(--dim);max-width:33rem;line-height:1.45;margin:.2rem 0 2.2rem}
+#title-block-header .author,#title-block-header .date{font-family:var(--mono);font-size:.8rem;
+  color:var(--dim);letter-spacing:.03em;margin:.16em 0}
+#title-block-header .author:first-of-type{color:var(--ink);font-weight:600;font-size:.92rem;
+  border-top:1.5px solid var(--ink);padding-top:1rem;margin-top:1rem;max-width:33rem}
+#title-block-header .date{margin-top:.8rem}
+
+a{color:var(--steel);text-decoration:none;border-bottom:1px solid #cddbe6}
+strong{font-weight:600}
+em{color:#33343a}
+code{font-family:var(--mono);font-size:.82em;background:var(--panel);border:1px solid var(--line);
+  border-radius:3px;padding:.05em .3em}
+pre{background:#0E0E11;color:#F2F3F5;border-radius:6px;padding:11px 13px;overflow:auto;
+  font-size:.74rem;line-height:1.45;border:1px solid var(--line);margin:.9em 0}
+pre code{background:none;border:0;color:inherit;padding:0}
+blockquote{border-left:2.5px solid var(--red);margin:.9em 0;padding:.2em 0 .2em 14px;color:#2c2922;
+  font-family:var(--mono);font-size:.82rem;background:var(--panel)}
+
+/* figures kept modest so they don't eat whole pages */
+img{max-width:74%;display:block;margin:1em auto .3em;border:1px solid var(--line);border-radius:5px}
+figure{margin:1.1em 0}
+figcaption,p>em:only-child{font-family:var(--mono);font-size:.72rem;color:var(--dim);text-align:center}
+.fig-cap{font-family:var(--mono);font-size:.72rem;color:var(--dim);text-align:center;margin:.1em 0 1.1em}
+
+table{border-collapse:collapse;width:100%;font-size:.78rem;margin:.9em 0;font-family:var(--mono);
+  break-inside:avoid}
+th,td{border-bottom:1px solid var(--line);padding:4px 8px;text-align:left;vertical-align:top}
+th{font-weight:600;color:var(--ink);border-bottom:1.5px solid var(--ink);font-size:.7rem;
+  letter-spacing:.02em;text-transform:uppercase}
+tbody tr:nth-child(even){background:var(--panel)}
+
+hr{border:0;border-top:1px solid var(--line);margin:1.6em 0}
+ul,ol{margin:.45em 0 .45em 0;padding-left:1.3em}
+li{margin:.28em 0}
+li::marker{color:var(--red)}
+
+#TOC{font-family:var(--mono);font-size:.82rem;margin:2rem 0;padding-top:1.5rem;
+  border-top:7px solid var(--red)}
+#TOC::before{content:"Contents";display:block;font-family:var(--mono);font-weight:800;
+  font-size:1.7rem;letter-spacing:-.02em;color:var(--ink);margin-bottom:1.1rem}
+#TOC ul{list-style:none;padding-left:1.1em;margin:.15em 0}#TOC>ul{padding-left:0}
+#TOC li{margin:.34em 0}
+#TOC a{color:var(--ink);border:0}
+.kicker{font-family:var(--mono);font-size:.72rem;letter-spacing:.22em;text-transform:uppercase;color:var(--red)}
+
+/* ---- agent-trace figures: the machine's voice, dark instrument card on the light page ---- */
+.agent-fig{margin:1.4em 0;break-inside:avoid}
+.agent-trace{border-radius:8px;overflow:hidden;border:1px solid #2C2C35;background:#0d0d10;
+  font-family:var(--mono)}
+.agent-trace .at-head{display:flex;align-items:center;gap:.55em;background:#16161B;color:#9A9AA6;
+  font-size:.64rem;letter-spacing:.04em;padding:7px 13px;border-bottom:1px solid #2C2C35}
+.agent-trace .at-head .task{color:#F2F3F5;font-weight:700}
+.agent-trace .at-head .dot{color:var(--red)}
+.agent-trace .verdict{margin-left:auto;font-size:.6rem;padding:2px 8px;border-radius:20px;letter-spacing:.04em;white-space:nowrap}
+.agent-trace .verdict.pass{background:rgba(45,212,191,.14);color:#2DD4BF;border:1px solid rgba(45,212,191,.4)}
+.agent-trace .verdict.fail{background:rgba(237,28,36,.15);color:#FF5A4D;border:1px solid rgba(237,28,36,.45)}
+.agent-trace .at-body{padding:4px 13px 8px}
+.agent-trace .turn{display:grid;grid-template-columns:38px 1fr;gap:9px;padding:7px 0;border-bottom:1px solid #1b1b21}
+.agent-trace .turn:last-child{border-bottom:0}
+.agent-trace .ep{color:#5C5C66;font-size:.6rem;padding-top:2px}
+.agent-trace .analysis{color:#C2C5CE;font-size:.66rem;line-height:1.5}
+.agent-trace .cmd{color:#5AA9E6;font-size:.66rem;margin-top:4px;white-space:pre-wrap;word-break:break-word}
+.agent-trace .cmd::before{content:"$ ";color:#5C5C66}
+.agent-trace .loop-cmd{color:#8A8F9A;font-size:.64rem;margin-top:4px;white-space:pre-wrap;line-height:1.5}
+.agent-trace .loop-mark{color:#FF5A4D;font-size:.66rem;margin-top:6px;font-weight:600}
+.agent-trace .flag{font-size:.6rem;padding:2px 7px;border-radius:4px;margin-top:6px;display:inline-block}
+.agent-trace .flag.done{background:rgba(45,212,191,.14);color:#2DD4BF}
+.agent-trace .flag.warn{background:rgba(237,28,36,.15);color:#FF5A4D}
+.agent-trace .quote{color:#E8E0C0;font-size:.7rem;line-height:1.55;font-style:normal}
+.agent-trace .at-foot{background:#16161B;color:#9A9AA6;font-size:.62rem;padding:6px 13px;border-top:1px solid #2C2C35}
+.agent-trace .at-foot b{color:#F2F3F5}
+.agent-fig figcaption{font-family:var(--mono);font-size:.7rem;color:var(--dim);text-align:center;margin-top:.5em}
+.agent-fig figcaption b{color:var(--ink)}
+
+@page{margin:1.7cm 1.8cm}
+@media print{
+  body{padding:0;max-width:none}
+  #title-block-header{min-height:calc(100vh - 3.6cm);break-after:page;break-before:avoid}
+  #TOC{break-after:page;break-before:avoid}
+  h1{break-before:page}                 /* every section starts on a new page */
+  #title-block-header h1{break-before:avoid}
+  h2,h3,h4{break-after:avoid}
+  img,figure,table,pre,blockquote,tr{break-inside:avoid}
+}
+/* screen preview also paginates visually for the title/TOC */
+#title-block-header{break-after:page}
+#TOC{break-after:page}

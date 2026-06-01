@@ -8,7 +8,8 @@ from http.server import HTTPServer, SimpleHTTPRequestHandler
 from pathlib import Path
 from urllib.parse import urlparse, parse_qs
 
-RESULTS_DIR = Path(os.path.dirname(os.path.abspath(__file__))) / "results"
+REPO_ROOT = Path(os.path.dirname(os.path.abspath(__file__))).parent
+RESULTS_DIR = REPO_ROOT / "results"
 DASHBOARD_HTML = Path(os.path.dirname(os.path.abspath(__file__))) / "dashboard.html"
 PORT = int(sys.argv[1]) if len(sys.argv) > 1 else 8080
 
@@ -147,7 +148,7 @@ def scan_results():
                             runs.append(entry)
 
     # Load the full 37-task list to fill in timeouts as failures
-    merged_file = Path(os.path.dirname(os.path.abspath(__file__))) / "easy_tasks_merged.txt"
+    merged_file = REPO_ROOT / "config" / "tasks" / "easy_merged.txt"
     all_tasks = set()
     if merged_file.exists():
         for line in merged_file.read_text().splitlines():

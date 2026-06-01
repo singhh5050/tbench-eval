@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Direction C — AI-PC Futurist</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --slate:#10131A; --slate-2:#171B25; --panel:#1C2230; --line:#2C3445;
+    --ink:#F4F6FB; --ink-dim:#9AA4B6; --red:#FF4D3D; --amd:#ED1C24; --ice:#7FE7FF;
+    --disp:'Bricolage Grotesque',sans-serif; --sans:'IBM Plex Sans',sans-serif; --mono:'IBM Plex Mono',monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#070910;color:var(--ink);font-family:var(--sans);
+    display:flex;flex-direction:column;align-items:center;gap:26px;padding:40px 20px 60px}
+  .label{font-family:var(--mono);font-size:12px;letter-spacing:.04em;color:#7e88a0;margin-bottom:4px}
+  .frame{width:960px;height:540px;background:var(--slate);position:relative;overflow:hidden;
+    border:1px solid var(--line);border-radius:12px;box-shadow:0 24px 70px rgba(0,0,0,.6)}
+  .frame::before{content:"";position:absolute;inset:0;z-index:0;pointer-events:none;
+    background:radial-gradient(90% 70% at 110% -10%,rgba(255,77,61,.22),transparent 55%),
+               radial-gradient(80% 60% at -10% 110%,rgba(127,231,255,.10),transparent 55%)}
+  .pad{position:absolute;inset:0;padding:54px 58px;z-index:2;display:flex;flex-direction:column}
+  .chrome{position:absolute;top:20px;left:24px;right:24px;display:flex;justify-content:space-between;z-index:3;
+    font-family:var(--mono);font-size:11px;letter-spacing:.18em;color:var(--ink-dim);text-transform:uppercase}
+  .chrome b{color:var(--red)}
+
+  /* TITLE */
+  .kick{font-family:var(--mono);font-size:13px;letter-spacing:.3em;text-transform:uppercase;
+    color:var(--red);margin:34px 0 16px}
+  h1{font-family:var(--disp);font-weight:700;font-size:108px;line-height:.9;letter-spacing:-.03em}
+  h1 .g{background:linear-gradient(100deg,#FF4D3D,#FF8A3D);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .sub{font-size:22px;color:var(--ink-dim);font-weight:300;margin-top:20px;max-width:600px;line-height:1.4}
+  .strip{margin-top:auto;display:flex;gap:40px;border-top:1px solid var(--line);padding-top:18px}
+  .strip div{font-family:var(--disp)}
+  .strip .n{font-size:30px;font-weight:700;color:var(--ink)}
+  .strip .n em{color:var(--red);font-style:normal}
+  .strip .l{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;color:var(--ink-dim);text-transform:uppercase;margin-top:2px}
+
+  /* DATA */
+  .h2{font-family:var(--disp);font-weight:700;font-size:40px;letter-spacing:-.02em;margin-bottom:2px}
+  .h2 .amd{color:var(--amd)}
+  .deck{font-family:var(--mono);font-size:12px;letter-spacing:.1em;color:var(--ink-dim);text-transform:uppercase;margin-bottom:26px}
+  .bars{display:flex;flex-direction:column;gap:16px}
+  .row{display:grid;grid-template-columns:228px 1fr 64px;align-items:center;gap:16px}
+  .name{font-family:var(--mono);font-size:13px}
+  .name span{color:var(--ink-dim)}
+  .track{height:20px;background:var(--panel);border-radius:30px;overflow:hidden}
+  .fill{height:100%;border-radius:30px;background:linear-gradient(90deg,#FF4D3D,#FF8A3D);box-shadow:0 0 24px rgba(255,77,61,.4)}
+  .fill.i{background:linear-gradient(90deg,#2b6e80,#7FE7FF);box-shadow:0 0 22px rgba(127,231,255,.3)}
+  .val{font-family:var(--disp);font-weight:700;font-size:20px;text-align:right}
+  .ctx{margin-top:26px;font-family:var(--mono);font-size:11.5px;color:var(--ink-dim);
+    background:rgba(255,77,61,.07);border:1px solid rgba(255,77,61,.25);border-radius:8px;padding:12px 14px}
+  .ctx b{color:var(--ink)}
+
+  /* DASH */
+  .tabs{display:flex;gap:8px;margin-bottom:18px}
+  .tabs span{font-family:var(--mono);font-size:11px;padding:6px 13px;border-radius:30px;color:var(--ink-dim);border:1px solid var(--line)}
+  .tabs span.on{background:var(--red);color:#10131A;border-color:var(--red);font-weight:600}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+  .slab{background:linear-gradient(160deg,var(--panel),var(--slate-2));border:1px solid var(--line);
+    border-radius:14px;padding:24px;position:relative;overflow:hidden}
+  .slab .big{font-family:var(--disp);font-weight:700;font-size:62px;line-height:1;letter-spacing:-.03em}
+  .slab .big .u{font-size:22px;color:var(--ink-dim)}
+  .slab .cap{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-dim);margin-top:8px}
+  .slab.red .big{color:var(--red)} .slab.ice .big{color:var(--ice)}
+  .meter{height:8px;background:var(--slate);border-radius:8px;margin-top:16px;overflow:hidden}
+  .meter i{display:block;height:100%;border-radius:8px}
+  .glow{position:absolute;right:-30px;bottom:-30px;width:120px;height:120px;border-radius:50%;filter:blur(30px);opacity:.4}
+</style>
+</head>
+<body>
+  <div class="label">Direction C · AI-PC Futurist · slate #10131A / electric #FF4D3D / ice #7FE7FF · Space Grotesk + IBM Plex · big stat slabs + gradient atmosphere · AMD-red echoed in accent</div>
+
+  <!-- TITLE -->
+  <div class="frame">
+    <div class="chrome"><span><b>●</b> TBENCH · LOCAL-AGENT READINESS</span><span>AMD RYZEN AI MAX+ 395</span></div>
+    <div class="pad">
+      <div class="kick">The AI-PC era · on-device</div>
+      <h1>Almost<br><span class="g">there.</span></h1>
+      <div class="sub">Local coding agents on AMD silicon — measured, not guessed.</div>
+      <div class="strip">
+        <div><div class="n"><em>816</em></div><div class="l">graded trials</div></div>
+        <div><div class="n"><em>8.8</em>K</div><div class="l">LLM generations</div></div>
+        <div><div class="n">×<em>5.3</em></div><div class="l">intelligence / watt, 2yr</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DATA -->
+  <div class="frame">
+    <div class="chrome"><span><b>●</b> CAPABILITY · LOCAL vs LOCAL</span><span>VALID RUNS · 07</span></div>
+    <div class="pad">
+      <div class="h2">Run this on <span class="amd">AMD</span></div>
+      <div class="deck">Pass rate · easy agentic terminal tasks · best model × agent</div>
+      <div class="bars">
+        <div class="row"><div class="name">terminus-2 <span>· Qwen3-Coder-Next</span></div><div class="track"><div class="fill" style="width:84%"></div></div><div class="val">84%</div></div>
+        <div class="row"><div class="name">terminus-2 <span>· Qwen3.5-35B</span></div><div class="track"><div class="fill" style="width:81%"></div></div><div class="val">81%</div></div>
+        <div class="row"><div class="name">openhands <span>· Qwen3.5-35B</span></div><div class="track"><div class="fill i" style="width:53%"></div></div><div class="val">53%</div></div>
+        <div class="row"><div class="name">qwen-coder <span>· Qwen3.5-35B</span></div><div class="track"><div class="fill i" style="width:41%"></div></div><div class="val">41%</div></div>
+      </div>
+      <div class="ctx">FULL TERMINAL-BENCH 2.0 (leaderboard): best open <b>42–52%</b> · frontier <b>85–90%</b>. Above = curated <b>easy</b> slice, not the full benchmark.</div>
+    </div>
+  </div>
+
+  <!-- DASH -->
+  <div class="frame">
+    <div class="chrome"><span><b>●</b> DASHBOARD · INTERACTIVE</span><span>EFFICIENCY / PER-WATT</span></div>
+    <div class="pad">
+      <div class="tabs"><span>Overview</span><span>Capability</span><span class="on">Per-Watt</span><span>Failure modes</span><span>Trajectories</span></div>
+      <div class="grid2">
+        <div class="slab red"><div class="big">57.7<span class="u"> tok/s</span></div><div class="cap">gen throughput · Qwen3.5-35B on-device</div>
+          <div class="meter"><i style="width:62%;background:linear-gradient(90deg,#FF4D3D,#FF8A3D)"></i></div>
+          <div class="glow" style="background:#FF4D3D"></div></div>
+        <div class="slab ice"><div class="big">~0.9<span class="u"> kJ</span></div><div class="cap">energy / solved task · est. @ 60–70 W</div>
+          <div class="meter"><i style="width:44%;background:linear-gradient(90deg,#2b6e80,#7FE7FF)"></i></div>
+          <div class="glow" style="background:#7FE7FF"></div></div>
+      </div>
+      <div class="ctx" style="margin-top:20px">CLICK ANY MODEL → tok/s distribution, tokens-per-task, and the trajectories behind every pass &amp; fail.</div>
+    </div>
+  </div>
+</body>
+</html>
